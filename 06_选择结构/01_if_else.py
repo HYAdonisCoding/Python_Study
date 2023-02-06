@@ -15,3 +15,8 @@ if name:
 else:
     print('没有输入任何名字')
     
+if True:
+    print('666')
+else:
+      x = 6
+print(x)
