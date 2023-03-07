@@ -14,10 +14,10 @@ def _format_addr(s):
     return formataddr((Header(name, 'utf-8').encode(), addr))
 
 
-from_addr = input('From: hongyang_cao@126.com')
-password = input('Password: KBSZITZNAMPHGMXP')
-to_addr = input('To: 296786475@qq.com')
-smtp_server = input('SMTP server: smtp.163.com')
+from_addr = input('From: ')#hongyang_cao@126.com
+password = input('Password: ')#KBSZITZNAMPHGMXP
+to_addr = input('To: ')#296786475@qq.com
+smtp_server = input('SMTP server: ')#smtp.163.com
 
 msg = MIMEText('hello, send by Python...', 'plain', 'utf-8')
 msg['From'] = _format_addr('Python爱好者 <%s>' % from_addr)
