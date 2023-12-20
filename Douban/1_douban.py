@@ -4,7 +4,7 @@
 from bs4 import BeautifulSoup # 网页解析，获取数据
 import re # 正则表达式，进行文字匹配
 import urllib.request, urllib.error # 制定URL，获取网络数据
-# import xlwt # 进行Excel操作
+import xlwt # 进行Excel操作
 import sqlite3
 import certifi
 import ssl
@@ -18,8 +18,8 @@ def main():
     
     
     # 3.保存数据
-    # saveData(savePath)
-    saveData2DB(dataList,savePathDB)
+    saveData(dataList, savePath)
+    # saveData2DB(dataList,savePathDB)
     
 # 影片详情的规则
 findLink = re.compile(r'<a href="(.*?)">')
@@ -142,8 +142,25 @@ def askURL(url):
     finally:
         print(f"完成: {url}")
 
-def saveData(path):
-    pass
+def saveData(dataList, path):
+    # 创建一个Workbook对象
+    workbook = xlwt.Workbook()
+    # 添加一个sheet
+    sheet = workbook.add_sheet('sheet1')
+
+    # 写入表头
+    titles = ['info_link', 'pic_link', 'cname', 'ename', 'score', 'rated', 'instrodction', 'info']
+    for i in range(0, len(titles)):
+        sheet.write(0, i, titles[i])
+
+    # 写入表格数据
+    for i in range(0, len(dataList)):
+        item = dataList[i]
+        for j in range(0, len(item)):
+            sheet.write(i+1, j, item[j])
+
+    # 保存文件
+    workbook.save(path)
 if __name__ == '__main__':
     print("Starting Spiders")
     # init_db('movie.db')
