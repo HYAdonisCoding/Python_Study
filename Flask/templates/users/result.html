@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册成功</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .result-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #4caf50;
+        }
+
+        p {
+            color: #333;
+        }
+
+        a {
+            display: block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: #4caf50;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="result-container">
+        <h2>注册成功</h2>
+        <table border="1">
+            {% for key, value in result.items() %}
+            <tr>
+                <td>{{ key  }}</td>
+                <td>{{ value  }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        <p>感谢您的注册！您现在可以使用新账户登录。</p>
+        <a href="/login">返回登录页面</a>
+    </div>
+
+</body>
+
+</html>

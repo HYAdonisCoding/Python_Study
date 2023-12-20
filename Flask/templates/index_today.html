@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask</title>
+</head>
+
+<body>
+    <h2>Today is {{ var }}, Hello Flask</h2>
+    今天值班的有：<br>
+    {% for data in names %}
+    <li>{{ data }}</li>
+    {% endfor %}
+
+    任务： <br>
+    <table border="1">
+        {% for key, value in tasks.items() %}
+        <tr>
+            <td>{{ key  }}</td>
+            <td>{{ value  }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+
+</html>
