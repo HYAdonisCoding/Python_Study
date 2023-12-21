@@ -18,8 +18,8 @@ def main():
     
     
     # 3.保存数据
-    saveData(dataList, savePath)
-    # saveData2DB(dataList,savePathDB)
+    # saveData(dataList, savePath)
+    saveData2DB(dataList,savePathDB)
     
 # 影片详情的规则
 findLink = re.compile(r'<a href="(.*?)">')
@@ -86,7 +86,7 @@ def configSpace(str):
     str1 = re.sub(pattern, " ", str)
     return str1
 def saveData2DB(datalist, dbpath):
-    # init_db(dbpath)
+    init_db(dbpath)
     conn = sqlite3.connect(dbpath)
     cur = conn.cursor()
     for data in datalist:
@@ -95,7 +95,7 @@ def saveData2DB(datalist, dbpath):
                 continue
             data[index] ='"'+data[index]+'"'
         sql = '''
-            insert into movie250 
+            insert into movie_top250 
             (info_link,pic_link,cname,ename, score,rated, instrodction, info)
             values(%s)'''%",". join(data)
         print(sql)
@@ -108,8 +108,9 @@ def init_db(dbpath):
     conn = sqlite3.connect(dbpath)
     cur = conn.cursor()
     sql = '''
-            create table movie250 
-            (info_link text,
+            create table movie_top250 
+            (id integer primary key autoincrement,
+            info_link text,
             pic_link text,
             cname text,
             ename text, 
