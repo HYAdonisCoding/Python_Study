@@ -15,7 +15,7 @@
     <meta name="author" content="AUTHOR NAME">
 
     <!-- TITLE -->
-    <title>Multimax - Multipurpose One page</title>
+    <title>Python数据列表</title>
 
     <!-- FAVICON -->
     <link href="../static/img/favicon.ico" rel="icon">
@@ -35,7 +35,34 @@
 
     <!--Style CSS file-->
     <link rel=" stylesheet" href="../static/css/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
 
+        .pagination {
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .pagination a {
+            color: #000;
+            padding: 8px 16px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .pagination a:hover {
+            background-color: #ddd;
+        }
+
+        .pagination .active {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
 </head>
 
 <body>
@@ -63,19 +90,19 @@
             <!--Main menu navigation list-->
             <ul class="navbar-nav ml-auto line">
                 <li class="nav-item">
-                    <a class="nav-link" href="#home" data-scroll-nav="0">首页</a>
+                    <a class="nav-link" href="/index">首页</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/movie" data-scroll-nav="1">电影</a>
+                    <a class="nav-link active" href="#movie">电影</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/score" data-scroll-nav="2">评分</a>
+                    <a class="nav-link" href="/score">评分</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/portfolio" data-scroll-nav="3">词云</a>
+                    <a class="nav-link" href="/portfolio">词云</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/team" data-scroll-nav="4">团队</a>
+                    <a class="nav-link" href="/team">团队</a>
                 </li>
             </ul>
             <!--End of Main menu navigation list-->
@@ -84,7 +111,7 @@
     </nav>
     <!-- ====== END NAVGITION ======  -->
     <!-- ====== START GET READY ====== -->
-    <section class="ready padding">
+    <section class="ready movie padding" id="movie" data-scroll-index="1">
         <div class="container">
             <div class="row">
                 <div class="col-lg-12 cta">
@@ -100,20 +127,38 @@
                                 <td>概述</td>
                                 <td>其他信息</td>
                             </tr>
-                            {% for item in datas %}
-                            <tr>
-                                <td>{{ item[0] }}</td>
+                            <tbody>
+                                {% for item in datas %}
+                                <tr>
+                                    <td>{{ item[0] }}</td>
 
-                                <td>{{ item[3] }}</td>
-                                <td>{{ item[4] }}</td>
-                                <td>{{ item[5] }}</td>
-                                <td>{{ item[6] }}</td>
-                                <td>{{ item[7] }}</td>
-                                <td>{{ item[8] }}</td>
+                                    <td><a href="{{ item[1] }}">{{ item[3] }}</a></td>
 
-                            </tr>
-                            {% endfor %}
+                                    <td>{{ item[4] }}</td>
+                                    <td>{{ item[5] }}</td>
+                                    <td>{{ item[6] }}</td>
+                                    <td>{{ item[7] }}</td>
+                                    <td>{{ item[8] }}</td>
+
+                                </tr>
+                                {% endfor %}
+                            <tbody>
                         </table>
+                        <!-- start 分页组件 -->
+                        <div class="pagination">
+                            <a href="#movie" class="active" id="page1"
+                                onclick="goToPage(1, 'page1'); return false;">1</a>
+                            <a href="#movie" id="page2" onclick="goToPage(2, 'page2'); return false;">2</a>
+                            <a href="#movie" id="page3" onclick="goToPage(3, 'page3'); return false;">3</a>
+                            <a href="#movie" id="page4" onclick="goToPage(4, 'page4'); return false;">4</a>
+                            <a href="#movie" id="page5" onclick="goToPage(5, 'page5'); return false;">5</a>
+                            <a href="#movie" id="page6" onclick="goToPage(6, 'page6'); return false;">6</a>
+                            <a href="#movie" id="page7" onclick="goToPage(7, 'page7'); return false;">7</a>
+                            <a href="#movie" id="page8" onclick="goToPage(8, 'page8'); return false;">8</a>
+                            <a href="#movie" id="page9" onclick="goToPage(9, 'page9'); return false;">9</a>
+                            <a href="#movie" id="page10" onclick="goToPage(10, 'page10'); return false;">10</a>
+                        </div>
+                        <!-- end 分页组件 -->
                     </div>
                 </div>
             </div>
@@ -259,7 +304,59 @@
     <!-- coustom js -->
     <script src="../static/js/main.js"></script>
 
+    <script>
+        function goToPage(page, label) {
+            // 在这里添加页面跳转逻辑，例如跳转到相应的 URL
+            console.log('Go to page', page, 'with label', label);
 
+            // 移除之前的活动样式
+            var activePage = document.querySelector('.pagination .active');
+            if (activePage) {
+                activePage.classList.remove('active');
+            }
+
+            // 设置当前点击的页码为活动样式
+            var currentPage = document.getElementById('page' + page);
+            if (currentPage) {
+                currentPage.classList.add('active');
+            }
+
+            getData(page - 1)
+        }
+
+        function getData(page) {
+            // 点击按钮时发起 AJAX 请求
+
+            $.ajax({
+                url: '/get_data',
+                type: 'GET',
+                data: { 'page': page },
+                success: function (newData) {
+
+                    // 清空旧数据
+                    $('.table tbody').empty();
+                    // 更新页面内容
+                    for (var i = 0; i < newData.length; i++) {
+                        $('.table tbody').append('<tr>' +
+                            '<td>' + newData[i][0] + '</td>' +
+                            '<td><a href="' + newData[i][1] + '">' + newData[i][3] + '</a></td>' +
+                            '<td>' + newData[i][4] + '</td>' +
+                            '<td>' + newData[i][5] + '</td>' +
+                            '<td>' + newData[i][6] + '</td>' +
+                            '<td>' + newData[i][7] + '</td>' +
+                            '<td>' + newData[i][8] + '</td>' +
+                            '</tr>');
+                    }
+
+                },
+                error: function (error) {
+                    console.log('Error:', error);
+                }
+            });
+
+        }
+
+    </script>
 </body>
 
 </html>
