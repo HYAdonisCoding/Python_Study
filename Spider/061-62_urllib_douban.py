@@ -9,7 +9,7 @@ import json
 # 获取当前文件所在目录
 current_directory = os.path.dirname(os.path.abspath(__file__)) + '/'
 
-def getFirstPage(url):
+def getPageData(url):
     # 创建 SSL 上下文
     ssl_context = ssl.create_default_context()
 
@@ -38,7 +38,7 @@ def getFirstPage(url):
         fp.write(content)
     
 
-def main(url, data):
+def postMethod(url, data):
     # 创建 SSL 上下文
     ssl_context = ssl.create_default_context()
 
@@ -87,8 +87,53 @@ def main(url, data):
     
     obj = json.loads(content)
     print(obj)
+def create_request(page):
+    # 创建 SSL 上下文
+    ssl_context = ssl.create_default_context()
 
+    # 使用 certifi 提供的证书
+    ssl_context.load_verify_locations(certifi.where())
+
+    # 创建一个包含自定义 SSL 上下文的 opener
+    opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_context))
+    urllib.request.install_opener(opener)
+
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    }
+    base_url = f'https://movie.douban.com/j/chart/top_list?type=5&interval_id=100%3A90&action=&'
+    data = {
+        'start': (page-1)*20,
+        'limit': 20 
+    }
+    data = urllib.parse.urlencode(data)
+    url = base_url + data
+    # 1.请求对象的定制
+    request = urllib.request.Request(url=url, headers=headers)
+    return request
+
+def get_content(request):
+    # 2.获取想要的数据
+    response = urllib.request.urlopen(request)
+    content = response.read().decode('utf-8')
+    return content
+
+def down_load(content, page):
+    # 3.数据下载到本地
+    with open(current_directory+'douban_'+ str(page)+'.json', 'w', encoding='utf-8') as fp:
+         fp.write(content)
+def start():
+    start_page = int(input('请输入起始页码:'))
+    end_page = int(input('请输入结束页码:'))
+    for page in range(start_page, end_page+1):
+        request = create_request(page)
+        
+        content = get_content(request)
+        
+        down_load(content, page)
 if __name__ == '__main__':
-    url = 'https://movie.douban.com/j/chart/top_list?type=5&interval_id=100%3A90&action=&start=0&limit=20'
-    getFirstPage(url)
-    page = 'https://movie.douban.com/j/chart/top_list?type=5&interval_id=100%3A90&action=&start=20&limit=20'
+    # url = 'https://movie.douban.com/j/chart/top_list?type=5&interval_id=100%3A90&action=&start=0&limit=20'
+    # getFirstPage(url)
+    # page = 'https://movie.douban.com/j/chart/top_list?type=5&interval_id=100%3A90&action=&start=20&limit=20'
+    start()
