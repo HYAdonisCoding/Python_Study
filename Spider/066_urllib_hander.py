@@ -9,7 +9,6 @@ import urllib.request
 
 # 获取当前文件所在目录
 current_directory = os.path.dirname(os.path.abspath(__file__)) + '/'
-# hander方式的get请求
 def send_get_request_hander(url, headers):
     # 创建 SSL 上下文
     ssl_context = ssl.create_default_context()
@@ -37,7 +36,6 @@ def send_get_request_hander(url, headers):
         print('系统正在升级...', e)
     except urllib.error.URLError as e:
         print('系统正在升级中...', e)
-        
 def send_get_request(url, headers):
     # 创建 SSL 上下文
     ssl_context = ssl.create_default_context()
@@ -91,12 +89,14 @@ def send_post_request(url, data, headers):
     print(obj)
     
 if __name__ == '__main__':
-    url = ''
+    url = 'https://www.baidu.com'
     headers = {
-        'Cookie': 'SUB=_2A25IpI_DDeRhGedG6FEX8y3JzzmIHXVr240LrDV6PUJbktANLU7nkW1NUVZ59YeLx6jmhT8pxCx87K5fQZGm0rsK; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WFF4GdBox5fXBwRZuLnwSHm5JpX5KzhUgL.Fo2Re0ece0efSh-2dJLoIEBLxKML1hML1K-LxKBLB.2L1K2LxK-LBo5L1K2LxK-L1K5L1-zt; SSOLoginState=1705050003; ALF=1707642003; _T_WM=8dcc16642495c37ae39b127f822e1650',
+        # 'Cookie': 'SUB=_2A25IpI_DDeRhGedG6FEX8y3JzzmIHXVr240LrDV6PUJbktANLU7nkW1NUVZ59YeLx6jmhT8pxCx87K5fQZGm0rsK; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WFF4GdBox5fXBwRZuLnwSHm5JpX5KzhUgL.Fo2Re0ece0efSh-2dJLoIEBLxKML1hML1K-LxKBLB.2L1K2LxK-LBo5L1K2LxK-L1K5L1-zt; SSOLoginState=1705050003; ALF=1707642003; _T_WM=8dcc16642495c37ae39b127f822e1650',
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     }
-    send_get_request(url, headers)
+    # send_get_request(url, headers)
+    
+    send_get_request_hander(url, headers)
     data = {
         'from': 'en',
         'to': 'zh',
