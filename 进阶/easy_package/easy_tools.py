@@ -40,3 +40,40 @@ if __name__ == '__main__':
     print(get_time())
     print(get_time('%Y-%m-%d'))
     print(get_time('%H:%M:%S'))
+    
+
+
+def generate_random_name():
+    first_names = [
+        "James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael",
+        "Linda", "William", "Elizabeth", "David", "Barbara", "Richard", "Susan",
+        "Joseph", "Jessica", "Thomas", "Sarah", "Charles", "Karen", "Christopher",
+        "Nancy", "Daniel", "Lisa", "Matthew", "Betty", "Anthony", "Margaret",
+        "Mark", "Sandra", "Donald", "Ashley", "Steven", "Kimberly", "Paul",
+        "Emily", "Andrew", "Donna", "Joshua", "Michelle", "Kenneth", "Dorothy",
+        "Kevin", "Carol", "Brian", "Amanda", "George", "Melissa", "Edward",
+        "Deborah", "Ronald", "Stephanie", "Timothy", "Rebecca", "Jason", "Sharon",
+        "Jeffrey", "Laura", "Ryan", "Cynthia", "Jacob", "Kathleen", "Gary",
+        "Amy", "Nicholas", "Shirley", "Eric", "Angela", "Stephen", "Helen",
+        "Jonathan", "Anna", "Larry", "Brenda", "Justin", "Pamela", "Scott",
+        "Nicole", "Brandon", "Emma", "Frank", "Samantha", "Benjamin", "Katherine",
+        "Gregory", "Christine", "Raymond", "Debra", "Samuel", "Rachel", "Patrick",
+        "Carolyn", "Alexander", "Janet", "Jack", "Catherine", "Dennis", "Maria",
+        "Jerry", "Heather", "Tyler", "Diane"
+    ]
+
+    last_names = [
+        "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller",
+        "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez",
+        "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin",
+        "Lee", "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark",
+        "Ramirez", "Lewis", "Robinson", "Walker", "Young", "Allen", "King",
+        "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores", "Green",
+        "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell",
+        "Carter", "Roberts"
+    ]
+
+    first_name = random.choice(first_names)
+    last_name = random.choice(last_names)
+
+    return f"{first_name} {last_name}"
