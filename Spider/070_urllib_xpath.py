@@ -93,25 +93,25 @@ def send_get_request_delegate(url, headers):
 if __name__ == '__main__':
     parse_local_file()
     
-    url = 'http://www.baidu.com/s?wd=ip'
-    url = 'https://en.ipshu.com/'
-    headers = {
-        'Cookie': '__gads=ID=ec54ccad7b00d309:T=1705311424:RT=1705311424:S=ALNI_MY408XW44pMg2sMxTYDEXSuGtuQTg; __gpi=UID=00000cdd15ed35fc:T=1705311424:RT=1705311424:S=ALNI_MYZrN-r2idhR49aYtMbU8uFvZlMJQ',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    }
-    # send_get_request(url, headers)
+    # url = 'http://www.baidu.com/s?wd=ip'
+    # url = 'https://en.ipshu.com/'
+    # headers = {
+    #     'Cookie': '__gads=ID=ec54ccad7b00d309:T=1705311424:RT=1705311424:S=ALNI_MY408XW44pMg2sMxTYDEXSuGtuQTg; __gpi=UID=00000cdd15ed35fc:T=1705311424:RT=1705311424:S=ALNI_MYZrN-r2idhR49aYtMbU8uFvZlMJQ',
+    #     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    # }
+    # # send_get_request(url, headers)
     
-    # send_get_request_delegate(url, headers)
-    data = {
-        'from': 'en',
-        'to': 'zh',
-        'query': 'spider',
-        'transtype': 'enter',
-        'simple_means_flag': '3',
-        'sign': '63766.268839',
-        'token': '1aa74f88c034c0914382c8e42e3f69f3',
-        'domain': 'common',
-        'ts': '1704960917667',
-    }
-    # send_post_request(url, data, headers)
+    # # send_get_request_delegate(url, headers)
+    # data = {
+    #     'from': 'en',
+    #     'to': 'zh',
+    #     'query': 'spider',
+    #     'transtype': 'enter',
+    #     'simple_means_flag': '3',
+    #     'sign': '63766.268839',
+    #     'token': '1aa74f88c034c0914382c8e42e3f69f3',
+    #     'domain': 'common',
+    #     'ts': '1704960917667',
+    # }
+    # # send_post_request(url, data, headers)
     

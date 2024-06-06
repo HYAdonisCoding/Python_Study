@@ -35,11 +35,11 @@ class CalculatorFrame(wx.Frame):
         self.btn_1 = wx.Button(self.p1, label='1', pos=(self.pos_x, self.pos_y+h*3), size=(self.btn_w, self.btn_h))
         self.btn_2 = wx.Button(self.p1, label='2', pos=(self.pos_x+w, self.pos_y+h*3), size=(self.btn_w, self.btn_h))
         self.btn_3 = wx.Button(self.p1, label='3', pos=(self.pos_x+w*2, self.pos_y+h*3), size=(self.btn_w, self.btn_h))
-        self.btn_eq = wx.Button(self.p1, label='=', pos=(self.pos_x+w*3, self.pos_y+h*3), size=(self.btn_w, self.btn_h))
+        self.btn_eq = wx.Button(self.p1, label='=', pos=(self.pos_x+w*3, self.pos_y+h*3), size=(self.btn_w, self.btn_h*2+10))
         
         # 第五行
         self.btn_0 = wx.Button(self.p1, label='0', pos=(self.pos_x, self.pos_y+h*4), size=(self.btn_w*2, self.btn_h))
-        self.btn_point = wx.Button(self.p1, label='.', pos=(self.pos_x+w*2, self.pos_y+h*4), size=(self.btn_w*2, self.btn_h))
+        self.btn_point = wx.Button(self.p1, label='.', pos=(self.pos_x+w*2, self.pos_y+h*4), size=(self.btn_w, self.btn_h))
         
         self.Bind(wx.EVT_BUTTON, self.On_btn_number, self.btn_9)
         self.Bind(wx.EVT_BUTTON, self.On_btn_number, self.btn_8)
