@@ -94,6 +94,135 @@ soup.a.attrs
   obj.get_text()【推荐】
 ```
 
+### 4.selenium
+
+1. 什么是selenium？
+
+2. 为什么使用selenium？
+
+模拟浏览器功能，自动执行网页中的js代码，实现动态加载
+
+3. 如何安装selenium？
+
+（1）换作谷歇浏览器驱动下载地址
+
+http://chromedriver.storage.googleapis.com/index.html
+
+（2）谷歌驱动和谷歇浏览器版本之间的映射表
+
+http://blog.csdn.net/huilan_same/article/details/51896672
+
+（3） 查看谷歇浏览器版本
+
+谷歌浏览器右上角 ->帮助-->关于
+
+(4) pip install selenium
+
+4. selenium的使用步骤？
+
+```
+(1) 导入: from selenium import webdriver
+(2) 创建谷歌浏览器操作对象：
+path = 谷歌浏览器驱动文件路径
+browser = webdriver .Chrome(path)
+(3) 访问网址
+ur1 = 要访问的网址
+browser.get(url)
+```
+
+4-1: selenium的元素定位？
+
+元素定位：自动化要做的就是模拟鼠标和键盘来操作来操作这些元素，点击、输入等等。操作这些元素前首先
+
+要找到它们，webDriver提供很多定位元素的方法
+
+方法：
+
+```
+
+1. find_element_by_id
+	eg: button = browser.find_element_by_id('su')
+2. find_elements_by_name
+	eg: name = browser.find_element_by_name('wd')
+3. find_elements_by_xpath
+	eg: xpath1 = browser.find_elements_by_xpath('//input[@id="su"]')
+4. find_elements_by_tag_name
+	eg:names = browser.find_elements_by_tag_name('input')
+5. find_elements_by_css_selector
+	eg:my_input = browser.find_elements_by_css_selector ('#kw')[0]
+6.find_elements_by_link_text
+	eg:browser. find_element_by_link_text ("#Fil")
+
+
+
+```
+
+4-2：访问元素信息
+
+```
+获取元素厲性
+	.get_attribute('class')
+获取元素文本
+	.text
+获取标签名
+	.tag_name
+```
+
+4-3：交互
+
+```python
+点击：click()
+輸入：send_keys()
+后退操作：browser.back()
+前进操作：browser.forword()模拟JS滚动：
+js = document. documentElement. scrollTop=100000'
+browser.execute_script（js）执行js代码获取网页代码：page_source
+退出：browser.quit()
+```
+
+2.Phantomjs
+
+1. ﻿﻿什么是Phantomjs？
+
+   ```
+   （1）是一个无界面的浏览器
+   （2）支持页面元素查找，js的执行等
+   （3）由于不进行css和gui渲染，运行效率要比真实的浏览器要快很多
+   ```
+
+   
+
+2. ﻿﻿如何使用Phantomjs？
+
+   ```
+   (1) 获取PhantomJS.exe文件路径path
+   (2) browser = webdriver.PhantomJS(path)
+   (3) browser.get(url)
+   扩展：保存屏幕快照：browser.save_screenshot('baidu.png')
+   ```
+
+   
+
+3.Chrome handless
+
+```
+1.系统要求：
+  Chrome
+		Unix/Linux 系統需要 chrome >= 59
+		windows 系统需要 chrome >= 60
+
+	Python3.6
+	Selenium==3.4. *
+	ChromeDriver==2.31
+```
+
+
+
+```
+2.配置：
+```
+
 今日任务：
 
-- 爬虫
+- 
+- 5c:1b:f4:8a:a7:7e
