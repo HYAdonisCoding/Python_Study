@@ -1,0 +1,22 @@
+headers = {
+    'Accept': 'application/json, text/javascript, */*; q=0.01',
+    'Accept-Encoding': 'gzip, deflate, br, zstd',
+    'Accept-Language': 'zh-CN,zh;q=0.9',
+    'Connection': 'keep-alive',
+    'Content-Length': '4',
+    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+    'Cookie': 'BIDUPSID=F01E32202B282770C372730340F0BE6D; PSTM=1718693729; BAIDUID=F01E32202B282770177C3B572A67C3E1:FG=1; H_PS_PSSID=60327_60334_60345; BA_HECTOR=80al8h0h0ga48420058kak0g0p3c201j72br41v; BAIDUID_BFESS=F01E32202B282770177C3B572A67C3E1:FG=1; ZFY=mT2uAmbes1o4cd4a4WDLTJVIKKVGXJIFcWscaEL8h2Q:C; PSINO=1; delPer=0; BDORZ=B490B5EBF6F3CD402E515D22BCDA1598; Hm_lvt_64ecd82404c51e03dc91cb9e8c025574=1718693795; Hm_lpvt_64ecd82404c51e03dc91cb9e8c025574=1718693795; APPGUIDE_10_7_8=1; REALTIME_TRANS_SWITCH=1; FANYI_WORD_SWITCH=1; HISTORY_SWITCH=1; SOUND_SPD_SWITCH=1; SOUND_PREFER_SWITCH=1; ab_sr=1.0.1_ZGVjYmQ3ZGQ1MWYxMzdjOTQ1NTc2MTU5N2I5NGE3ZWQ5MTI1YTRmYjk1YTcwMDFmZmUxZjkwNWNlYmE3MWZiYzA3N2IxODFkODZmNjU1NzJiNGIxYWUzMmE1Y2EyNGQwYTdiMWYyNjZlM2Q3ODQ4NGJiODgwMTg5ODVkYTAyODhlZmU4NmZkZmFkMTIwNGFhODYwYjRiMjUxNDljNDk1OA==',
+    'Dnt': '1',
+    'Host': 'fanyi.baidu.com',
+    'Origin': 'https://fanyi.baidu.com',
+    'Referer': 'https://fanyi.baidu.com/translate',
+    'Sec-Ch-Ua': '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
+    'Sec-Ch-Ua-Mobile': '?0',
+    'Sec-Ch-Ua-Platform': '"macOS"',
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'same-origin',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+    'X-Requested-With': 'XMLHttpRequest',
+
+}

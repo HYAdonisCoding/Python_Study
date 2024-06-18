@@ -220,9 +220,111 @@ browser.execute_script（js）执行js代码获取网页代码：page_source
 
 ```
 2.配置：
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
+# 创建 ChromeOptions 对象
+chrome_options = Options()
+
+# 设置 Chrome 以无头模式启动
+chrome_options.add_argument('--headless')
+chrome_options.add_argument('--disable-gpu')  # 禁用 GPU 加速
+
+# 创建 Chrome WebDriver 对象，传入 ChromeOptions 对象
+browser = webdriver.Chrome(options=chrome_options)
+
+# 访问网页示例（这里访问百度）
+browser.get('http://www.baidu.com/')
+```
+
+### requests
+
+1.基本使用
+
+```
+1.文档：
+	官方文档
+http://cn.python-requests.org/zh_CN/latest/
+	快速上手
+http://cn.python-requests.org/zh_CN/latest/user/quickstart.html
+```
+
+2.安装
+
+```
+pip install requests
+```
+
+3.response的属性性以及类型
+
+| 类型          | : models.Response    |
+| ------------- | -------------------- |
+| r.text        | ：获取网站源码       |
+| r.encoding    | ：访问或定制编码方式 |
+| r.url         | ：获取请求的ur1      |
+| r.content     | ：响应的字节类型     |
+| r.status_code | ：响应的状态码       |
+| r.headers     | ：响应的头信息       |
+
+
+
+2.get请求
+
+```python
+requests.get() 
+	eg:
+		import requests
+		url = 'http://www.baidu.com/s?'
+		data = {
+    	'wd': '北京'
+		}
+		headers = {
+    	'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+	}
+		response = requests.get(url=url, params=data, headers=headers)
+# 总结：
+# 参数使用params传递
+# 参数无需urlencode编码
+# 不需要请求对象的定制
+# 请求资源路径中的？可以加也可以不加
+```
+
+3.post清求
+
+```
+requests.post()
+百度翻译：
+eg:
+import requests
+post_url = 'http://fanyi.baidu.com/sug'
+headers={
+	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebkit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36'
+}
+data = {
+	'kw': 'eye'
+} 
+r = requests.post(url = post_ur1, headers=headers,data=data)
+```
+
+
+
+> get和post区別？
+>
+> 1: get清求的参数名字是params post清求的参数的名字是data
+>
+> 2： 请求资源路径后面可以不加？
+>
+> 3： 不需要手动编解码
+>
+> 4： 不需要做请求对象的定制
+
+4.代理
+
+```
+
 ```
 
 今日任务：
 
 - 
-- 5c:1b:f4:8a:a7:7e
+- 
