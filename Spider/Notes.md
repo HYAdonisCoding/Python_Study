@@ -324,6 +324,192 @@ r = requests.post(url = post_ur1, headers=headers,data=data)
 
 ```
 
+
+
+## 1.scrapy
+
+### 1.scrapy简介
+
+（1）scrapy是什么？
+
+Scrapy是一个为了爬取网站数据，提取结构性数据而编写的应用框架。可以应用在包括数据挖
+
+掘，信息处理或存储历史数据等一系列的程序中。
+
+（2） 安装scrapy：
+
+```
+pip install scrapy
+安装过程中出错：
+	如果安装有错误！！！！
+	pip install Scrapy
+	building 'twisted.test.raiser' extension
+	error: Microsoft Visual C++ 14.0 is required. Get it with "Microsoft Visual C++ Build Tools": http://landinghub.visualstudio.com/visual-cpp-build-tools
+
+解决方案：
+	http://www.1fd.uci.edu/~gohlke/pythonlibs/#twisted
+	下载twisted对应版本的wh1文件（如我的Twisted-17.5.0-cp36-cp36m-win_amd64.wh1），cp
+后面是python版本，amd64代表64位，运行命令：
+	pip install C: \Users\... \Twisted-17.5.0-cp36-cp36m-win_amd64.wh1
+	pip install Scrapy
+如果再报错
+	python -m pip install --upgrade pip
+如果再报错 win32
+	pip install pypypiwin32
+	
+配置环境变量
+# scrapy
+export PATH=/Users/adam/Library/Python/3.9/bin/scrapy:$PATH
+```
+
+### 2.scrapy项目的创建以及运行
+
+1.创建scrapy项目：
+ 	终端输入
+
+```
+scrapy startproject 項目名称
+```
+
+2.项目组成：
+
+```
+
+ |--spiders
+ |----__init__.py
+ |----自定义的爬虫文件.py # 由我们自己创建，是实现爬虫核心功能的文件
+ |--__init__.py
+ |--middlewares.py # 中间件 代理
+ |--settings.py #配置文件 比如：是否遵守robots协议，User-Agent定义等
+ |--items.py  # 定义数据结构的地方，是一个继承自scrapy.Item的类
+ |--pipelines.py # 管道文件，里面只有一个类，用于处理下载数据的后续处理
+   									默认是300优先级，值越小优先级越高（1-1000）
+ |scrapy.cfg
+
+```
+
+3.创建爬虫文件：
+
+```
+（1）跳转到spiders文件夹 cd 目录名字/目录名字/spiders
+（2） scrapy genspider 爬虫名字 网页的域名
+ 爬虫文件的基本组成：
+ 		继承scrapy.Spider类
+ 			name = 'baidu' -> 运行爬虫文件时使用的名字
+ 			allowed_domains -> 爬虫允许的域名，在爬取的时候，如果不是此域名之下的
+
+url，会被过滤掉
+	start_urls -—-> 声明了爬虫的起始地址，可以写多个url，一般是一个
+	parse(self,response)---> 解析数据的回调函数
+	response. text--->响应的是字符串
+	response. body --->响应的是二进制文件
+	response.xpath()->xpath方法的返回值类型是selector列表
+(3) 运行爬虫代码
+    scrapy crawl 爬虫的名字
+    eg : scrapy crawl baidu 
+```
+
+
+
+### 3.scrapy架构組成
+
+```
+(1) 引擎	--->自动运行，无需关注，会自动组织所有的请求对象，分发给下载器
+(2) 下载器	--->从引警处获取到请求对象后，请求数据
+(3) spiders	--->spider类定义了如何爬取某个(或某些)网站。包括了爬取的动作(例如:是否跟进链接)以及如何从网页的内容中提取结构化数据(爬取item)。 换句话说，Spider就是您定义爬取的动作及分析某个网页(或者是有些网页)的地方。
+(4) 调度器	--->有自己的调度规则，无需关注
+(5) 管道 (Item pipeline)	--->最终处理数据的管道，会预留接口供我们处理数据
+当Item在Spider中被收集之后，它将会被传递到item Pipeline，一些组件会按照一定的顺序执行对Item的处理。每个item pipeline组件(有时称之为“Item Pipeline”)是实现了简单方法的python类。他们接收到item并通过它执行一些行为，同时也决定此item是否继续通过pipeline，或是被丢弃而不再进行处理。
+以下是item pipeline的一些典型应用:
+1.清理HTML数据
+2.验证爬取的数据(检查item包含某些字段)
+3.查重(并丢弃)
+4.将爬取结果保存到数据库中
+
+```
+
+
+
+### 4.scrapy工作原理
+
+```
+1、引擎向spiders要url
+2、引擎将要爬取的url给调度器
+3、调度器会将url生成请求对象放入到指定的队列中
+4、从队列中出队一个请求
+5、引擎将请求交给下载器进行处理
+6、下载器发这请求获取互联网数据
+7、下载器将教据返回给引擎
+8、引擎将数据再次给到spiders
+9、spiders通过xpath解析该数据，得到数据或有url
+10、spiders将数据或者url给到引擎
+11、引擎判断是数据还是url，是数据交给管道(item pipeline)处理，是url交给调度器处理
+```
+
+![scrpay工作原理-2](Notes.assets/scrpay工作原理-2.png)
+
+## 2.scrapy shell
+
+1.什么是scrapy shel1?
+	Scrapy终端，是一个交互终端，供您在未启动spider的情况下尝试及调试您的爬取代码。 其本意是用来测试提取数据的代码，不过您可以将其作为正常的Python终端，在上面测试任何的Python代码。亥终端是用来测试XPath或(SS表达式，查看他们的工作方式及从爬取的网页中提取的数据。在编写您的spider时，该终端提供了交互性测试您的表达式代码的功能，免去了每次修改后运行spider的麻烦。
+
+一旦熟悉了scrapy终端后，您会发现其在开发和调试spider时发挥的巨大作用。
+2.安装ipython
+	安装: 
+
+```
+pip install ipython
+```
+
+简介:如果您安装了IPython ，scrapy终端将使用 IPython (替代标准Python终端)。 IPython终端与其他相比更为强大，提供智能的自动补全，高亮输出，及其他特性。
+
+3.应用:
+
+```
+(1) scrapy shell www.baidu.com
+(2) scrapy shel1 http://www.baidu.com
+(3) scrapy shell "http://www.baidu.com"
+(4) scrapy shell "www.baidu.com"
+语法:
+(1) response对象:
+	response.bodyres
+	ponse.textresponse.ur1
+	response. status
+(2) response的解析:
+	response.xpath() (常用)
+		使用xpath路径查询特定元素，返回一个selector列表对象
+```
+
+
+
+## 3.yield
+
+## 4.Mysal
+
+## 5.pymysql的使用步骤
+
+## 6.CrawlSpider
+
+## 7.CrawlSpider案例
+
+## 8.数据入库
+
+## 9﻿.﻿日志信息和日志等级
+
+## 10.Request和response总结
+
+## 11.scrapyBpost清求
+
+## 12.代理
+
+
+
+
+
+
+
+
+
 今日任务：
 
 - 
