@@ -521,7 +521,7 @@ pip install ipython
 
 (1) 一个item包含多级页面的数据
 
-## 4.Mysal
+## 4.Mysql
 
 (1) 下载(https://dev.mysql.com/downloads/windows/installer/5.7.html)
 
@@ -530,24 +530,141 @@ pip install ipython
 ## 5.pymysql的使用步骤
 
 ```
-1.pip install pymysql
+1.pip3 install pymysql
 2.pymysql.connect(host,port,user,password, db, charset)
 3.conn.cursor()
+4.cursor.exexute()
 ```
 
 
 
 ## 6.CrawlSpider
 
+1. 继承自scrapy.Spider
+2. 独门秘笈
+
+​	crawlSpider可以定义规则，再解析html内容的时候，可以根据链接规则提取出指定的链接，然后再向这些链接发送请求
+​	所以，如果有需要跟进链接的需求，意思就是爬取了网页之后，需要提取链接再次爬取，使用crawlSpider是非常合适的
+
+3. 提取链接
+   链接提取器，在这里就可以写规则提取指定链接
+
+   ```
+    scrapy.linkextractors.LinkExtractor(
+      	allow = (), #正则表达式提取符合正则的链接
+   		deny = (), #用)正则表达式 不提取符合正则的链接
+   		allow domains = ()， # (不用)允许的域名
+   		deny_domains = ()，# (不用) 不允许的域名
+   		restrict_xpaths = ()，# xpath，提取符合xpath规则的链接
+   		restrict_css = ()#取符合选择器规则的链接)
+   ```
+
+   
+
+4. 模拟使用
+
+   ```
+   正则用法: links1 = LinkExtractor(allow=r'list_23_\d+\.html')
+   xpath用法: links2 = LinkExtractor(restrict_xpaths=r'//div[@class="x"]')
+   css用法: links3 = LinkExtractor(restrict_css='.x")
+   ```
+
+   
+
+5. 提取连接
+
+```
+link.extract_links(response)
+```
+
+6. 注意事项
+   [注1] callback只能写函数名字符串，callback='parse_item'
+   [注2] 在基本的spider中，如果重新发送请求，那里的callback写的是callback=self.parse item [注-稍后看] fo1low=true 是否跟进 就是按照提取连接规则进行提取
+
+​	
+
+```
+from scrapy.linkextractors import LinkExtractor
+```
+
+
+
 ## 7.CrawlSpider案例
+
+需求:读书网数据入库
+
+```
+1.创建项目: scrapy startproject scrapy_readbook_101
+2.跳转到spiders路径: cd scrapy_readbook_101/scrapy_readbook_101/spiders
+3.创建爬虫类: scrapy genspider -t crawl read https://www.dushu.com/book/1175.html
+4. items
+5. spiders
+6. settings
+7. pipelines
+   	数据保存到本地
+   	数据保存到mysql数据库
+```
+
 
 ## 8.数据入库
 
+```
+(1) settings配置参数:
+		DB_HOST ='192.168.231.128
+		DB_PORT = 3306
+		DB_USER ='root"
+		DB_PASSWORD =1234'
+		DB_NAME ='test'
+		DB_CHARSET ='utf8'
+(2) 管道配置
+		from scrapy.utils.project import get_project_settings
+		import pymysql
+		class Mysqlpipeline(object):
+		# init 方法和open_spider的作用是一样的
+
+```
+
+
+
 ## 9﻿.﻿日志信息和日志等级
+
+```
+(1) 日志级别:
+		CRITICAL:严重错误
+		ERROR:一般错误
+		WARNING:警告
+		INFO:一般信息
+		DEBUG:调试信息
+		
+		默认的日志等级是DEBUG
+		只要出现了DEBUG或者DEBUG以上等级的日志那么这些日志将会打印
+(2) settings.py文件设置:
+		默认的级别为DEBUG，会显示上面所有的信息
+		在配置文件中 settings.py
+		LOG_FILE :将屏幕显示的信息全部记录到文件中，屏幕不再显示，注意文件后缀一定是.1og
+		LOG_LEVEL : 设置日志显示的等级，就是显示哪些，不显示哪些
+```
+
+
 
 ## 10.Request和response总结
 
-## 11.scrapyBpost清求
+
+
+## 11.scrapy的post请求
+
+```
+(1) 重写start requests方法:
+		def start_requests(self)
+(2) start requests的返回值:
+		scrapy.FormRequest(url=url, headers=headers, callback=self.parse_item, formdata=data)
+			ur1:要发送的post地址
+			headers:可以定制头信息
+			callback:回调函数
+			formdata: post所携带的数据，这是一个字典
+```
+
+
 
 ## 12.代理
 
