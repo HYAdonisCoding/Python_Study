@@ -476,21 +476,66 @@ pip install ipython
 (4) scrapy shell "www.baidu.com"
 语法:
 (1) response对象:
-	response.bodyres
-	ponse.textresponse.ur1
-	response. status
+		response.body
+		response.text
+		response.ur1
+		response. status
 (2) response的解析:
-	response.xpath() (常用)
-		使用xpath路径查询特定元素，返回一个selector列表对象
+		response.xpath() (常用)
+			使用xpath路径查询特定元素，返回一个selector列表对象
+		response.css()
+			使用css selector查询元素，返回一个selector列表对象
+			获取内容 : response.css('#su::text').extract_first()
+			获取属性 : response.css('#su::attr("value")').extract first()
+		extract first()
+			提取seletor列表中的第一个值
+			如果提取不到值 会返回一个空值
+			返回第一个解析到的值，如果列表为空，此种方法也不会报错，会返回一个空值
+		xpath()
+		css()
+			注意:每一个selector对象可以再次的去使用xpath或者css方法
+
 ```
 
 
 
 ## 3.yield
 
+1. 带有 yield 的函数不再是一个普通函数，而是一个生成器generator，可用于迭代
+
+2. yield 是一个类似 return 的关键字，迭代一次遇到vield时就返回vield后面(右边)的值，重点是: 下一次迭代时，从上一次迭代遇到的yield后面的代码(下一行)开始执行
+
+3. 简要理解: yield就是 return 返回一个值，并且记住这个返回的位置，下次迭代就从这个位置后(下一行)开始
+
+   
+
+   
+
+   案例:
+
+1.当当网
+
+2.电影天堂
+
+(1) yield (2) 管道封装 (3) 多条管道下载 (4) 多页数据下载
+
+(1) 一个item包含多级页面的数据
+
 ## 4.Mysal
 
+(1) 下载(https://dev.mysql.com/downloads/windows/installer/5.7.html)
+
+(2) 安装 (https://jingyan.baidu.com/album/d7130635f1c77d13fdf475df.html)
+
 ## 5.pymysql的使用步骤
+
+```
+1.pip install pymysql
+2.pymysql.connect(host,port,user,password, db, charset)
+3.conn.cursor()
+```
+
+
 
 ## 6.CrawlSpider
 
