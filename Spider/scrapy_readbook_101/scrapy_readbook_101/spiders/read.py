@@ -12,7 +12,7 @@ class ReadSpider(CrawlSpider):
     rules = (
         Rule(LinkExtractor(allow=r"/book/1175_\d+\.html"), 
              callback="parse_item", 
-             follow=False),
+             follow=True),
         )
 
     def parse_item(self, response):
@@ -21,7 +21,7 @@ class ReadSpider(CrawlSpider):
         for img in img_list:
             name = img.xpath('./@alt').extract_first()
             src = img.xpath('./@data-original').extract_first()
-            print( name, src)
+            # print( name, src)
             book = ScrapyReadbook101Item(name=name, src=src)
             yield book
         print(response.url, 'end', '-' * 30)
