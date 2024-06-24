@@ -24,6 +24,9 @@ import os
 # 获取当前文件所在目录
 current_directory = os.path.dirname(os.path.abspath(__file__)) + '/'
 # 多管道开启
+# 1. 定义管道类
+# 2. 在settings中开启管道
+# "scrapy_dangdang_095.pipelines.DangDangDowwnloadPipeline": 301,
 class DangDangDowwnloadPipeline:
     def process_item(self, item, spider):
         url = item.get('src')
