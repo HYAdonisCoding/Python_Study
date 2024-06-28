@@ -2,6 +2,7 @@
 
 import urllib.parse  
 import json
+import AboutDB
 
 class ScrapySpiderPracticeItem(dict):
     def __init__(self, *args, **kwargs):
@@ -221,6 +222,59 @@ def dispose_of_url(url):
     else:
         print("shengji parameter not found in the URL.")
         return None
+
+def dispose_of_data():
+    data = [['java 高级', 'JAVA 工程师', 'Java 工程师', 'java 魏公村', 'Java 工程师', 'java 工程师', 'java web', 'JAVA 开发', 'Java 工程师', 'Java 工程师', 'Java Developers', 'JAVA 开发', 'Java 开发工程师', 'JAVA 开发工程师', 'Seinor Java Engineer', 'Java 资深/专家工程师', 'JAVA 开发工程师', 'Java 中级工程师', 'java 开发工程师', 'Java 工程师', 'Java 中级工程师', 'java web 工程师', 'Java 研发工程师', 'Java 研发工程师', 'JAVA web工程师', 'Java 开发', 'java 工程师', 'Java 工程师', 'Java 高级开发工程师', '致远互联 java 开发'], ['北京·朝阳区·三元桥', '北京·朝阳区·高碑店', '北京·海淀区·上地', '北京·海淀区·万柳', '北京·通州区·九棵树', '北京·朝阳区·广渠门', '北京·海淀区·中关村', '北京·朝阳区·来广营', '北京·丰台区·北大地', '北京·丰台区·刘家窑', '北京·朝阳区·国贸', '北京·昌平区·天通苑', '北京·海淀区·白石桥', '北京·海淀区·上地', '北京·海淀区·人民大学', '北京·海淀区·安宁庄', '北京·丰台区·世界公园', '北京·海淀区·西二旗', '北京·丰台区·宋家庄', '北京·朝阳区·朝外', '北京·朝阳区·四惠东', '北京·海淀区·五道口', '北京·大兴区·大兴经济开发区', '北京·朝阳区·大望路', '北京·丰台区·南苑', '北京·朝阳区·望京', '北京', '北京·海淀区·知春路', '北京·朝阳区·东大桥', '北京·海淀区·万柳'], ['20-30K', '15-25K·13薪', '10-15K', '15-16K', '10-15K', '11-20K', '9-14K', '8-12K', '25-40K·14薪', '11-22K', '20-30K·13薪', '10-15K', '15-25K·14薪', '10-13K', '18-19K', '25-50K·14薪', '8-13K', '11-18K', '12-15K', '9-12K', '12-20K', '8-13K', '12-18K', '14-20K·13薪', '18-23K·13薪', '16-32K', '15-25K', '10-15K·13薪', '20-40K', '7-12K'], ['5-10年|本科', '3-5年|本科', '3-5年|本科', '3-5年|本科', '5-10年|大专', '3-5年|本科', '3-5年|本科', '5-10年|大专', '5-10年|硕士', '3-5年|本科', '5-10年|本科', '3-5年|本科', '1-3年|本科', '1-3年|本科', '3-5年|本科', '5-10年|本科', '经验不限|学历不限', '3-5年|本科', '1-3年|本科', '5-10年|本科', '3-5年|本科', '1-3年|本科', '1-3年|本科', '3-5年|大专', '3-5年|本科', '3-5年|本科', '5-10年|本科', '经验不限|学历不限', '3-5年|本科', '经验不限|学历不限'], ['Oracle|微服务架构|SpringBoot|SpringCloud|MySQL|||', 'Spring|MySQL|Python|微服务架构|搜索引擎技术||', 'Linux|HTML/CSS|Java', 'Java|SpringCloud|MySQL', '全栈开发', 'Java', 'Java|HTML5|Javascript', '微服务架构|后端开发', '后端工程师|Spring|MyBatis|计算机/软件工程相关经验||', 'MySQL|Redis|Java|后端工程师|SpringBoot||', '软件工程师|java|AWS|DevOps|English|Agile', 'IM|即时通讯', 'Java|后端开发', 'Java|Linux|数据库', '软件工程师', '后端工程师|Java|Java开发经验|分布式系统开发经验|', '全栈工程师|Java', '数据库|springboot|Java', 'Java|Spring', 'Java|Nginx|不接受居家办公|SpringCloud|MySQL|||', 'HTML/CSS|Linux|Javascript', 'SpringBoot|全栈开发|Angular|Ionic|前后端分离|', '后端工程师|Java|Spring|MyBatis|Java开发经验||', 'Java', 'HTML|CSS|服务器配置|Spring|SpringMVC|MySQL||', 'Java|Javascript|JS', 'Java|JavaScript|Shell', 'Hibernate', 'Java|后端开发', 'Java|Spring|Tomcat|JVM|MongoDB|MySQL|'], ['', '节日福利，定期体检，团建聚餐，带薪年假，保底工资，包吃，员工旅游，五险一金，绩效奖金，零食下午茶，橙长培训', '', '定期体检，节日福利，带薪年假，员工旅游，五险一金，加班补助，年终奖', '', '五险一金，年终奖，带薪年假，零食下午茶', '', '', '补充医疗保险，餐补，交通补助，企业年金，五险一金，通讯补贴，带薪年假，定期体检', '团建聚餐，底薪加提成，年终奖', '五险一金，补充医疗保险，通讯补贴，不打卡，年终奖，英语环境，定期体检，员工旅游，带薪年假，零食下午茶，加班补助，节日福利，扁平化管理，瑞典公司', '', '带薪年假，五险一金，年终奖', '员工旅游，通讯补贴，年终奖，五险一金，节日福利，补充医疗保险，定期体检，带薪年假，绩效奖金，免费班车，团建聚餐，餐补，交通补助，住房补贴，生日福利', '定期体检，五险一金，补充医疗保险，带薪年假', '带薪年假，餐补，定期体检，股票期权，年终奖，节日福利，补充医疗保险，五险一金，12%公积金', '', '', '五险一金', '五险一金，节日福利，年终奖，员工旅游，带薪年假，股票期权，加班补助', '电脑补助，交通补助，餐补，五险一金', '', '补充医疗保险，通讯补贴，股票期权，年终奖，员工旅游，交通补助，节日福利，五险一金', '加班补助，五险一金，定期体检，年终奖，带薪年假，员工旅游，股票期权，餐补', '项目奖金，节日福利，带薪年假，年终奖，餐补，绩效奖金，五险一金，十三薪', '', '定期体检，五险一金，包吃，带薪年假，节日福利，全勤奖，年终奖', '', '', ''], ['https://img.bosszhipin.com/beijin/icon/894ce6fa7e58d64d57e7f22d2f3a9d18afa7fcceaa24b8ea28f56f1bb14732c0.png?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20160418/31656ffbae01e1260ddb9cce6be2e36625d4d77513bbdf88b8bdcf31d5160bac.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20160629/6008a527f7d56db27dc5c6154b29974215448da25be9de63b43b4741dfde78f2.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/upload/com/workfeel/20210729/632c878df933402c0eed8478b5fb014eb4454daec2082508b74c592e07be4f9c.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20200906/547e2cbd0ca6e78489f95c667895ba2c5834926bf4ffff11fb08e5baf949a5f8_s.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20210125/82d9c7824a98f218f608efc9a19f708395035a3a8abfebeaba483cc6c645d01f_s.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/icon/894ce6fa7e58d64d57e7f22d2f3a9d18afa7fcceaa24b8ea28f56f1bb14732c0.png?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/icon/894ce6fa7e58d64d57e7f22d2f3a9d18afa7fcceaa24b8ea28f56f1bb14732c0.png?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/icon/894ce6fa7e58d64d57e7f22d2f3a9d18afa7fcceaa24b8ea28f56f1bb14732c0.png?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/upload/com/logo/20200902/516037f3461e85a009972ed6fe6d3f7bc213f85b57749b1d080148326f75b003.png?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20190401/105e45a28b585a8eacc688603e3e044ff9551cee2739490faff3eaf3a36d7cd1_s.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20200111/3c3f6aba86aa649738ae9decf1dbb901ee9a5c297470d5a9f16c235691d04ef0_s.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://c-res.zhipin.com/jrs/0da9edf124b739758b6f04569e9a7359.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20170227/c67dd0d2dcc69b5082c593da0bc9441cd4bfc94849ece8a60a231aa51958b2c0.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20180412/5e9adb3ecb9ec4990054de1e67df96b8.png?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/banner/71f4ee09b9a2abfb675b5c705fc46c9dcfcd208495d565ef66e7dff9f98764da.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/icon/894ce6fa7e58d64d57e7f22d2f3a9d18afa7fcceaa24b8ea28f56f1bb14732c0.png?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20180408/a8d3b7bba05f41f906a22c7d90dc4ef319beb939baf28337f5ce992042660dc1.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/upload/com/logo/20230218/7b5b554d84f9729c1e7de0f6120a0ae762f883a6253352769302459af10b1e3f9d10d9ff4fc961f6.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20190922/2a6e0e4955f1d59ffcef8c6c9ae1c550d16e91211ebdb0f990024587eaf82564_s.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/upload/com/logo/20191218/cf5c3b16af9098b6320c6a8c82f772e8abd9bfb32891588baba1d632695509fc.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/app/mobile/normal-0e3f1e4441a21d4874cece3a3d81f0fe.png?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/upload/com/workfeel/20221216/7bf6f160950405e952c777481029b3be438a8c334bd422a28b1228d0cd43e189300947f276948f7e.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20190318/cf56054c04049290a8387c119e3baa90a984f2c003b6f0f41cad366e6931ee3d.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20190219/0d106ebddafa2d9030da738abfd07d758d9ab79ca86c07f38b95f72abb206153.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/mcs/chatphoto/20180404/a01e032f8cd2c835f3197f2f445e9d46cfcd208495d565ef66e7dff9f98764da.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/upload/com/logo/20190729/10221667efa8c632880a04cb83b4b07087506d655a47f8bd4fb893e30ade0ae1.jpg?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/app/mobile/normal-0e3f1e4441a21d4874cece3a3d81f0fe.png?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/icon/894ce6fa7e58d64d57e7f22d2f3a9d18afa7fcceaa24b8ea28f56f1bb14732c0.png?x-oss-process=image/resize,w_100,limit_0', 'https://img.bosszhipin.com/beijin/icon/894ce6fa7e58d64d57e7f22d2f3a9d18afa7fcceaa24b8ea28f56f1bb14732c0.png?x-oss-process=image/resize,w_100,limit_0'], ['https://www.zhipin.com/gongsi/8f70ee824b1fff371nx_3dW7F1I~.html', 'https://www.zhipin.com/gongsi/92e05e7431035db003Jz29U~.html', 'https://www.zhipin.com/gongsi/29bfc503d24a7f301HV73Nu7.html', 'https://www.zhipin.com/gongsi/91677364ad3685761nN409u7FVc~.html', 'https://www.zhipin.com/gongsi/5304dc14c960865f0Xxy09S1EQ~~.html', 'https://www.zhipin.com/gongsi/4d50ebe968d0320f1nRz3Nm1Eg~~.html', 'https://www.zhipin.com/gongsi/fb976c9f7c2f02fc03Z42921Eg~~.html', 'https://www.zhipin.com/gongsi/4353fb49826a5cf933dy3dm9FQ~~.html', 'https://www.zhipin.com/gongsi/800c197ae38b8e821XR80t64FFY~.html', 'https://www.zhipin.com/gongsi/90ed4bcbfb97b0bf1XR8290~.html', 'https://www.zhipin.com/gongsi/ffafaf122196c10903R70tm-Fg~~.html', 'https://www.zhipin.com/gongsi/f5ce733aa65f81681n152tS9GA~~.html', 'https://www.zhipin.com/gongsi/b338d3bc864eeea303N539S9EA~~.html', 'https://www.zhipin.com/gongsi/962b3c4e4f1165691nV90tq1.html', 'https://www.zhipin.com/gongsi/bc5bd8ee49cc5be81XBy0tq9.html', 'https://www.zhipin.com/gongsi/6f1aa1d6b1d033ad33B43N0~.html', 'https://www.zhipin.com/gongsi/3c6df403656eb7851XJ_3Ni1FFQ~.html', 'https://www.zhipin.com/gongsi/d4eb5e346294bc3b1nN5092_FA~~.html', 'https://www.zhipin.com/gongsi/f1b3660c674345891H172t28Fg~~.html', 'https://www.zhipin.com/gongsi/6d458930fc80ec1b1XVy0t28Eg~~.html', 'https://www.zhipin.com/gongsi/1a977d7ef12241491HR-0ty4Ew~~.html', 'https://www.zhipin.com/gongsi/bb98a7a2843d76fd0HZ72ty0FA~~.html', 'https://www.zhipin.com/gongsi/8a656add2f7ff4741XB43t68EVE~.html', 'https://www.zhipin.com/gongsi/a881e00dc670f2891Hx63Nm0FQ~~.html', 'https://www.zhipin.com/gongsi/ab8562645e2cac7d1nx62NS8EA~~.html', 'https://www.zhipin.com/gongsi/1e82e61fd7ffe1161nJ90961Ew~~.html', 'https://www.zhipin.com/gongsi/ee9c3d5d8b355cb11HF53tm_FQ~~.html', 'https://www.zhipin.com/gongsi/9a4773aa78f6684a3nF-39W9GA~~.html', 'https://www.zhipin.com/gongsi/829099aa4a41e90c0nR93N28Fg~~.html', 'https://www.zhipin.com/gongsi/4beecc871d28755c1HV729W0E1A~.html'], ['北京奥海科技有限公司', '新橙科技', '鼎创力维', '柯锐特', '北京尚廷科技有限公司', '和风互联', '空曌科技', '微象限', '冶金自动化研究设计院', '拍立返', 'WirelessCar', '时空感应科技', '汇联信通', '中科院信工所', 'IGT', '小米', '北京市弘洁蓝天科技', '兴达智成', '星云互动', '三只肥猴', '滴度传媒', '北京创芯互联科技', '游美华夏', '卓越智视科技', '万方电子技术', '符代企业管理咨询', '中安智讯', '优迹网络科技', '国安建工', '北京江辽科技有限公司'], ['计算机软件|0-20人', '计算机软件|不需要融资|500-999人', '计算机软件|未融资|0-20人', '互联网|未融资|100-499人', '计算机软件|A轮|100-499人', '大数据|不需要融资|0-20人', '计算机软件|0-20人', '计算机软件|0-20人', '企业服务|100-499人', '互联网|A轮|20-99人', '计算机软件|未融资|100-499人', '社交网络|未融资|20-99人', '计算机软件|A轮|0-20人', '信息安全|不需要融资|1000-9999人', '计算机软件|已上市|100-499人', '互联网|已上市|10000人以上', '环保|100-499人', '计算机软件|未融资|20-99人', '广告营销|不需要融资|0-20人', '互联网|未融资|0-20人', '广告/公关/会展|天使轮|20-99人', '其他行业|1000-9999人', '旅游|A轮|20-99人', '计算机服务|不需要融资|20-99人', '铁路/船舶/航空/航天制造|未融资|', '计算机服务|未融资|1000-9999人', '计算机软件|不需要融资|20-99人', '互联网|20-99人', '工程施工|100-499人', '互联网|0-20人']]
+    # 定义一个空列表，用于存放最终的对象
+    result = []
+
+    # 遍历每个元素的索引位置
+    for i in range(len(data[0])):
+        # 创建一个新的对象字典
+        obj = {
+            'title': data[0][i],  # 使用第一个子数组的元素作为'title'
+            'locations': data[1][i],  # 使用第二个子数组的元素作为'locations'
+            'salaries': data[2][i], # 使用第二个子数组的元素作为'salaries'
+            'experience_education': data[3][i], # 使用第二个子数组的元素作为'locations'
+            'skills': data[4][i], # 使用第二个子数组的元素作为'locations'
+            'benefits': data[5][i], # 使用第二个子数组的元素作为'locations'
+            'company_logos': data[6][i], # 使用第二个子数组的元素作为'locations'
+            'company_href': data[7][i], # 使用第二个子数组的元素作为'locations'
+            'company_name': data[8][i], # 使用第二个子数组的元素作为'locations'
+            'company_info': data[9][i], # 使用第二个子数组的元素作为'locations'
+        }
+        # 将创建的对象添加到结果列表中
+        result.append(obj)
+
+    # 打印最终的对象列表
+    data_tuples = [('JAVA', obj['title'], obj['locations'], obj['salaries'], obj['experience_education'], obj['skills'], obj['benefits'], obj['company_logos'], obj['company_href'], obj['company_name'], obj['company_info']) for obj in result]
+    # print(data_tuples)
+    return data_tuples
+
+
+def test():
+    data = [['java 高级', 'java 魏公村', 'JAVA 工程师', 'Java 工程师', 'Java 工程师', 'java 工程师', 'JAVA 开发', 'java web', 'JAVA 开发', 'Java Developers', 'Seinor Java Engineer', 'Java 工程师', 'Java 工程师', 'Java 开发工程师', 'JAVA 开发工程师', 'Java 资深/专家工程师', 'JAVA 开发工程师', 'Java 中级工程师', 'java 开发工程师', 'JAVA web工程师', 'Java 工程师', 'java 工程师', 'JAVA 开发工程师', 'JAVA 研发工程师', 'JAVA 开发工程师', 'java 开发工程师', 'Java 开发', 'Java 高级开发工程师', '致远互联 java 开发', 'Java 中级工程师'], 
+        ['北京·朝阳区·三元桥', '北京·海淀区·万柳', '北京·朝阳区·高碑店', '北京·海淀区·上地', '北京·通州区·九棵树', '北京·朝阳区·广渠门', '北京·朝阳区·来广营', '北京·海淀区·中关村', '北京·昌平区·天通苑', '北京·朝阳区·国贸', '北京·海淀区·人民大学', '北京·丰台区·北大地', '北京·丰台区·刘家窑', '北京·海淀区·白石桥', '北京·海淀区·上地', '北京·海淀区·安宁庄', '北京·丰台区·世界公园', '北京·海淀区·西二旗', '北京·丰台区·宋家庄', '北京·丰台区·南苑', '北京·朝阳区·朝外', '北京', '北京', '北京·朝阳区·亮马桥', '北京·海淀区·上地', '北京·朝阳区·朝外', '北京·朝阳区·望京', '北京·朝阳区·东大桥', '北京·海淀区·万柳', '北京·朝阳区·四惠东']]
+
+    # 定义一个空列表，用于存放最终的对象
+    result = []
+
+    # 确定每个子数组的长度，假设它们都具有相同的长度
+    num_items = len(data[0])
+
+    # 遍历每个元素的索引位置
+    for i in range(num_items):
+        # 创建一个新的对象字典
+        obj = {
+            'title': data[0][i],  # 使用第一个子数组的元素作为'title'
+            'locations': data[1][i]  # 使用第二个子数组的元素作为'locations'
+        }
+        # 将创建的对象添加到结果列表中
+        result.append(obj)
+
+    # 打印最终的对象列表
+    print(result)
+
 if __name__ == "__main__":
     # read_json()
     # city_urls()
@@ -232,20 +286,29 @@ if __name__ == "__main__":
     # print(json_string)
     
     # 获取当前文件所在目录的绝对路径
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # current_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # 获取当前文件所在目录的上一级目录的绝对路径
-    parent_dir = os.path.dirname(current_dir)
-    path = os.path.dirname(current_dir) + '/city.json'
-    print(path)
-    data = read_json(path)
-    print(type(data), len(data))
-    jsonstr = data.string()
-    item = test_json(jsonstr)
-    item_dict = dict(item)
-    json_string = json.dumps(item_dict, ensure_ascii=False, indent=4)
-    print(json_string[:1000])
-    print('****************************************************************')
-    print(json_string[:-1000])
+    # # 获取当前文件所在目录的上一级目录的绝对路径
+    # parent_dir = os.path.dirname(current_dir)
+    # path = os.path.dirname(current_dir) + '/city.json'
+    # print(path)
+    # data = read_json(path)
+    # print(type(data), len(data))
+    # jsonstr = data.string()
+    # item = test_json(jsonstr)
+    # item_dict = dict(item)
+    # json_string = json.dumps(item_dict, ensure_ascii=False, indent=4)
+    # print(json_string[:1000])
+    # print('****************************************************************')
+    # print(json_string[:-1000])
     
     # dispose_of_url('')
+    # datas = dispose_of_data()
+    # AboutDB.insert_datas(datas)
+    # test()
+    
+    max_pages = 10
+
+    for page in range(2, max_pages + 1):
+        url = f'https://www.zhipin.com/web/geek/job?query=JAVA&city=101010100&page={str(page)}'
+        print(url)
