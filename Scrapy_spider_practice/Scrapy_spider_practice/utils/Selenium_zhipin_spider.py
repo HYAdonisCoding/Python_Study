@@ -1,8 +1,8 @@
 #  1. 导入
 import time
 from selenium import webdriver
+from . import AboutDB
 
-import AboutDB
 
 TYPE = '数据分析'
 # 创建浏览器操作对象

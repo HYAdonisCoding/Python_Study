@@ -1,7 +1,8 @@
 #  1. 导入
 import time
 from selenium import webdriver
-import AboutDB
+from . import AboutDB
+
 
 # 定义你要抓取的数据的 XPath 路径
 # paths = [
