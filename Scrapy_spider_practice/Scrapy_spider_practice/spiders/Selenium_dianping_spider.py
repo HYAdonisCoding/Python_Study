@@ -1,6 +1,8 @@
 #  1. 导入
 import time
 from selenium import webdriver
+import AboutDB
+
 # 定义你要抓取的数据的 XPath 路径
 # paths = [
 #             ('//div[@class="shop-list J_shop-list shop-all-list"]/ul/li', 'li'), # 内容
@@ -92,7 +94,7 @@ def extract_data_from_elements(elements):
                 )
                 # 查找 a[2]/span 子元素并处理
                 group_elements = svr_info_element.find_elements(By.XPATH, './/a[2]/span')
-                print(group_elements)
+                # print(group_elements)
                 for elem in group_elements:
                     if elem.text == '团购：':
                         group = 1
@@ -103,7 +105,7 @@ def extract_data_from_elements(elements):
 
                 # 查找 a/span 子元素并处理
                 discount_elements = svr_info_element.find_elements(By.XPATH, './a/span')
-                print(discount_elements)
+                # print(discount_elements)
                 for elem in discount_elements:
                     if elem.text == '团购：':
                         group = 1
@@ -127,15 +129,32 @@ if __name__ == '__main__':
     path = '//div[@class="shop-list J_shop-list shop-all-list"]/ul/li'
 
     browser = initialize_browser()
-    if browser:
+    if browser: 
         fetch_page(browser, url)
+        page = 1
+        while True:
+            elements = extract_elements(browser, path)
+            datas = extract_data_from_elements(elements)
+
+            if datas:
+                # 插入数据到数据库
         
-        elements = extract_elements(browser, path)
-        data = extract_data_from_elements(elements)
-        #  //a[@class="next"]
-        print(data)
+                data_tuples = [(obj['title'], obj['href'], obj['comments'], obj['averages'], obj['styles'], obj['addrs'], obj['recommends'], obj['group'], obj['discounts']) for obj in datas]
+                AboutDB.insert_restaurant_datas(datas)
+                print(f'第{page}页存储完成，存储了{len(data_tuples)}条数据')
+            try:
+                next_button = WebDriverWait(browser, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, '//a[@class="next"]'))
+                )
+                next_button.click()
+                page += 1
+            except Exception as e:
+                print(f"No more pages or error clicking next button: {e}")
+                break
 
         browser.quit()
+
+        
 '''
 jsons = [
 {'title': '逗思都吃韩国料理(五道口店)', 'href': 'https://www.dianping.com/shop/H3SyNUSShP5BYm87', 'comments': '12562', 'averages': '￥89', 'styles': '韩国料理', 'addrs': '五道口', 'recommends': '自制金枪鱼饭团|奶酪辣鸡|部队火锅', 'group': 1, 'discounts': 0}, 
