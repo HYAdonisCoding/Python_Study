@@ -61,6 +61,23 @@ class ScrapySpiderPracticeItem(scrapy.Item):
             "subList": [sub_item.to_dict() if hasattr(sub_item, 'to_dict') else sub_item for sub_item in self.subList]
         }
 
+class ScrapySpiderDoubanItem(scrapy.Item):
+    name = scrapy.Field()
+    director = scrapy.Field()
+    writer = scrapy.Field()
+    actors = scrapy.Field()
+    genre = scrapy.Field()
+    official_site = scrapy.Field()
+    country = scrapy.Field()
+    language = scrapy.Field()
+    release_dates = scrapy.Field()
+    duration = scrapy.Field()
+    aliases = scrapy.Field()
+    imdb = scrapy.Field()
+    rating_num = scrapy.Field()
+    url = scrapy.Field()
+    comment_num = scrapy.Field()
+
 if __name__ == '__main__':
     import json
     # 初始化 item 对象并设置字段值
