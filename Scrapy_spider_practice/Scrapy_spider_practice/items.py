@@ -60,6 +60,14 @@ class ScrapySpiderPracticeItem(scrapy.Item):
             "resident": self.resident,
             "subList": [sub_item.to_dict() if hasattr(sub_item, 'to_dict') else sub_item for sub_item in self.subList]
         }
+class ScrapySpiderAutohomeItem(scrapy.Item):
+    name = scrapy.Field()
+    url = scrapy.Field()
+    price = scrapy.Field()
+    score = scrapy.Field()
+    models = scrapy.Field()
+    rank_type = scrapy.Field()
+    rank_number = scrapy.Field()
 
 class ScrapySpiderDoubanItem(scrapy.Item):
     name = scrapy.Field()

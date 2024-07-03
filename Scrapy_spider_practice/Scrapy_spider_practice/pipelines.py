@@ -72,17 +72,108 @@ class ScrapySpiderDoubanPipeline:
         # self.fp.truncate()  # 删除最后一个逗号
         # self.fp.write('\n]\n')  # 结束 JSON 数组
         self.fp.close()
-import pymysql
-# 加载settings文件内容
-from scrapy.utils.project import get_project_settings
-import sqlite3
-from scrapy.utils.project import get_project_settings
+
+class ScrapySpiderAutosPipeline:
+    def open_spider(self, spider):
+        self.fp = open(current_directory +'autos.json', 'a+', encoding='utf-8')
+        # self.fp.write('[\n')  # 开始写入 JSON 数组
+    def process_item(self, item, spider):
+        try:
+            # 将 item 转换为字典
+            
+            adapter = ItemAdapter(item)
+            item_dict = adapter.asdict()
+            
+            json_string = json.dumps(item_dict, ensure_ascii=False, indent=4)
+            # print(json_string)
+            self.fp.write(json_string + ',\n')
+            return item
+        except TypeError as e:
+            raise DropItem(f"Error serializing item: {e}")
+
+
+
+    def close_spider(self, spider):
+        # self.fp.seek(self.fp.tell() - 2, os.SEEK_SET)  # 移动到最后一个逗号前
+        # self.fp.truncate()  # 删除最后一个逗号
+        # self.fp.write('\n]\n')  # 结束 JSON 数组
+        self.fp.close()
 SQLITE_DB_PATH = 'spider_database.db'
 
-class SQLiteMoviesPipeline:
-    import sqlite3
+import sqlite3
 from scrapy.utils.project import get_project_settings
+class SQLiteAutosPipeline:
+    def open_spider(self, spider):
+        settings = get_project_settings()
+        self.db_file = settings.get(SQLITE_DB_PATH, 'spider_database.db')
 
+        if not self.db_file:
+            raise ValueError("Database file path is not set.")
+
+        spider.logger.info(f"Connecting to SQLite database at: {self.db_file}")
+
+        self.conn = sqlite3.connect(self.db_file)
+        self.cursor = self.conn.cursor()
+
+        # 创建表格 movies（如果不存在）
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS autos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE,
+                url TEXT,
+                price TEXT,
+                score TEXT,
+                models TEXT,
+                rank_type TEXT,
+                rank_number INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        self.conn.commit()
+
+        # 用于批量插入的数据缓存
+        self.batch_data = []
+        self.batch_size = 50  # 每次提交的记录数
+
+    def process_item(self, item, spider):
+        self.batch_data.append((
+            item['name'],
+            item['url'],
+            item['price'],
+            item['score'],
+            item['models'],
+            item['rank_type'],
+            item['rank_number']
+        ))
+
+        if len(self.batch_data) >= self.batch_size:
+            self._commit_batch(spider)
+
+        return item
+
+    def close_spider(self, spider):
+        # 插入剩余的数据
+        if self.batch_data:
+            self._commit_batch(spider, force=True)
+
+        self.conn.close()
+
+    def _commit_batch(self, spider, force=False):
+        try:
+            self.cursor.executemany('''
+                INSERT INTO movies (name, url, price, score, models, rank_type, rank_number)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', self.batch_data)
+            self.conn.commit()
+            self.batch_data = []
+        except sqlite3.IntegrityError as e:
+            spider.logger.error(f"Failed to insert batch: {e}")
+            if not force:
+                self.conn.rollback()  # 回滚未成功的插入
+        except Exception as e:
+            spider.logger.error(f"Unexpected error: {e}")
+            if not force:
+                self.conn.rollback()  # 回滚未成功的插入
 class SQLiteMoviesPipeline:
     def open_spider(self, spider):
         settings = get_project_settings()

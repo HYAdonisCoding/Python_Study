@@ -307,8 +307,16 @@ if __name__ == "__main__":
     # AboutDB.insert_datas(datas)
     # test()
     
-    max_pages = 10
+    # max_pages = 10
 
-    for page in range(2, max_pages + 1):
-        url = f'https://www.zhipin.com/web/geek/job?query=JAVA&city=101010100&page={str(page)}'
-        print(url)
+    # for page in range(2, max_pages + 1):
+    #     url = f'https://www.zhipin.com/web/geek/job?query=JAVA&city=101010100&page={str(page)}'
+    #     print(url)
+    
+    ranking = '新能源销量第1名'
+    parts = ranking.split('第')
+   
+    # 排名类型和具体排名
+    rank_type = parts[0]  # 排名类型
+    rank_number = int(parts[1].split('名')[0])  # 第几名，转换为整数类型
+    print(rank_number, rank_type)

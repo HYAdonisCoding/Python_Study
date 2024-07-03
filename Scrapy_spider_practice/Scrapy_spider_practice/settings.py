@@ -77,11 +77,15 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   "Scrapy_spider_practice.pipelines.ScrapySpiderPracticePipeline": 300,
-   # ScrapySpiderDoubanPipeline
-   "Scrapy_spider_practice.pipelines.ScrapySpiderDoubanPipeline": 301,
-   # SQLiteMoviesPipeline
-   "Scrapy_spider_practice.pipelines.SQLiteMoviesPipeline": 303,
+   # "Scrapy_spider_practice.pipelines.ScrapySpiderPracticePipeline": 300,
+   # # ScrapySpiderDoubanPipeline
+   # "Scrapy_spider_practice.pipelines.ScrapySpiderDoubanPipeline": 301,
+   # # SQLiteMoviesPipeline
+   # "Scrapy_spider_practice.pipelines.SQLiteMoviesPipeline": 303,
+   # SQLiteAutosPipeline
+   # ScrapySpiderAutosPipeline
+   "Scrapy_spider_practice.pipelines.ScrapySpiderAutosPipeline": 304,
+   "Scrapy_spider_practice.pipelines.SQLiteAutosPipeline": 305,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
