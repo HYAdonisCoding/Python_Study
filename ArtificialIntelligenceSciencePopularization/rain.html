@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码雨 - Cavin</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+            color: yellow;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<canvas id="codeRain"></canvas>
+<script>
+    const canvas = document.getElementById('codeRain');
+    const ctx = canvas.getContext('2d');
+
+    // 设置画布大小
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // 字符集
+    const letters = "qe,q,SOS,o,p6,a,s,d,燕云,鹿明,小鹿,辛勤".split(",");
+    const fontSize = 20; // 字体大小
+    const columns = canvas.width / fontSize; // 列数
+
+    // 每列的初始掉落位置
+    const drops = Array.from({ length: columns }, () => 0);
+
+    // 绘制代码雨
+    function draw() {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.05)"; // 半透明背景，营造拖影效果
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "yellow"; // 字体颜色
+        ctx.font = `${fontSize}px monospace`;
+
+        for (let i = 0; i < drops.length; i++) {
+            // 随机选取字符
+            const text = letters[Math.floor(Math.random() * letters.length)];
+            // 绘制字符
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+            // 控制掉落速度
+            if (Math.random() > 0.98) {
+                drops[i] = 0; // 随机重置到顶部
+            }
+            drops[i]++;
+        }
+    }
+
+    // 动画循环
+    setInterval(draw, 50);
+</script>
+</body>
+</html>
