@@ -16,15 +16,23 @@ packet = BytesIO()
 c = canvas.Canvas(packet)
 c.setPageSize((595, 842))  # A4纸大小
 
+# 设置页边距（假设边距为20 points）
+margin = 20
+width, height = 595, 842  # A4纸的宽度和高度
+
+# 调整图像大小以适应纸张，并留出边距
+img_width = width - 2 * margin
+img_height = height / 2 - margin  # 每个图像占页面的一半高度，减去边距
+
 # 保存PDF页面的第一张图像（来自第一个PDF文件）
 img_path1 = "/tmp/image1.jpg"
 images1[0].save(img_path1, 'JPEG')
-c.drawImage(img_path1, 0, 420, width=595, height=421)  # 调整图像位置和大小
+c.drawImage(img_path1, margin, height / 2 + margin, width=img_width, height=img_height)  # 绘制第一个图像
 
 # 保存PDF页面的第二张图像（来自第二个PDF文件）
 img_path2 = "/tmp/image2.jpg"
 images2[0].save(img_path2, 'JPEG')
-c.drawImage(img_path2, 0, 0, width=595, height=421)  # 调整图像位置和大小
+c.drawImage(img_path2, margin, margin, width=img_width, height=img_height)  # 绘制第二个图像
 
 # 保存新的页面
 c.save()
