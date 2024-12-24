@@ -8,7 +8,7 @@ writer = PdfWriter()
 
 # 加载PDF文件并转换为图像
 # 将PDF转换为图像
-images1 = convert_from_path("/Users/adam/Downloads/MPr92mdjyGyAGs5hAAPBboPvmvI850 copy 2.pdf", dpi=300)
+images1 = convert_from_path("/Users/adam/Downloads/MPr9L2dkx4OAJql0AADheZvEH3Q230.pdf", dpi=300)
 images2 = convert_from_path("/Users/adam/Downloads/MPr92mdjyGyAGs5hAAPBboPvmvI850 copy.pdf", dpi=300)
 
 # 创建新的空白PDF页面
