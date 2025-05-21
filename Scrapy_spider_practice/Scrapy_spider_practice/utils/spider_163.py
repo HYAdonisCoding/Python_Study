@@ -83,16 +83,14 @@ if __name__ == '__main__':
     # 数据数组
     data_array = [
         {
-            'url': 'https://ws6.stream.qqmusic.qq.com/C400000X5jt70BZa35.m4a?guid=3908283232&vkey=DCDB970C81899F59E328E4DBE2CA54FA8607C526BCF4E3146FE159A1E356FB4FF93BFA75EF5FD4ECDB91CE21D4ED7172456946413ADC1486__v21ea05c8d&uin=296786475&fromtag=120032',
-            'filename': '缘分一道桥 - 王力宏'
-        },
-        {
-            'url': 'https://ws6.stream.qqmusic.qq.com/C400000QIgrt2qysUB.m4a?guid=4927833278&vkey=922841ABDB9929EB74888B2533B58D78C83434540F29370D853439BFF15EB3380507A1066039AB8D00C89B2AEC294486C4C95B8C5818AA37__v215192f04&uin=296786475&fromtag=120032',
-            'filename': '我们的歌 - 王力宏'
-        },
-        {
-            'url': 'https://ws6.stream.qqmusic.qq.com/C400003tRG6711PfE6.m4a?guid=461609377&vkey=3FF82E4016B48953CAE6F1E9B9E984E72654679172A6E09E5B58005C99682BA56A3A31F980B3515BFFD71E17F50AC481FCEBEFF533734EDD__v2152579bd&uin=296786475&fromtag=120032',
-            'filename': '红颜 - 胡彦斌'
+            'url': 'https://ws6.stream.qqmusic.qq.com/C400001gmRFK1Ed8nA.m4a?guid=1960768588&vkey=FE9FA3061DAE63D2562E00974E04847B5442E0A4E6C0113E80F8316F7FE1F318B30DB9E30A99CF628A6A026DB6AD8507DC683E789BE7B337__v21530b7bd&uin=296786475&fromtag=120032&src=C400000dQXEd0hs9V3.m4a',
+            'filename': '诛仙我回来- 任贤齐'
+        },{
+            'url': 'https://ws6.stream.qqmusic.qq.com/C400002bLqDw1uCZ9Z.m4a?guid=1619225712&vkey=C4F648E2DCB909284DB68B188806790CA0E5638F1067DCF171D1E5C83284946CC86EB73931096AE7723DA73494429520ED9F38ADE9982F3C__v21ea05c14&uin=296786475&fromtag=120032',
+            'filename': '我是一只鱼- 任贤齐'
+        },{
+            'url': 'https://ws6.stream.qqmusic.qq.com/C400004aZqHh0gFPOu.m4a?guid=6278953324&vkey=F275383C977C30787ED857337F897655F88B27A1CF6B7A1086C44C5F7B1E45CE07469721D2DB414479FBFC9D88E98EF57698BD8A6A3C58F0__v21ea05c14&uin=296786475&fromtag=120032',
+            'filename': '伤心太平洋- 任贤齐'
         }
     ]
 
