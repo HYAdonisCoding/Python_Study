@@ -222,8 +222,8 @@ from test1 import show, add
 import sys
 sys.path.append('/Users/adam/Documents/Developer/MyGithub/Python_Study')
 
-import DataAnalusispackage.time_tools as time_tools
-@time_tools.log_comment('测试循环耗时')
+import DataAnalusispackage.time_tool as time_tool
+@time_tool.log_comment('测试循环耗时')
 def use_module1():
     show('这是recursion.py中的show函数')
     print('这是recursion.py中的add函数', add(1, 2))  # Output: 3
@@ -604,8 +604,257 @@ def use_TreeNode():
     for i, val in enumerate(all_node):
         tree.add_node(val, i, random.randint(1, 100))
     print_tree_ascii(tree.root)
+
+# 生成器
+def use_Generator():
+    tmp_list = [1, 2, 3, 4, 5, 6,7,8, 9, 10]
+    data = [i for i in tmp_list if i % 2 == 0]
+    print('使用推导式获取偶数：', data)
+    
+    data = (i for i in tmp_list if i % 2 == 0)
+    print('[]变()得到生成器：', data)
+    # for val in data:
+    #     print(val)
+    
+    print('获取生成器的第1个值：', next(data))
+    print('获取生成器的第2个值：', data.__next__())
+    
+def use_yield():
+    tmp_list = [1, 2, 3, 4, 5, 6,7,8, 9, 10]  
+    def get_list():
+        for i in tmp_list:
+            if i % 2 == 0:
+                print('当前元素是:', i)
+                yield i
+    gen = get_list()
+    for i in gen:
+        print('当前获取到的值是：', i)
+        print()
+
+# 将值传到生成器
+def use_Generator2():
+    def get_list():
+        count = 0
+        while True:
+            print('----本次循环开始，count初始值为：', count)
+            outer = yield count
+            print('生成器从外部接收到的数据：', outer)
+            count += 1
+            print('----本次循环结束，count值为：', count)
+            print()
+    gen = get_list()
+    val = next(gen)
+    print('--->外部调用next从生成器获取到的值：', val)
+    print()
+    val = gen.send(20)
+    print('--->外部从生成器获取到的值：', val)
+    gen.close()
+        
+# 迭代器
+def use_Iterators():
+    tmp_list = [1, 2, 3, 4, 5, 6,7,8, 9, 10]
+    itor_list = iter(tmp_list)
+    print('使用next获取元素:', next(itor_list))
+    print('使用__next__获取元素:', itor_list.__next__())
+    for i in itor_list:
+        print('当前元素是:', i)
+
+# 异步处理  
+import threading
+def use_Asynchronous_Processing():
+    def get_data_from_db():
+        print(f'当前线程名称:{threading.current_thread().name}')
+        for i in range(5):
+            time.sleep(1)
+        print(f'{threading.current_thread().name} 线程执行完毕！')
+        
+    print(f'{threading.current_thread().name} 线程开始运行！')
+    thread = threading.Thread(target=get_data_from_db, name='线程005')
+    thread.start()
+    thread.join()
+    print(f'{threading.current_thread().name} 线程执行完毕！')
+# 线程同步
+global_score = 100
+def use_Thread_synchronization():
+    lock = threading.Lock()
+    def update_score(score):
+        for i in range(200000):
+            lock.acquire()
+            global global_score
+            global_score = global_score + score
+            global_score = global_score - score
+            lock.release()
+    threads = []
+    for i in range(10):
+        thread = threading.Thread(target=update_score, args=(i*10,))
+        threads.append(thread)
+    for i in threads:
+        i.start()
+    for i in threads:
+        i.join()
+    print('global_score =',global_score)
+# 多进程
+from multiprocessing import Process, current_process
+import os
+def use_Multi_process():
+    
+    print(f'父进程的ID: {os.getpid()}')
+    processes = Process(target=new_process, args={'我是一个参数'},name='进程001')
+    processes.start()
+    processes.join()  # 等待子进程结束
+    print(f'主进程执行完毕！')
+def new_process(params):
+    time.sleep(5)
+    print(f'子进程进程名称: {current_process().name}')
+    print(f'当前进程ID: {os.getpid()}')
+    print(f'子进程参数: {params}')
+    print(f'{current_process().name} 进程执行完毕！')
+
+from multiprocessing import Pool
+def worker(num):
+    print(f'当前进行编号： {num} is running')
+    time.sleep(2)
+    print(f'当前进行编号： {num} finished')
+    
+def use_process_pool():
+    
+    
+    pool = Pool(processes=4)  # 创建一个进程池，最多同时运行4个进程
+    print(f'主进程ID: {os.getpid()}, 进程池创建成功！')
+    for i in range(5):
+        process_num = '{0}'.format(i)
+        pool.apply_async(worker, args=(process_num,), callback=lambda x: print(f'Callback: {x}'))
+    pool.close()  # 关闭进程池，不再接受新的任务
+    pool.join()  # 等待所有进程完成
+    print(f'所有子进程执行完毕！')
+
+# 进程间通信
+from multiprocessing import Pipe, Queue
+def set_data(q, tmp_list):
+    for item in tmp_list:
+        print(f'进程{os.getpid()}正在设置数据：{item}')
+        q.put(item)
+        time.sleep(1)  # 模拟数据处理时间
+    
+def get_data(q, count):
+    for i in range(count):
+        item = q.get(True)
+        print(f'进程{os.getpid()}获取到数据：{item}')
+def use_process_communication():
+    q = Queue()
+    tmp_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    process1 = Process(target=set_data, args=(q, tmp_list), name='进程001')
+    process2 = Process(target=get_data, args=(q, len(tmp_list)), name='进程002')
+    process1.start()
+    process2.start()
+    process1.join()
+    process2.join()
+    print(f'所有进程执行完毕！')
+
+# 协程
+async def get_data_from_db(counter):
+    data = []
+    print(f'counter: {counter}')
+    for i in range(counter):
+        time.sleep(1)
+        data.append(i)
+    return data
+def use_Coroutines():
+    obj = get_data_from_db(5)
+    print(f'异步函数返回值{obj}')
+    try:
+        obj.send(None)
+    except Exception as e:
+        print(e)
+async def await_get_data(counter):
+    result = await get_data_from_db(counter)
+    return result
+import asyncio
+
+def use_Coroutines1():
+    
+    try:
+        obj = asyncio.run(await_get_data(5))
+        print(f'异步函数返回值{obj}')
+        
+    except Exception as e:
+        print(e)
+''' 在做并行运算的时候，线程、进程和协程该如何选择？
+1. 进程（multiprocessing）
+适用场景：CPU 密集型任务（如科学计算、图像处理、数据分析等）。
+优点：每个进程有独立的内存空间，能充分利用多核 CPU，互不影响。
+缺点：进程间通信复杂，创建和切换开销较大。
+典型用法：多进程爬虫、数据处理、并行计算。
+2. 线程（threading）
+适用场景：I/O 密集型任务（如网络请求、文件读写、数据库操作等）。
+优点：线程间通信简单，切换开销小，适合大量 I/O 等待的场景。
+缺点：受 GIL 限制，无法利用多核 CPU 做真正的并行计算（在 CPython 下）。
+典型用法：高并发下载、网络服务、日志处理。
+3. 协程（asyncio/协程库）
+适用场景：大量高并发、I/O 密集型任务，且任务之间切换频繁（如高并发网络服务、爬虫）。
+优点：极低的切换开销，单线程内实现高并发，代码简洁。
+缺点：只能用于异步 I/O，不能利用多核 CPU，写法有一定门槛。
+典型用法：异步爬虫、异步 Web 服务、聊天服务器。
+# coding=utf-8
+一句话总结：
+
+CPU密集型用多进程，I/O密集型用多线程或协程。
+如果是高并发网络I/O，优先考虑协程（asyncio）。
+实际开发中也可以多种方式结合使用，比如：
+
+多进程 + 每进程多线程
+多进程 + 每进程协程
+这样可以兼顾多核利用和高并发。
+'''
+
+# 使用多进程技术统计数据并汇总
+import random
+import time
+from multiprocessing import Process, Queue
+
+def generate_data(queue, filename):
+    filepath = os.path.join(os.getcwd(), filename)
+    print(f'{filepath} 文件开始生成数据！')
+    # 模拟生成数据到文件
+    file_content = open(filepath, encoding='utf-8', mode='r')
+    print(file_content)
+    for line in file_content:
+        # 假设每行数据可能包含'spark'
+        # 这里假设数据格式为: "example_logger, value"
+        if 'example_logger' in line:
+            data = line.strip().split(',')
+            queue.put(1)
+            time.sleep(0.1)  # 模拟数据处理时间
+    file_content.close()
+    queue.put(None)  # 发送结束信号
+    print(f'进程 {current_process().name} 完成数据生成！')
+    
+
+def process_data(queue):
+    total = 0
+    while True:
+        value = queue.get(True)
+        if value is None:
+            break
+        total += value
+        print(f'包含example_logger的行: {total}')
+    print(f'总和: {total}')
+def use_Multi_process_Statistics():
+    
+        
+    queue = Queue()
+    producer = Process(target=generate_data, args=(queue, 'example.log'))    # 假设data.txt文件中包含多行数据，每行数据可能包含'spark'
+    consumer = Process(target=process_data, args=(queue,))
+    
+    producer.start()
+    producer.join()  # 等待数据生成完成
+    
+    consumer.start()
+    consumer.join()  # 等待数据处理完成
+
+    
 if __name__ == "__main__":
-    use_TreeNode()
+    use_Multi_process_Statistics()
     # time_tools.log(use_module1, '这是装饰器参数')()
 
     # 使用高阶函数
