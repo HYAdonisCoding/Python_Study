@@ -18,8 +18,8 @@ LOG_LEVEL = 'DEBUG' #'WARNING' # DEBUG 'INFO'
 LOG_FILE = 'scrapy_xzqh.log'
 
 SELENIUM_DRIVER_NAME = 'chrome'  # 或者 'firefox'
-# SELENIUM_DRIVER_EXECUTABLE_PATH = '/Users/adam/Documents/Developer/environment/chromedriver-mac-x64_123/chromedriver'  # 替换为你的 ChromeDriver 路径
-SELENIUM_DRIVER_ARGUMENTS = ['--headless']  # 如果你希望以无头模式运行浏览器，可以添加其他参数
+SELENIUM_DRIVER_EXECUTABLE_PATH = '/Users/adam/Documents/Developer/environment/chromedriver-mac-x64/chromedriver'  # 替换为你的 ChromeDriver 路径
+SELENIUM_DRIVER_ARGUMENTS = []#['--headless']  # 如果你希望以无头模式运行浏览器，可以添加其他参数
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -65,7 +65,7 @@ DOWNLOAD_DELAY = 3
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
     'scrapy_selenium.SeleniumMiddleware': 800,
-   "Scrapy_spider_practice.middlewares.ScrapySpiderPracticeDownloaderMiddleware": 801,
+   # "Scrapy_spider_practice.middlewares.ScrapySpiderPracticeDownloaderMiddleware": 801,
 }
 
 # Enable or disable extensions
@@ -84,6 +84,7 @@ ITEM_PIPELINES = {
    # "Scrapy_spider_practice.pipelines.SQLiteMoviesPipeline": 303,
    # SQLiteAutosPipeline
    # ScrapySpiderAutosPipeline
+   'Scrapy_spider_practice.pipelines.CrawlSpider51JobsPipeline': 300,
    "Scrapy_spider_practice.pipelines.ScrapySpiderAutosPipeline": 304,
    "Scrapy_spider_practice.pipelines.SQLiteAutosPipeline": 305,
 }

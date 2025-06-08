@@ -12,6 +12,9 @@ from scrapy.exceptions import DropItem
 import os
 # 获取当前文件所在目录
 current_directory = os.path.dirname(os.path.abspath(__file__)) + '/'
+
+
+        
 class ScrapySpiderPracticePipeline:
     def open_spider(self, spider):
         self.fp = open(current_directory +'city_list.json', 'a+', encoding='utf-8')
@@ -304,6 +307,51 @@ class MysqlPipeline:
         self.conn.commit()
         
         return item
+    def close_spider(self, spider):
+        self.cursor.close()
+        self.conn.close()
+        
+class CrawlSpider51JobsPipeline:
+    def open_spider(self, spider):
+        
+        self.conn = sqlite3.connect('spider_database.db')
+        self.cursor = self.conn.cursor()
+        # 创建表（如已存在不会重复创建）
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_name TEXT,
+                job_salary TEXT,
+                job_tags TEXT,
+                company_name TEXT,
+                company_url TEXT,
+                company_logo TEXT,
+                job_dc TEXT,
+                job_area TEXT,
+                job_type TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        self.conn.commit()
+
+    def process_item(self, item, spider):
+        self.cursor.execute('''
+            INSERT INTO jobs (job_name, job_salary, job_tags, company_name, company_url, company_logo, job_dc, job_area, job_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            item.get('job_name'),
+            item.get('job_salary'),
+            item.get('job_tags'),
+            item.get('company_name'),
+            item.get('company_url'),
+            item.get('company_logo'),
+            item.get('job_dc'),
+            item.get('job_area'),
+            item.get('job_type')
+        ))
+        self.conn.commit()
+        return item
+
     def close_spider(self, spider):
         self.cursor.close()
         self.conn.close()
