@@ -322,6 +322,87 @@ def extract_pd_table_with_selenium(url):
         return result
     finally:
         driver.quit()
+def extract_all_info_with_selenium(url):
+    options = Options()
+    options.add_argument("--headless")  # 无头模式
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    driver = webdriver.Chrome(options=options)
+    try:
+        driver.get(url)
+        time.sleep(2)  # 等待页面加载
+
+        html = driver.page_source
+        soup = BeautifulSoup(html, 'html.parser')
+
+        # 初始化结果字典
+        result = {
+            "登记证信息": {},
+            "有效成分信息": [],
+            "制剂用药量信息": []
+        }
+
+        # 获取登记证信息表格（假设为第一个表格）
+        reg_table = soup.find_all('table', {'id': 'reg'})[0]
+        reg_rows = reg_table.find_all('tr')[1:]  # 排除表头
+
+        for row in reg_rows:
+            cols = [td.get_text(strip=True) for td in row.find_all('td')]
+            # print('*' * 20)
+            # print(cols)
+            if len(cols) >= 2:
+                # result["登记证信息"][cols[0]] = cols[1]
+                # 如果该行的字段是成对出现的（例如"登记证号："、"PD20151999"）
+                for i in range(0, len(cols), 2):  # 每两个字段一对
+                    key = cols[i].replace("：", "").strip()  # 处理去掉"："的字段名
+                    value = cols[i+1] if i + 1 < len(cols) else ""
+                    if key in result["登记证信息"]:
+                        # 如果该字段已经存在，存成列表，避免覆盖
+                        if isinstance(result["登记证信息"][key], list):
+                            result["登记证信息"][key].append(value)
+                        else:
+                            result["登记证信息"][key] = [result["登记证信息"][key], value]
+                    else:
+                        result["登记证信息"][key] = value  # 如果该字段没有值，就直接保存
+
+        
+        # 获取有效成分信息表格（假设为第三个表格）
+        effective_table = soup.find_all('table', {'id': 'reg'})[2]
+        rows = effective_table.find_all('tr')[2:]  # 跳过前两行表头
+
+        for row in rows:
+            cols = [td.get_text(strip=True) for td in row.find_all('td')]
+            if len(cols) == 3:
+                result["有效成分信息"].append({
+                    "有效成分": cols[0],
+                    "有效成分英文名": cols[1],
+                    "有效成分含量": cols[2]
+                })
+
+        # 获取制剂用药量信息表格（假设为第四个表格）
+        dosage_table = soup.find_all('table', {'id': 'reg'})[3]
+        print(dosage_table)
+        print('*'*30)
+        dosage_rows = dosage_table.find_all('tr')[2:]  # 从第二行开始，跳过表头
+        print(dosage_rows)
+        # 跳过表头行，从第二行开始提取
+        # rows = dosage_table[2].find_all('tr')[1:]  # 跳过表头
+        for row in dosage_rows:
+            cols = [td.get_text(strip=True) for td in row.find_all('td')]
+            if len(cols) >= 4:
+                result["制剂用药量信息"].append({
+                    "作物/场所": cols[0],
+                    "防治对象": cols[1],
+                    "用药量": cols[2],
+                    "施用方法": cols[3]
+                })
+        print(result)
+        return result
+
+    finally:
+        driver.quit()
+
+
 def get_detail1():
 
     def extract_pd_table(html):
@@ -356,7 +437,7 @@ def get_detail1():
     }
 
     # 加载你的 page_0001.json 数据
-    with open(os.path.join("data", "page_0001.json"), "r", encoding="utf-8") as f:
+    with open(os.path.join("data", "page_0002.json"), "r", encoding="utf-8") as f:
         data = json.load(f)
 
     for i, item in enumerate(data):
@@ -368,29 +449,30 @@ def get_detail1():
         print(f"[{i+1}/{len(data)}] 请求详情页：{url}")
 
         try:
-            成分信息 = extract_pd_table_with_selenium(url)
+            # 所有信息 
+            info = extract_all_info_with_selenium(url)
             
             
-            if len(成分信息) > 0:
-                item["有效成分信息"] = 成分信息
-                print(f"已获取 {item['登记证号']} 的成分信息，共 {len(成分信息)} 项。")
-            else:
-                item["有效成分信息"] = []
+            if len(info) > 0:
+                item.update(info)
+                print(f"已获取 {item['登记证号']} 的信息，共 {len(info)} 项。")
+            
         except Exception as e:
             print(f"❌ 请求失败: {e}")
-            item["有效成分信息"] = []
 
         time.sleep(random.uniform(1.5, 3.0))  # 防止 IP 被封
 
     # 保存结果
-    with open("page_0001_with_components.json", "w", encoding="utf-8") as f:
+    with open("page_0002_with_components.json", "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    print("✅ 成功提取所有有效成分信息，已保存至 page_0001_with_components.json")
+    print("✅ 成功提取所有有效成分信息，已保存至 page_0002_with_components.json")
 
 
 if __name__ == '__main__':
     # center()   
     fileName = 'icama_dataCenter.html'
     # get_row(fileName) 
-    get_detail1()
+    # get_detail1()
+    # 
+    extract_all_info_with_selenium('https://www.icama.cn/BasicdataSystem/pesticideRegistration/viewpd.do?r=0.400765986995222&id=2fc9b74fef7e47e2aa14e60366e1e45b')
