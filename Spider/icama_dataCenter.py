@@ -381,10 +381,10 @@ def extract_all_info_with_selenium(url):
 
         # 获取制剂用药量信息表格（假设为第四个表格）
         dosage_table = soup.find_all('table', {'id': 'reg'})[3]
-        print(dosage_table)
-        print('*'*30)
+        # print(dosage_table)
+        # print('*'*30)
         dosage_rows = dosage_table.find_all('tr')[2:]  # 从第二行开始，跳过表头
-        print(dosage_rows)
+        # print(dosage_rows)
         # 跳过表头行，从第二行开始提取
         # rows = dosage_table[2].find_all('tr')[1:]  # 跳过表头
         for row in dosage_rows:
@@ -403,41 +403,15 @@ def extract_all_info_with_selenium(url):
         driver.quit()
 
 
-def get_detail1():
-
-    def extract_pd_table(html):
-        soup = BeautifulSoup(html, "html.parser")
-        tables = soup.find_all("table")
-        for table in tables:
-            rows = table.find_all("tr")
-            if not rows:
-                continue
-            headers = [td.get_text(strip=True) for td in rows[0].find_all("td")]
-            if headers == ['有效成分', '有效成分英文名', '有效成分含量']:
-                result = []
-                for row in rows[1:]:
-                    cols = [td.get_text(strip=True) for td in row.find_all("td")]
-                    if len(cols) == 3:
-                        result.append({
-                            "有效成分": cols[0],
-                            "有效成分英文名": cols[1],
-                            "有效成分含量": cols[2]
-                        })
-                print(result)
-                print('-' * 10)
-                return result
-        return []
+def get_detail1(fileName):
 
     def build_url(pd_id):
         r_value = round(random.random(), 16)
         return f"https://www.icama.cn/BasicdataSystem/pesticideRegistration/viewpd.do?r={r_value}&id={pd_id}"
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
-    }
 
     # 加载你的 page_0001.json 数据
-    with open(os.path.join("data", "page_0002.json"), "r", encoding="utf-8") as f:
+    with open(os.path.join("data", fileName), "r", encoding="utf-8") as f:
         data = json.load(f)
 
     for i, item in enumerate(data):
@@ -463,16 +437,16 @@ def get_detail1():
         time.sleep(random.uniform(1.5, 3.0))  # 防止 IP 被封
 
     # 保存结果
-    with open("page_0002_with_components.json", "w", encoding="utf-8") as f:
+    with open(fileName, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    print("✅ 成功提取所有有效成分信息，已保存至 page_0002_with_components.json")
+    print(f"✅ 成功提取所有有效成分信息，已保存至 {fileName}")
 
 
 if __name__ == '__main__':
     # center()   
     fileName = 'icama_dataCenter.html'
     # get_row(fileName) 
-    # get_detail1()
+    get_detail1('page_0004.json')
     # 
-    extract_all_info_with_selenium('https://www.icama.cn/BasicdataSystem/pesticideRegistration/viewpd.do?r=0.400765986995222&id=2fc9b74fef7e47e2aa14e60366e1e45b')
+    # extract_all_info_with_selenium('https://www.icama.cn/BasicdataSystem/pesticideRegistration/viewpd.do?r=0.400765986995222&id=2fc9b74fef7e47e2aa14e60366e1e45b')
