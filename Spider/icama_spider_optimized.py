@@ -138,7 +138,7 @@ def fetch_with_retry(url, method='GET', data=None, headers=HEADERS, retries=3):
         time.sleep(random.uniform(1.5, 3.0))
     return None
 
-# === 主逻辑 ===
+# === 主逻辑 ===1241-1533
 def scrape():
     start_page = load_progress()
     total_pages = 2488
@@ -150,7 +150,7 @@ def scrape():
     driver = webdriver.Chrome(options=chrome_options)
 
     for page in range(start_page, total_pages + 1):
-        print(f"\n--- 正在抓取第 {page} 页 ---")
+        # print(f"\n--- 正在抓取第 {page} 页 ---")
         headers = {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "Accept-Language": "zh-CN,zh;q=0.9",
@@ -226,7 +226,7 @@ def scrape():
         with open(os.path.join(BASE_DIR, f"page_{page:04d}.json"), 'w', encoding='utf-8') as f:
             json.dump(page_data, f, ensure_ascii=False, indent=2)
         save_progress(page)
-        print(f"✅ 第 {page} 页完成")
+        # print(f"✅ 第 {page} 页完成")
         time.sleep(random.uniform(1.5, 3.0))
 
     driver.quit()

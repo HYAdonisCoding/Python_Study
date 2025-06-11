@@ -447,6 +447,6 @@ if __name__ == '__main__':
     # center()   
     fileName = 'icama_dataCenter.html'
     # get_row(fileName) 
-    get_detail1('page_0004.json')
+    get_detail1('page_1241.json')
     # 
     # extract_all_info_with_selenium('https://www.icama.cn/BasicdataSystem/pesticideRegistration/viewpd.do?r=0.400765986995222&id=2fc9b74fef7e47e2aa14e60366e1e45b')
