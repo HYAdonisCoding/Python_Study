@@ -105,4 +105,4 @@ def extract_batch(start=1, end=5):
 
 if __name__ == "__main__":
     print(f"开始处理详情页{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
-    extract_batch(start=1267, end=1533)
+    extract_batch(start=1382, end=1533)

@@ -138,7 +138,7 @@ def fetch_with_retry(url, method='GET', data=None, headers=HEADERS, retries=3):
         time.sleep(random.uniform(1.5, 3.0))
     return None
 
-# === 主逻辑 ===1241-1533
+# === 主逻辑 ===1241-1533，2025-06-12 page2503-50043条
 def scrape():
     start_page = load_progress()
     total_pages = 2488
