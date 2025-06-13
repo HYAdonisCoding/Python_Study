@@ -13,7 +13,14 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from tqdm import tqdm  # 加在文件顶部
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'Utility')))
 
+# from graceful_exit import stop_event
+
+# if stop_event.is_set():
+#     break  # 或者 return，跳出循环、终止执行
 # === 配置区 ===
 BASE_DIR = "data"
 PROGRESS_FILE = os.path.join(BASE_DIR, "progress.txt")
