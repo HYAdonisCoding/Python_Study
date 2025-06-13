@@ -111,6 +111,7 @@ Spider/scrapy_dangdang_095/scrapy_dangdang_095/books
 merged_invoice.pdf
 # 忽略 data 目录下的所有 JSON 文件
 data/*.json
+data/*/*.json
 data/*.csv
 
 # 忽略 detail_cache 文件夹及其内容
