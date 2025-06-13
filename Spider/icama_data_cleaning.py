@@ -29,49 +29,52 @@ def build_url(pd_id):
 
 def parse_detail_page(soup):
     tables = soup.find_all('table', {'id': 'reg'})
-
-    if len(tables) < 3:
-        logging.warning(f"⚠️ 表格数量不足，疑似未加载完成，当前表格数: {len(tables)}, soup: {soup}")
-        return None
     result = {
         "登记证信息": {},
         "有效成分信息": [],
         "制剂用药量信息": []
     }
 
-    if len(tables) >= 1:
-        for row in tables[0].find_all('tr')[1:]:
-            cols = [td.get_text(strip=True) for td in row.find_all('td')]
-            for i in range(0, len(cols), 2):
-                key = cols[i].replace("：", "").strip()
-                value = cols[i + 1] if i + 1 < len(cols) else ""
-                if key:
-                    result["登记证信息"][key] = value
+    for table in tables:
+        title_cell = table.find('td')
+        if not title_cell:
+            continue
+        title = title_cell.get_text(strip=True)
+        # print(f"⚙️ 表格标题识别：{title}")
+        # print(json.dumps(result, ensure_ascii=False, indent=2))
 
-    # 有效成分信息
-    if len(tables) >= 2:
-        for row in tables[1].find_all('tr')[2:]:  # 第 1 张是登记，第 2 张是有效成分
-            cols = [td.get_text(strip=True) for td in row.find_all('td')]
-            if len(cols) == 3:
-                result["有效成分信息"].append({
-                    "有效成分": cols[0],
-                    "有效成分英文名": cols[1],
-                    "有效成分含量": cols[2]
-                })
+        if "农药登记证信息" in title:
+            for row in table.find_all('tr')[1:]:
+                cols = [td.get_text(strip=True) for td in row.find_all('td')]
+                for i in range(0, len(cols), 2):
+                    key = cols[i].replace("：", "").strip()
+                    value = cols[i + 1] if i + 1 < len(cols) else ""
+                    if key:
+                        result["登记证信息"][key] = value
 
-    # 制剂用药量信息
-    if len(tables) >= 3:
-        for row in tables[2].find_all('tr')[2:]:
-            cols = [td.get_text(strip=True) for td in row.find_all('td')]
-            if len(cols) >= 4:
-                result["制剂用药量信息"].append({
-                    "作物/场所": cols[0],
-                    "防治对象": cols[1],
-                    "用药量": cols[2],
-                    "施用方法": cols[3]
-                })
+        elif "有效成分信息" in title:
+            for row in table.find_all('tr')[2:]:
+                cols = [td.get_text(strip=True) for td in row.find_all('td')]
+                if len(cols) == 3:
+                    result["有效成分信息"].append({
+                        "有效成分": cols[0],
+                        "有效成分英文名": cols[1],
+                        "有效成分含量": cols[2]
+                    })
+
+        elif "制剂用药量信息" in title:
+            for row in table.find_all('tr')[2:]:
+                cols = [td.get_text(strip=True) for td in row.find_all('td')]
+                if len(cols) >= 4:
+                    result["制剂用药量信息"].append({
+                        "作物/场所": cols[0],
+                        "防治对象": cols[1],
+                        "用药量": cols[2],
+                        "施用方法": cols[3]
+                    })
 
     return result
+
 
 
 
@@ -154,6 +157,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # url = build_url("ff80808195eaeedb0196e6d2dc574698")
+    # url = build_url("5602b94c384e4795b226cee1fb723a23")
     # data = extract_all_info_with_selenium(url)
     # print(json.dumps(data, ensure_ascii=False, indent=2))

@@ -169,5 +169,5 @@ def export_db_to_csv(db_path, csv_path):
 
 # 执行导出
 if __name__ == '__main__':
-    data_todb()
+    # data_todb()
     export_db_to_csv(DB_FILE, CSV_FILE)
