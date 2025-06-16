@@ -1,5 +1,5 @@
 import numpy as np
-
+# 9.1 NumPy基础
 def array_porperty():
     a = np.arange(20).reshape(4, 5)
     print('创建一个4行5列的数组')
@@ -183,6 +183,203 @@ def base_operation():
         print(f'当前行数据: \n{row}')
     for el in a.flat:
         print(f'当前元素: \n{el}')
+
+# 9.2 形状操作
+
+def change_shape():
+    a = np.floor(10 * np.random.random((4, 5)))
     
+    print(f'原始数组形状: \n{a.shape}')
+    
+    print('-' * 50)
+    
+    b = a.ravel()
+    print(f'将多维数组转为一维数组b:\n{b}\n新数组形状: \n{b.shape}')
+    
+    print('-' * 50)
+    c = a.reshape(2, 10)
+    print(f'将数组转为指定形状c:\n{c}\n新数组形状: \n{c.shape}')
+    
+    d = a.T
+    print(f'将数组进行行列转换(矩阵转置): \n{d.shape}')
+    
+    print('-' * 50)
+    a = np.floor(10 * np.random.random((4, 5)))
+    print(f'修改之前形状为: \n{a.shape}')
+    a.resize(2, 10)
+    print(f'修改之后形状为: \n{a.shape}')
+    
+    # 数组堆叠
+    print('-' * 50, '数组堆叠', '-' * 50)
+    a = np.floor(10 * np.random.random((2, 10)))
+    print(f'数组a: \n{a}')
+    
+    b = np.floor(10 * np.random.random((2, 10)))
+    print(f'数组b: \n{b}')
+    
+    c = np.vstack((a, b))
+    print(f'沿垂直方向堆叠c: \n{c}')
+    
+    d = np.hstack((a, b))
+    print(f'沿水平方向堆叠d: \n{d}')
+    
+    print('-' * 50, 'column_stack将一维数组堆叠到二维数组中', '-' * 50)
+    a = np.floor(10 * np.random.random((2)))
+    print(f'数组a: \n{a}')
+    
+    b = np.floor(10 * np.random.random((2)))
+    print(f'数组b: \n{b}')
+    
+    c = np.column_stack((a, b))
+    print(f'沿垂直方向堆叠c: \n{c}')
+    
+    d = np.column_stack((a[:, np.newaxis], b[:, np.newaxis]))
+    print(f'添加新轴然后进行堆叠d: \n{d}')
+    
+    print('-' * 50, '矩阵拆分', '-' * 50)
+    a = np.floor(10 * np.random.random((2, 20)))
+    print(f'数组a: \n{a}')
+    print('水平方向拆分')
+    data = np.hsplit(a, 2)
+    for item in data:
+        print(item)
+        
+    print('垂直方向拆分')
+    data = np.vsplit(a, 2)
+    for item in data:
+        print(item)
+    print('拆分成指定大小的数组')
+    data = np.array_split(a, 2)
+    for item in data:
+        print(item)
+    print('-' * 50, '副本', '-' * 50)
+    
+    a = np.arange(16)
+    b = a
+    if b is a:
+        print('b == a')
+    print(f'a的地址: \n{id(a)}')
+    print(f'b的地址: \n{id(b)}')
+    b.shape = 4, 4
+    print(f'a的形状: \n{a.shape}')
+    
+    print(f'b的形状: \n{b.shape}')
+    
+    print('-' * 50, '浅拷贝', '-' * 50)
+    
+    a = np.arange(16)
+    b = a.view()
+    if b is a:
+        print('b 和 a 是同一个对象')
+    else:
+        print('b 和 a 不是同一个对象')
+        
+    print(f'a的地址: \n{id(a)}')
+    print(f'b的地址: \n{id(b)}')
+    
+    print(f'判断b的base是否和a一样: \n{b.base is a}')
+    print(f'判断b是否存在独立的一份数据拷贝: \n{b.flags.owndata}')
+    print(f'修改b的形状{(4, 4)}')
+    b.shape = 4, 4
+    print(f'a的形状: \n{a.shape}')
+    
+    print(f'b的形状: \n{b.shape}')
+    print(f'修改b的数据:b[0, 2] = 10')
+    b[0, 2] = 10
+    print(f'查看a的数据: \n{a}')
+    print('数组切片')
+    c = a[1:3]
+    c[1] = 200
+    print(f'修改切片后的数据，然后查看对a的影响: \n{a}')
+    
+    print('-' * 50, '深拷贝', '-' * 50)
+    
+    a = np.arange(16)
+    b = a.copy()
+    if b is a:
+        print('b 和 a 是同一个对象')
+    else:
+        print('b 和 a 不是同一个对象')
+        
+    print(f'a的地址: \n{id(a)}')
+    print(f'b的地址: \n{id(b)}')
+    b[5] = 200
+    print(f'a的地址: \n{a}')
+    print(f'b的地址: \n{b}')
+    
+    print(f'判断b的base是否和a一样: \n{b.base is a}')
+    print(f'判断b是否存在独立的一份数据拷贝: \n{b.flags.owndata}')
+    
+# 9.4 高级索引
+def advanced_Indexing():
+    print('-' * 50, '通过数组索引', '-' * 50)
+    
+    a = np.arange(10) * 2
+    print(f'原始数组a: \n{a}')
+    b = np.array([1, 1, 3, 4])
+    print(f'通过b索引的数据: \n{a[b]}')
+    
+    c = np.array([[2, 3], [5, 6],[7, 8]])
+    print(f'通过c索引的数据: \n{a[c]}')
+    
+    data = np.array([[0, 0, 0, 99],
+                    [168, 0, 0, 23],
+                    [0, 198, 0, 78],
+                    [0, 0, 23, 64],
+                    [121, 0,88, 36]])
+    index = np.array([[1, 2, 3, 4], [0, 2, 1, 3]])
+    print(f'data:\n{data}, \n\nindex:\n{index},\n\ndata[index]:\n{data[index]}')
+    
+    print('-' * 50, '对于一维数组提供索引，每个维度的索引数必须相同', '-' * 50)
+    
+    a = (np.arange(16) * 2).reshape(4, 4)
+    print(f'原始数组a: \n{a}')
+    
+    b = np.array([[0, 1], [2, 3]])
+    c = np.array([[1, 2], [3, 3]])
+    
+    print(f'两个维度都使用二维数组索引: \n{a[b, c]}')
+    print(f'第一个维度都使用二维数组索引: \n{a[b, 1]}')
+    print(f'第二个维度都使用二维数组索引: \n{a[:, b]}')
+    
+    print('-' * 50, '数组索引：检索数组的极值', '-' * 50)
+    
+    a = (np.sin(np.arange(12) * 10)).reshape(4, 3)
+    print(f'原始数组a: \n{a}')
+    
+    max_val_posi = a.argmax(axis=0)
+    print(f'每列上最大值的位置: \n{max_val_posi}')
+    
+    data_max = a[max_val_posi, range(3)]
+    print(f'检索最大值，并返回新的数组: \n{data_max}')
+    
+    print('-' * 50, '通过布尔索引', '-' * 50)
+    
+    a = np.arange(8).reshape(2, 4)
+    print(f'原始数组a: \n{a}')
+    
+    b = a > 4
+    print(f'新的布尔数组b: \n{b}')
+    
+    print(f'使用布尔数组进行筛选: \n{a[b]}')
+    
+    a = np.arange(8).reshape(2, 4)
+    print(f'原始数组a: \n{a}')
+    
+    b1 = np.array([False, True])
+    b2 = np.array([True, False, True, False])
+    print(f'选取第一维第二行和所有列: \n{a[b1, :]}')
+    
+    print(f'选取第一维第二行和第二维第一、三列: \n{a[b1, b2]}')
+    
+    print('-' * 50, '通过ix()函数索引', '-' * 50)
+    
+    a = np.arange(10).reshape(2, 5)
+    print(f'原始数组a: \n{a}')
+    
+    b = np.ix_([0, 1], [2, 3])
+    print(f'使用整数数组筛选数据: \n{a[b]}')
+    c = np.ix_([True, True], [1, 3])
+    print(f'使用布尔数组筛选数据: \n{a[c]}')
 if __name__ == '__main__':
-    base_operation()
+    advanced_Indexing()
