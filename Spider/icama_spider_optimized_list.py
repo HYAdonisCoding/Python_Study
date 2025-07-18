@@ -22,7 +22,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 logging.basicConfig(
     filename=LOG_FILE,
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 HEADERS = {
@@ -37,15 +37,17 @@ HEADERS = {
     "Sec-Fetch-Storage-Access": "none",
     "Upgrade-Insecure-Requests": "1",
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-    "sec-ch-ua": "\"Google Chrome\";v=\"137\", \"Chromium\";v=\"137\", \"Not/A)Brand\";v=\"24\"",
+    "sec-ch-ua": '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
     "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": "\"macOS\""
+    "sec-ch-ua-platform": '"macOS"',
 }
+
 
 # === 工具函数 ===
 def save_progress(page):
-    with open(PROGRESS_FILE, 'w') as f:
+    with open(PROGRESS_FILE, "w") as f:
         f.write(str(page))
+
 
 def load_progress():
     if os.path.exists(PROGRESS_FILE):
@@ -53,37 +55,38 @@ def load_progress():
             return int(f.read().strip() or 1)
     return 1
 
+
 def fetch_list_page(page):
     url = "https://www.icama.cn/BasicdataSystem/pesticideRegistration/queryselect.do"
     data = {
-            "pageNo": page,
-            "pageSize": 20,
-            "djzh": "",
-            "nymc": "",
-            "cjmc": "",
-            "sf": "",
-            "nylb": "",
-            "zhl": "",
-            "jx": "",
-            "zwmc": "",
-            "fzdx": "",
-            "syff": "",
-            "dx": "",
-            "yxcf": "",
-            "yxcf_en": "",
-            "yxcfhl": "",
-            "yxcf2": "",
-            "yxcf2_en": "",
-            "yxcf2hl": "",
-            "yxcf3": "",
-            "yxcf3_en": "",
-            "yxcf3hl": "",
-            "yxqs_start": "",
-            "yxqs_end": "",
-            "yxjz_start": "",
-            "yxjz_end": "",
-            "accOrfuzzy": "2"
-        }
+        "pageNo": page,
+        "pageSize": 20,
+        "djzh": "",
+        "nymc": "",
+        "cjmc": "",
+        "sf": "",
+        "nylb": "",
+        "zhl": "",
+        "jx": "",
+        "zwmc": "",
+        "fzdx": "",
+        "syff": "",
+        "dx": "",
+        "yxcf": "",
+        "yxcf_en": "",
+        "yxcfhl": "",
+        "yxcf2": "",
+        "yxcf2_en": "",
+        "yxcf2hl": "",
+        "yxcf3": "",
+        "yxcf3_en": "",
+        "yxcf3hl": "",
+        "yxqs_start": "",
+        "yxqs_end": "",
+        "yxjz_start": "",
+        "yxjz_end": "",
+        "accOrfuzzy": "2",
+    }
     try:
         response = requests.post(url, headers=HEADERS, data=data, timeout=10)
         response.raise_for_status()
@@ -100,53 +103,58 @@ def fetch_list_page(page):
             logging.error(f"❌ GET 备选方案失败，第 {page} 页: {e_get}")
             return None
 
+
 def parse_list(html):
-    soup = BeautifulSoup(html, 'html.parser')
+    soup = BeautifulSoup(html, "html.parser")
     viewpd_pattern = re.compile(r"_viewpd\('([^']+)'\)")
-    table = soup.find_all('table')[1]
-    rows = table.find_all('tr')
-    headers = [td.get_text(strip=True) for td in rows[0].find_all('td')]
+    table = soup.find_all("table")[1]
+    rows = table.find_all("tr")
+    headers = [td.get_text(strip=True) for td in rows[0].find_all("td")]
     records = []
     for row in rows[1:]:
-        cols = row.find_all('td')
+        cols = row.find_all("td")
         values = [td.get_text(strip=True) for td in cols]
         pd_id = None
         for td in cols:
-            a_tag = td.find('a', onclick=viewpd_pattern)
+            a_tag = td.find("a", onclick=viewpd_pattern)
             if a_tag:
-                match = viewpd_pattern.search(a_tag['onclick'])
+                match = viewpd_pattern.search(a_tag["onclick"])
                 if match:
                     pd_id = match.group(1)
         record = dict(zip(headers, values))
         if pd_id:
-            record['pd_id'] = pd_id
+            record["pd_id"] = pd_id
         records.append(record)
     return records
 
+
 def extract_total_pages_and_records(html):
-    soup = BeautifulSoup(html, 'html.parser')
-    controls_li = soup.select_one('.pagination li.disabled.controls')
+    soup = BeautifulSoup(html, "html.parser")
+    controls_li = soup.select_one(".pagination li.disabled.controls")
     logging.debug(f"controls_li = {controls_li}")
 
     if controls_li:
-        inputs = controls_li.find_all('input')
+        inputs = controls_li.find_all("input")
         if len(inputs) >= 2:
-            current_page = int(inputs[0]['value'])
-            total_pages = int(inputs[1]['value'])
+            current_page = int(inputs[0]["value"])
+            total_pages = int(inputs[1]["value"])
             # 然后再找“共 NNN 条”中的 NNN：
             text = controls_li.get_text()
-            match = re.search(r'共\s*(\d+)\s*条', text)
+            match = re.search(r"共\s*(\d+)\s*条", text)
             if match:
                 total_records = int(match.group(1))
                 return total_pages, total_records
     return None, None
+
+
 def upsert_to_db(record, cursor):
-    djzh = record.get('登记证号')
+    djzh = record.get("登记证号")
     cursor.execute("SELECT 1 FROM pesticide_data WHERE 登记证号 = ?", (djzh,))
     exists = cursor.fetchone() is not None
 
     try:
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO pesticide_data (
                 登记证号, 农药名称, 农药类别, 剂型, 总含量, 有效期至, 登记证持有人, pd_id
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -158,16 +166,18 @@ def upsert_to_db(record, cursor):
                 有效期至=excluded.有效期至,
                 登记证持有人=excluded.登记证持有人,
                 pd_id=excluded.pd_id
-        """, (
-            djzh,
-            record.get('农药名称'),
-            record.get('农药类别'),
-            record.get('剂型'),
-            record.get('总有效成分含量') or record.get('总含量'),
-            record.get('有效期至'),
-            record.get('登记证持有人'),
-            record.get('pd_id')
-        ))
+        """,
+            (
+                djzh,
+                record.get("农药名称"),
+                record.get("农药类别"),
+                record.get("剂型"),
+                record.get("总有效成分含量") or record.get("总含量"),
+                record.get("有效期至"),
+                record.get("登记证持有人"),
+                record.get("pd_id"),
+            ),
+        )
 
         if exists:
             # logging.info(f"更新登记证号：{djzh}")
@@ -177,6 +187,7 @@ def upsert_to_db(record, cursor):
 
     except Exception as e:
         logging.error(f"❌ DB insert/update error for {djzh}: {e}")
+
 
 def update_total_expected_from_page(html, total_expected):
     pages, total = extract_total_pages_and_records(html)
@@ -194,13 +205,17 @@ def should_stop_by_db_count(cursor, total_expected):
     current_total = cursor.fetchone()[0]
     logging.info(f"📊 当前已同步数据总数: {current_total}")
     return current_total >= total_expected
+
+
 # === 主逻辑 ===
-def main(total_expected=50057, end_page=2503):
+def main(total_expected=50431, end_page=2522):
     start_page = load_progress()
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
 
-    logging.info(f"-------------{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} 开始抓取，预计总页数 {end_page}，预计总条数约 {total_expected}，从第 {start_page} 页开始-------------")
+    logging.info(
+        f"-------------{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} 开始抓取，预计总页数 {end_page}，预计总条数约 {total_expected}，从第 {start_page} 页开始-------------"
+    )
     pbar = tqdm(total=end_page - start_page + 1, desc="获取列表数据中", ncols=100)
     page = start_page
 
@@ -229,7 +244,7 @@ def main(total_expected=50057, end_page=2503):
             try:
                 records = parse_list(html)
                 for record in records:
-                    if '登记证号' in record and record['登记证号']:
+                    if "登记证号" in record and record["登记证号"]:
                         upsert_to_db(record, cursor)
             except Exception as e:
                 logging.error(f"❌ 第 {page} 页解析/入库失败: {e}")
@@ -265,26 +280,40 @@ def main(total_expected=50057, end_page=2503):
     finally:
         pbar.close()
         conn.close()
-        logging.info(f"✅ 同步任务结束，最终抓取至第 {page - 1} 页，期望条数 {total_expected}")
+        logging.info(
+            f"✅ 同步任务结束，最终抓取至第 {page - 1} 页，期望条数 {total_expected}"
+        )
+
 
 def test1():
-    
+
     url = "https://www.icama.cn/BasicdataSystem/pesticideRegistration/queryselect.do"
     response = requests.get(url, headers=HEADERS)
 
     pages, records = extract_total_pages_and_records(response.text)
-    print('-' * 10)
+    print("-" * 10)
     # 保存 HTML 到本地文件
-    with open(os.path.join(os.path.dirname(__file__), "data/page_sample.html"), "w", encoding="utf-8") as f:
+    with open(
+        os.path.join(os.path.dirname(__file__), "data/page_sample.html"),
+        "w",
+        encoding="utf-8",
+    ) as f:
         f.write(response.text)
     print(f"📊 总页数 {pages} 页, 总条数: {records}")
-    print('-' * 10)
+    print("-" * 10)
+
+
 def test():
-    with open(os.path.join(os.path.dirname(__file__), "data/page_sample.html"), encoding='utf-8') as f:
+    with open(
+        os.path.join(os.path.dirname(__file__), "data/page_sample.html"),
+        encoding="utf-8",
+    ) as f:
         html = f.read()
     pages, records = extract_total_pages_and_records(html)
-    print('-' * 10)
+    print("-" * 10)
     print(f"📊 总页数 {pages} 页, 总条数: {records}")
-    print('-' * 10)
-if __name__ == '__main__':
+    print("-" * 10)
+
+
+if __name__ == "__main__":
     main()
