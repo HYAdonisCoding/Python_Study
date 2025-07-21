@@ -11,6 +11,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 
+limitation = 100
+
 
 # 模拟自动评论的主类
 class XHSBot:
@@ -78,8 +80,28 @@ class XHSBot:
         # self.driver = webdriver.Chrome(options=options)
 
     def login_xhs(self):
+        self.logger.info("[XHSBot] 打开小红书登录页...")
         self.driver.get("https://www.xiaohongshu.com/")
         input("[XHSBot] 请手动登录小红书并完成验证后按回车...")
+        self.logger.info("[XHSBot] 登录成功，提取 Cookie...")
+        cookies = self.driver.get_cookies()
+        if self.driver:
+            self.driver.quit()
+        self.logger.info("[XHSBot] 启动无头浏览器...")
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--no-sandbox")
+        self.driver = webdriver.Chrome(options=chrome_options)
+        self.driver.get("https://www.xiaohongshu.com/")
+        self.logger.info("[XHSBot] 注入 Cookie...")
+        for cookie in cookies:
+            cookie.pop("sameSite", None)
+            try:
+                self.driver.add_cookie(cookie)
+            except Exception:
+                pass
+        self.driver.refresh()
 
     def get_random_comment(self):
         return random.choice(self.comments)
@@ -106,14 +128,25 @@ class XHSBot:
         Includes robust waits + fallbacks to reduce ChromeDriver crashes caused by stale/absent elements.
         """
         base = "https://www.xiaohongshu.com"
-        for raw_url in note_links:
+        for idx, (url, title) in enumerate(note_links.items(), 1):
+            percent = int((idx / len(note_links)) * 100)
+            bar_length = 30
+            filled_length = int(bar_length * percent // 100)
+            bar = "█" * filled_length + "-" * (bar_length - filled_length)
+            print(
+                f"\r[{percent:3}%] |{bar}| 第 {idx}/{len(note_links)} 条 - {title}",
+                end="",
+                flush=True,
+            )
+            self.logger.info(
+                f"[XHSBot] 正在评论第 {idx}/{len(note_links)} 条（标题：{title}）..."
+            )
             # Normalize URL (some feeds return relative URLs)
-            url = raw_url
-            if raw_url and raw_url.startswith("/"):
-                url = urllib.parse.urljoin(base, raw_url)
+            if url and url.startswith("/"):
+                url = urllib.parse.urljoin(base, url)
 
             try:
-                self.logger.info(f"[XHSBot] 打开笔记：{url}")
+                self.logger.info(f"[XHSBot] 打开笔记：{url}（标题：{title}）")
                 self.driver.get(url)
 
                 # 等待文档 ready (body 存在 & readyState == complete)
@@ -129,8 +162,8 @@ class XHSBot:
                 # 检测是否被踢回登录页（关键词 login 或 qrcode）
                 cur = self.driver.current_url
                 if "login" in cur or "account" in cur:
-                    self.logger.info(f"[XHSBot] 页面跳到登录，跳过：{url}")
-                    continue
+                    self.logger.error(f"[XHSBot] 页面跳到登录，跳过：{url}")
+                    self.exit(1)
 
                 # 滚动一点确保评论入口渲染
                 self.driver.execute_script("window.scrollBy(0, 400);")
@@ -290,9 +323,7 @@ class XHSBot:
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
                         self.logger.info("[XHSBot] 连续失败 3 次，程序退出")
-                        if self.driver:
-                            self.driver.quit()
-                        exit(1)
+                        self.exit(1)
                     continue  # 下一条
 
                 # 成功
@@ -304,6 +335,10 @@ class XHSBot:
                     json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
                 self.count_logger.info(f"{self.today} 累计评论：{self.comment_count}")
 
+                if self.comment_count >= limitation:
+                    self.logger.info("[XHSBot] 今日评论已达 f{limitation} 条，程序退出")
+                    self.exit(0)
+
                 time.sleep(random.uniform(2.5, 5.5))
 
             except Exception as e:
@@ -311,20 +346,22 @@ class XHSBot:
                 self.failed_comment_count += 1
                 if self.failed_comment_count >= 3:
                     self.logger.info("[XHSBot] 连续失败 3 次，程序退出")
-                    if self.driver:
-                        self.driver.quit()
-                    exit(1)
-
+                    self.exit(1)
+    def exit(self, num=0):
+        if self.driver:
+            self.driver.quit()
+        exit(num)
     def get_recommended_note_links(self, scroll_times: int = 5):
         """
         Collect note links from the recommend feed.
         Scroll multiple times to load more.
-        Returns a list of *absolute* URLs.
+        Returns a dict: {url: title}
         """
         self.logger.info("[XHSBot] get_recommended_note_links...")
         base_url = "https://www.xiaohongshu.com"
         self.driver.get(
-            "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend"
+            # "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend"
+            "https://www.xiaohongshu.com/search_result?keyword=%25E7%25A7%2591%25E6%258A%2580%25E6%2595%25B0%25E7%25A0%2581&source=web_explore_feed"
         )
 
         # 等初次加载
@@ -333,19 +370,31 @@ class XHSBot:
         )
         time.sleep(3)
 
-        hrefs = set()
+        hrefs = dict()
         last_height = 0
         for i in range(scroll_times):
             # 抓当前批
             cards = self.driver.find_elements(
-                By.CSS_SELECTOR, "a.cover[href*='/explore/']"
+                By.CSS_SELECTOR, "div.feeds-container section.note-item"
             )
             for a in cards:
-                href = a.get_attribute("href") or ""
-                if href.startswith("/"):
-                    href = urllib.parse.urljoin(base_url, href)
-                if href.startswith(base_url + "/explore/"):
-                    hrefs.add(href)
+                try:
+                    cover_a = a.find_element(By.CSS_SELECTOR, "a.cover")
+                    href = cover_a.get_attribute("href") or ""
+                    if href.startswith("/"):
+                        href = urllib.parse.urljoin(base_url, href)
+                    if not href.startswith(base_url + "/explore/") and "/search_result/" not in href:
+                        continue
+                except Exception:
+                    continue
+                # 更稳健地提取标题
+                try:
+                    title_elem = a.find_element(By.CSS_SELECTOR, "div.footer a.title span")
+                    title = title_elem.text.strip()
+                except Exception:
+                    title = ""
+                hrefs[href] = title
+                self.logger.info(f"[XHSBot] 抓取链接: {href} 标题: {title}")
             # 滚动到底部加载更多
             self.driver.execute_script(
                 "window.scrollBy(0, document.body.scrollHeight);"
@@ -364,8 +413,8 @@ class XHSBot:
             except Exception:
                 pass
 
-        self.logger.info("[XHSBot] len(hrefs): %d", len(hrefs))
-        return list(hrefs)
+        self.logger.info(f"[XHSBot] 共获取到 {len(hrefs)} 条链接，其中包含标题信息")
+        return hrefs
 
 
 if __name__ == "__main__":
