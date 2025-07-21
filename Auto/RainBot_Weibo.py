@@ -59,6 +59,7 @@ class RainBot:
         self.comment_count_data = all_counts
 
         self.driver = None
+        self.failed_comment_count = 0
 
     def remove_non_bmp(self, text):
         return "".join(c for c in text if ord(c) <= 0xFFFF)
@@ -139,16 +140,45 @@ class RainBot:
 
                     try:
                         submit_button.click()
+
+                        # 尝试等待浮层提示框的出现，最多等5秒
+                        try:
+                            toast_element = WebDriverWait(self.driver, 5).until(
+                                EC.presence_of_element_located((
+                                    By.XPATH,
+                                    "//div[contains(@class, 'toast') or contains(@class, 'woo-toast') or contains(@class, 'layer')]"
+                                ))
+                            )
+                            toast_text = toast_element.text.strip()
+                            if any(keyword in toast_text for keyword in ["操作频繁", "请稍后再试", "发送失败"]):
+                                self.logger.info(f"[RainBot] 检测到浮层提示：{toast_text}，评论未成功")
+                                self.failed_comment_count += 1
+                                if self.failed_comment_count >= 3:
+                                    self.logger.info("[RainBot] 当前评论已连续失败 3 次，程序即将退出。")
+                                    if self.driver:
+                                        self.driver.quit()
+                                    exit(1)
+                        except Exception:
+                            # 没有检测到提示，可能成功
+                            pass
+
+                        time.sleep(2)  # 等待可能的提示弹窗出现
+
                     except Exception:
                         self.driver.execute_script(
                             "arguments[0].click();", submit_button
                         )
                     self.logger.info(f"[RainBot] 已发送评论：{comment}")
                     self.comment_count += 1
+                    self.failed_comment_count = 0
                     self.comment_count_data[self.today] = self.comment_count
                     with open(self.comment_count_path, "w", encoding="utf-8") as f:
-                        json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
-                    self.count_logger.info(f"{self.today} 累计评论：{self.comment_count}")
+                        json.dump(
+                            self.comment_count_data, f, ensure_ascii=False, indent=2
+                        )
+                    self.count_logger.info(
+                        f"{self.today} 累计评论：{self.comment_count}"
+                    )
                     time.sleep(random.uniform(3, 6))
 
                     # 尝试再次点击 comment_button 收起评论框
@@ -167,6 +197,14 @@ class RainBot:
                     time.sleep(random.uniform(1, 2.5))
                 except Exception as e_inner:
                     self.logger.info(f"[RainBot] 当前评论失败: {e_inner}")
+                    self.failed_comment_count += 1
+                    if self.failed_comment_count >= 3:
+                        self.logger.info(
+                            "[RainBot] 当前评论已连续失败 3 次，程序即将退出。"
+                        )
+                        if self.driver:
+                            self.driver.quit()
+                        exit(1)
         except Exception as e:
             self.logger.info(f"[RainBot] 发送评论失败: {e}")
 
