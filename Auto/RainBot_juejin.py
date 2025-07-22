@@ -114,15 +114,23 @@ class JuejinBot:
         while True:
             if os.path.exists(cache_path):
                 with open(cache_path, "r", encoding="utf-8") as f:
-                    hrefs = json.load(f)
+                    try:
+                        hrefs = json.load(f)
+                    except json.JSONDecodeError:
+                        hrefs = {}
             else:
-                hrefs = self.get_recommended_note_links()
-                with open(cache_path, "w", encoding="utf-8") as f:
-                    json.dump(hrefs, f, ensure_ascii=False, indent=2)
+                hrefs = {}
+
             if not hrefs:
-                self.logger.error("[JuejinBot] 未获取到笔记链接，等待重试...")
-                time.sleep(10)
-                continue
+                self.logger.warning("[JuejinBot] 缓存为空或无效，重新获取链接中...")
+                hrefs = self.get_recommended_note_links()
+                if hrefs:
+                    with open(cache_path, "w", encoding="utf-8") as f:
+                        json.dump(hrefs, f, ensure_ascii=False, indent=2)
+                else:
+                    self.logger.error("[JuejinBot] 未获取到笔记链接，等待重试...")
+                    time.sleep(10)
+                    continue
             self.logger.info("[JuejinBot] 开始评价...")
             self.comment_on_note_links(hrefs)
 

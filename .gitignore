@@ -116,3 +116,4 @@ data/*.csv
 
 # 忽略 detail_cache 文件夹及其内容
 data/detail_cache/
+cached_hrefs.json
