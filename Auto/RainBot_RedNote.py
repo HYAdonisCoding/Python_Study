@@ -194,6 +194,10 @@ class XHSBot:
 
                 if comment_trigger is None:
                     self.logger.info(f"[XHSBot] 未找到评论入口，跳过：{url}")
+                    self.failed_comment_count += 1
+                    if self.failed_comment_count >= 3:
+                        self.logger.info("[XHSBot] 连续未找到评论入口 3 次，程序退出")
+                        self.exit(1)
                     continue
 
                 # 确保在视口中
@@ -231,6 +235,10 @@ class XHSBot:
 
                 if input_box is None:
                     self.logger.info(f"[XHSBot] 未找到评论输入框，跳过：{url}")
+                    self.failed_comment_count += 1
+                    if self.failed_comment_count >= 3:
+                        self.logger.info("[XHSBot] 连续未找到评论输入框 3 次，程序退出")
+                        self.exit(1)
                     continue
 
                 # 激活输入框（有些前端需要点击 innerEditable 子节点）
@@ -268,6 +276,10 @@ class XHSBot:
 
                 if not typed_ok:
                     self.logger.info(f"[XHSBot] 无法输入评论，跳过：{url}")
+                    self.failed_comment_count += 1
+                    if self.failed_comment_count >= 3:
+                        self.logger.info("[XHSBot] 连续无法输入评论 3 次，程序退出")
+                        self.exit(1)
                     continue
 
                 # 发送评论按钮（多个 fallback）
@@ -292,6 +304,10 @@ class XHSBot:
 
                 if submit_button is None:
                     self.logger.info(f"[XHSBot] 找不到发送按钮，跳过：{url}")
+                    self.failed_comment_count += 1
+                    if self.failed_comment_count >= 3:
+                        self.logger.info("[XHSBot] 连续找不到发送按钮 3 次，程序退出")
+                        self.exit(1)
                     continue
 
                 try:
@@ -327,7 +343,7 @@ class XHSBot:
                     continue  # 下一条
 
                 # 成功
-                self.logger.info(f"[XHSBot] 已评论链接：{url}")
+                self.logger.info(f"[XHSBot] 已评论 {comment} 链接：{url}")
                 self.comment_count += 1
                 self.failed_comment_count = 0
                 self.comment_count_data[self.today] = self.comment_count
@@ -347,10 +363,12 @@ class XHSBot:
                 if self.failed_comment_count >= 3:
                     self.logger.info("[XHSBot] 连续失败 3 次，程序退出")
                     self.exit(1)
+
     def exit(self, num=0):
         if self.driver:
             self.driver.quit()
         exit(num)
+
     def get_recommended_note_links(self, scroll_times: int = 5):
         """
         Collect note links from the recommend feed.
@@ -383,13 +401,18 @@ class XHSBot:
                     href = cover_a.get_attribute("href") or ""
                     if href.startswith("/"):
                         href = urllib.parse.urljoin(base_url, href)
-                    if not href.startswith(base_url + "/explore/") and "/search_result/" not in href:
+                    if (
+                        not href.startswith(base_url + "/explore/")
+                        and "/search_result/" not in href
+                    ):
                         continue
                 except Exception:
                     continue
                 # 更稳健地提取标题
                 try:
-                    title_elem = a.find_element(By.CSS_SELECTOR, "div.footer a.title span")
+                    title_elem = a.find_element(
+                        By.CSS_SELECTOR, "div.footer a.title span"
+                    )
                     title = title_elem.text.strip()
                 except Exception:
                     title = ""
