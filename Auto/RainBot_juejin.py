@@ -155,7 +155,7 @@ class JuejinBot:
                 url = urllib.parse.urljoin(base, url)
 
             try:
-                self.logger.info(f"[JuejinBot] 打开笔记：{url}（标题：{title}）")
+                self.logger.info(f"[JuejinBot] 打开笔记：{url}")
                 self.driver.get(url)
 
                 # 等待文档 ready (body 存在 & readyState == complete)
