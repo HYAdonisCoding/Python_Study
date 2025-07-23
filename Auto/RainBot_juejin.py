@@ -70,15 +70,11 @@ class JuejinBot:
         return text
 
     def setup_browser(self):
-        # options = Options()
-        # options.add_argument("--start-maximized")
         chrome_options = Options()
-        # chrome_options.add_argument('--headless')
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
-        # driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        chrome_options.add_argument("--window-size=1920,1080")
         self.driver = webdriver.Chrome(options=chrome_options)
-        # self.driver = webdriver.Chrome(options=options)
 
     def login_juejin(self):
         self.logger.info("[JuejinBot] 打开掘金登录页...")
@@ -86,21 +82,23 @@ class JuejinBot:
         input("[JuejinBot] 请手动登录掘金并完成验证后按回车...")
         self.logger.info("[JuejinBot] 登录成功，继续执行")
 
-        # 登录完成后关闭当前窗口，启用无头浏览节省资源
+        # 登录完成后关闭当前窗口，重新初始化浏览器为“伪无头”模式
         cookies = self.driver.get_cookies()
         self.driver.quit()
 
         headless_options = Options()
-        headless_options.add_argument("--headless=new")
         headless_options.add_argument("--disable-gpu")
         headless_options.add_argument("--no-sandbox")
+        headless_options.add_argument("--window-size=1920,1080")
+        # headless_options.add_argument("--headless=new")  # 注释掉无头参数
 
         self.driver = webdriver.Chrome(options=headless_options)
         self.driver.get("https://juejin.cn/")
         for cookie in cookies:
             self.driver.add_cookie(cookie)
         self.driver.refresh()
-        self.logger.info("[JuejinBot] 已切换为无头模式浏览器")
+        self.driver.minimize_window()  # 添加此行
+        self.logger.info("[JuejinBot] 已切换为伪无头模式浏览器")
         
 
     def get_random_comment(self):
@@ -166,7 +164,14 @@ class JuejinBot:
                     lambda d: d.execute_script("return document.readyState")
                     == "complete"
                 )
-                time.sleep(random.uniform(0.5, 1.5))  # 给前端框架一点渲染缓冲
+                # time.sleep(random.uniform(0.5, 1.5))  # 给前端框架一点渲染缓冲
+                # 改为等待输入框出现（提前预热页面，等待评论输入框可用）
+                try:
+                    WebDriverWait(self.driver, 5).until(
+                        lambda d: d.execute_script("return !!document.querySelector('div.rich-input')")
+                    )
+                except Exception:
+                    pass
 
                 # 检测是否被踢回登录页（关键词 login 或 qrcode）
                 cur = self.driver.current_url
@@ -175,7 +180,9 @@ class JuejinBot:
                     self.exit(1)
 
                 # 等待 DOM 渲染完成，避免多余滚动
-                time.sleep(random.uniform(1.2, 2.0))
+                # time.sleep(random.uniform(1.2, 2.0))
+                # 用更短的等待 scroll 完成
+                time.sleep(random.uniform(0.5, 1.0))
 
                 # 定位掘金“评论”触发元素
                 trigger_locators = [
@@ -373,7 +380,9 @@ class JuejinBot:
                     )
                     self.exit(0)
 
-                time.sleep(random.uniform(2.5, 5.5))
+                # time.sleep(random.uniform(2.5, 5.5))
+                # 改为更短的延迟
+                time.sleep(random.uniform(1.0, 2.0))
 
                 # --- 移除已评论链接并写回缓存 ---
                 if os.path.exists(cache_path):
