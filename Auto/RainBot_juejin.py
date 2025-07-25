@@ -11,6 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 from tqdm import tqdm
+from comment_db import CommentDB, Platform
 
 limitation = 100
 
@@ -18,6 +19,7 @@ limitation = 100
 # 模拟自动评论的主类
 class JuejinBot:
     def __init__(self):
+        bot_id = self.__class__.__name__
         # 在本文件夹下的json文件
         base_dir = os.path.dirname(os.path.abspath(__file__))
         comment_path = os.path.join(base_dir, "comments.json")
@@ -27,29 +29,8 @@ class JuejinBot:
         log_dir = os.path.join(base_dir, "log")
         os.makedirs(log_dir, exist_ok=True)
         log_path = os.path.join(log_dir, "rainbot.log")
-
-        # 设置全局 root logger，并绑定到文件
-        logging.basicConfig(
-            filename=log_path,
-            level=logging.INFO,
-            format="%(asctime)s [%(levelname)s] %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-            force=True,  # 强制覆盖其他 logging 设置
-        )
-        self.logger = logging.getLogger()
-
-        # 记录每日评论次数的独立日志
         count_log_path = os.path.join(log_dir, "comment_count.log")
-        self.count_logger = logging.getLogger("CommentCounter")
-        count_handler = logging.FileHandler(count_log_path)
-        count_handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-            )
-        )
-        self.count_logger.addHandler(count_handler)
-        self.count_logger.setLevel(logging.INFO)
-        self.count_logger.propagate = False
+        self._setup_loggers(log_path, count_log_path)
 
         # 持久化每日评论计数
         self.comment_count_path = os.path.join(log_dir, "comment_count_daily.json")
@@ -64,6 +45,34 @@ class JuejinBot:
 
         self.driver = None
         self.failed_comment_count = 0
+        self.comment_db = CommentDB()
+        self.cookie_path = os.path.join(base_dir, f"{bot_id}_cookies.json")
+        # 缓存路径
+        self.cache_path = os.path.join(base_dir, f"{bot_id}_cached_hrefs.json")
+
+    def _setup_loggers(self, log_path, count_log_path):
+        # 设置主日志 logger
+        logging.basicConfig(
+            filename=log_path,
+            level=logging.INFO,
+            format="%(asctime)s [%(levelname)s] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+            force=True,
+        )
+        self.logger = logging.getLogger("JuejinBotLogger")
+
+        # 设置每日计数 logger
+        self.count_logger = logging.getLogger("CommentCounter")
+        count_handler = logging.FileHandler(count_log_path)
+        count_handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+            )
+        )
+        self.count_logger.handlers.clear()
+        self.count_logger.addHandler(count_handler)
+        self.count_logger.setLevel(logging.INFO)
+        self.count_logger.propagate = False
 
     def remove_non_bmp(self, text):
         # return "".join(c for c in text if ord(c) <= 0xFFFF)
@@ -77,29 +86,59 @@ class JuejinBot:
         self.driver = webdriver.Chrome(options=chrome_options)
 
     def login_juejin(self):
-        self.logger.info("[JuejinBot] 打开掘金登录页...")
+        self.logger.info("[JuejinBot] 尝试使用 Cookie 登录掘金...")
+        self.driver.get("https://juejin.cn/")
+        if self.load_and_inject_cookies():
+            self.logger.info("[JuejinBot] 成功复用 Cookie 登录")
+            return
+
+        self.logger.info("[JuejinBot] Cookie 无效，请手动登录...")
         self.driver.get("https://juejin.cn/login")
         input("[JuejinBot] 请手动登录掘金并完成验证后按回车...")
-        self.logger.info("[JuejinBot] 登录成功，继续执行")
+
+        cookies = self.driver.get_cookies()
+        self.save_cookies(cookies)
+        self.logger.info("[JuejinBot] Cookie 已保存，登录流程完成")
 
         # 登录完成后关闭当前窗口，重新初始化浏览器为“伪无头”模式
-        cookies = self.driver.get_cookies()
         self.driver.quit()
 
         headless_options = Options()
         headless_options.add_argument("--disable-gpu")
         headless_options.add_argument("--no-sandbox")
         headless_options.add_argument("--window-size=1920,1080")
-        # headless_options.add_argument("--headless=new")  # 注释掉无头参数
-
         self.driver = webdriver.Chrome(options=headless_options)
         self.driver.get("https://juejin.cn/")
         for cookie in cookies:
             self.driver.add_cookie(cookie)
         self.driver.refresh()
-        self.driver.minimize_window()  # 添加此行
+        self.driver.minimize_window()
         self.logger.info("[JuejinBot] 已切换为伪无头模式浏览器")
-        
+
+    def load_and_inject_cookies(self):
+        if not os.path.exists(self.cookie_path):
+            return False
+        with open(self.cookie_path, "r", encoding="utf-8") as f:
+            cookies = json.load(f)
+        self.driver.get("https://juejin.cn/")
+        for cookie in cookies:
+            cookie.pop("sameSite", None)
+            try:
+                self.driver.add_cookie(cookie)
+            except Exception:
+                pass
+        self.driver.refresh()
+        time.sleep(2)
+        # 检查是否跳转到登录页或显示二维码等登录提示
+        current_url = self.driver.current_url
+        if "juejin.cn/login" in current_url:
+            self.logger.warning("[JuejinBot] 当前页面为登录页，Cookie 失效")
+            return False
+        return True
+
+    def save_cookies(self, cookies):
+        with open(self.cookie_path, "w", encoding="utf-8") as f:
+            json.dump(cookies, f, indent=2, ensure_ascii=False)
 
     def get_random_comment(self):
         return random.choice(self.comments)
@@ -108,10 +147,9 @@ class JuejinBot:
         self.setup_browser()
         self.login_juejin()
         # 检查是否已有缓存链接文件
-        cache_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cached_hrefs.json")
         while True:
-            if os.path.exists(cache_path):
-                with open(cache_path, "r", encoding="utf-8") as f:
+            if os.path.exists(self.cache_path):
+                with open(self.cache_path, "r", encoding="utf-8") as f:
                     try:
                         hrefs = json.load(f)
                     except json.JSONDecodeError:
@@ -123,7 +161,7 @@ class JuejinBot:
                 self.logger.warning("[JuejinBot] 缓存为空或无效，重新获取链接中...")
                 hrefs = self.get_recommended_note_links()
                 if hrefs:
-                    with open(cache_path, "w", encoding="utf-8") as f:
+                    with open(self.cache_path, "w", encoding="utf-8") as f:
                         json.dump(hrefs, f, ensure_ascii=False, indent=2)
                 else:
                     self.logger.error("[JuejinBot] 未获取到笔记链接，等待重试...")
@@ -143,8 +181,26 @@ class JuejinBot:
         """
         base = "https://www.zhihu.com"
 
-        cache_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cached_hrefs.json")
-        for idx, (url, title) in enumerate(tqdm(note_links.items(), desc="评论进度"), 1):
+        # --- 读取缓存文件到 current_cache ---
+        if os.path.exists(self.cache_path):
+            try:
+                with open(self.cache_path, "r", encoding="utf-8") as f:
+                    current_cache = json.load(f)
+            except Exception:
+                current_cache = {}
+        else:
+            current_cache = {}
+
+        for idx, (url, title) in enumerate(
+            tqdm(note_links.items(), desc="评论进度"), 1
+        ):
+            # 跳过已评论过的链接
+            if self.comment_db.has_commented(url, Platform.JUEJIN):
+                self.logger.info(f"[JuejinBot] 已跳过已评论过的链接：{url}")
+                # --- 移除已评论链接 ---
+                if url in current_cache:
+                    del current_cache[url]
+                continue
             self.logger.info(
                 f"[JuejinBot] 正在评论第 {idx}/{len(note_links)} 条（标题：{title}）..."
             )
@@ -164,11 +220,12 @@ class JuejinBot:
                     lambda d: d.execute_script("return document.readyState")
                     == "complete"
                 )
-                # time.sleep(random.uniform(0.5, 1.5))  # 给前端框架一点渲染缓冲
                 # 改为等待输入框出现（提前预热页面，等待评论输入框可用）
                 try:
                     WebDriverWait(self.driver, 5).until(
-                        lambda d: d.execute_script("return !!document.querySelector('div.rich-input')")
+                        lambda d: d.execute_script(
+                            "return !!document.querySelector('div.rich-input')"
+                        )
                     )
                 except Exception:
                     pass
@@ -179,8 +236,6 @@ class JuejinBot:
                     self.logger.error(f"[JuejinBot] 页面跳到登录，跳过：{url}")
                     self.exit(1)
 
-                # 等待 DOM 渲染完成，避免多余滚动
-                # time.sleep(random.uniform(1.2, 2.0))
                 # 用更短的等待 scroll 完成
                 time.sleep(random.uniform(0.5, 1.0))
 
@@ -213,7 +268,9 @@ class JuejinBot:
                     self.logger.info(f"[JuejinBot] 未找到评论入口，跳过：{url}")
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
-                        self.logger.info("[JuejinBot] 连续未找到评论入口 3 次，程序退出")
+                        self.logger.info(
+                            "[JuejinBot] 连续未找到评论入口 3 次，程序退出"
+                        )
                         self.exit(1)
                     continue
 
@@ -311,9 +368,7 @@ class JuejinBot:
                     continue
 
                 # 发送评论按钮（新版样式）
-                send_locators = [
-                    (By.CSS_SELECTOR, "button.submit-btn.active")
-                ]
+                send_locators = [(By.CSS_SELECTOR, "button.submit-btn.active")]
 
                 submit_button = None
                 for how, what in send_locators:
@@ -329,7 +384,9 @@ class JuejinBot:
                     self.logger.info(f"[JuejinBot] 找不到发送按钮，跳过：{url}")
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
-                        self.logger.info("[JuejinBot] 连续找不到发送按钮 3 次，程序退出")
+                        self.logger.info(
+                            "[JuejinBot] 连续找不到发送按钮 3 次，程序退出"
+                        )
                         self.exit(1)
                     continue
 
@@ -374,27 +431,26 @@ class JuejinBot:
                     json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
                 self.count_logger.info(f"{self.today} 累计评论：{self.comment_count}")
 
+                # 记录已评论
+                self.comment_db.record_comment(
+                    platform=Platform.JUEJIN,
+                    url=url,
+                    title=title,
+                    comment=comment,
+                    status="success",
+                )
                 if self.comment_count >= limitation:
                     self.logger.info(
                         f"[JuejinBot] 今日评论已达 {limitation} 条，程序退出"
                     )
                     self.exit(0)
 
-                # time.sleep(random.uniform(2.5, 5.5))
                 # 改为更短的延迟
                 time.sleep(random.uniform(1.0, 2.0))
 
-                # --- 移除已评论链接并写回缓存 ---
-                if os.path.exists(cache_path):
-                    try:
-                        with open(cache_path, "r", encoding="utf-8") as f:
-                            current_cache = json.load(f)
-                        if url in current_cache:
-                            del current_cache[url]
-                            with open(cache_path, "w", encoding="utf-8") as f:
-                                json.dump(current_cache, f, ensure_ascii=False, indent=2)
-                    except Exception as e:
-                        self.logger.warning(f"[JuejinBot] 更新缓存文件失败：{e}")
+                # --- 移除已评论链接 ---
+                if url in current_cache:
+                    del current_cache[url]
 
             except Exception as e:
                 self.logger.info(f"[JuejinBot] 评论链接失败: {url}，错误：{e}")
@@ -402,6 +458,10 @@ class JuejinBot:
                 if self.failed_comment_count >= 3:
                     self.logger.info("[JuejinBot] 连续失败 3 次，程序退出")
                     self.exit(1)
+
+        # --- 循环结束后统一写回缓存 ---
+        with open(self.cache_path, "w", encoding="utf-8") as f:
+            json.dump(current_cache, f, ensure_ascii=False, indent=2)
 
     def exit(self, num=0):
         if self.driver:
@@ -437,6 +497,9 @@ class JuejinBot:
                         # 拼接完整 URL，确保 href 是绝对路径
                         if href.startswith("/"):
                             href = urllib.parse.urljoin("https://juejin.cn", href)
+                        # 跳过已评论过的链接
+                        if self.comment_db.has_commented(href, Platform.JUEJIN):
+                            continue
                         hrefs[href] = title
                         self.logger.info(f"[JuejinBot] 抓取链接: {href} 标题: {title}")
                 except Exception:
