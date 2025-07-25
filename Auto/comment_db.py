@@ -41,5 +41,10 @@ class CommentDB:
         cur.execute("SELECT url FROM comments WHERE platform=? AND status='success'", (platform.value,))
         return set(row[0] for row in cur.fetchall())
 
+    def has_commented(self, url: str, platform: Platform) -> bool:
+        cur = self.conn.cursor()
+        cur.execute("SELECT 1 FROM comments WHERE url=? AND platform=? AND status='success' LIMIT 1", (url, platform.value))
+        return cur.fetchone() is not None
+
     def close(self):
         self.conn.close()
