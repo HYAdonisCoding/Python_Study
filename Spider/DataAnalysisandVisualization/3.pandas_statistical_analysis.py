@@ -377,38 +377,43 @@ def aggregation():
 
     df1 = pd.DataFrame(series1)
     print(df1)
-    print("英语总成绩：", df1["en_score"].aggregate('sum'))
-    print("数学总成绩：", df1["math_score"].aggregate('sum'))
+    print("英语总成绩：", df1["en_score"].aggregate("sum"))
+    print("数学总成绩：", df1["math_score"].aggregate("sum"))
 
     print("-" * 30, "对单个列进行多种聚合统计", "-" * 30)
-    print("英语总成绩与平均成绩：", df1["en_score"].aggregate(['sum','mean']))
-    print("数学总成绩与平均成绩：", df1["math_score"].aggregate(['sum','mean']))
-    
-    
+    print("英语总成绩与平均成绩：", df1["en_score"].aggregate(["sum", "mean"]))
+    print("数学总成绩与平均成绩：", df1["math_score"].aggregate(["sum", "mean"]))
+
     print("-" * 30, "对多个列进行聚合统计", "-" * 30)
     df1 = pd.DataFrame(series1)
-    print("英语和数学总成绩：", df1[["en_score", "math_score"]].aggregate('sum'))
+    print("英语和数学总成绩：", df1[["en_score", "math_score"]].aggregate("sum"))
 
     print("-" * 30, "对多个列进行多种聚合统计", "-" * 30)
-    print("英语和数学总成绩与平均成绩：", df1[["en_score", "math_score"]].aggregate(['sum','mean']))
-    print("英语和数学最大成绩：", df1[["en_score", "math_score"]].aggregate('max'))
-    print("英语和数学最小成绩：", df1[["en_score", "math_score"]].aggregate('min'))
+    print(
+        "英语和数学总成绩与平均成绩：",
+        df1[["en_score", "math_score"]].aggregate(["sum", "mean"]),
+    )
+    print("英语和数学最大成绩：", df1[["en_score", "math_score"]].aggregate("max"))
+    print("英语和数学最小成绩：", df1[["en_score", "math_score"]].aggregate("min"))
 
 
 # 分组统计
 def groupby():
     print("-" * 30, "分组统计", "-" * 30)
 
-    series1 = {"name": pd.Series(["Wilson", "Bruce", "Chelsea", "Wilson", "Bruce", "Chelsea"]),
-           "math_score": pd.Series([98, 88, 80, 70, 68, 75]),
-           "en_score": pd.Series([70, 68, 85, 61, 99, 82]),
-           "term": pd.Series(["第一学期", "第一学期", "第一学期",
-                              "第二学期", "第二学期", "第二学期"])}
+    series1 = {
+        "name": pd.Series(["Wilson", "Bruce", "Chelsea", "Wilson", "Bruce", "Chelsea"]),
+        "math_score": pd.Series([98, 88, 80, 70, 68, 75]),
+        "en_score": pd.Series([70, 68, 85, 61, 99, 82]),
+        "term": pd.Series(
+            ["第一学期", "第一学期", "第一学期", "第二学期", "第二学期", "第二学期"]
+        ),
+    }
 
     df1 = pd.DataFrame(series1)
     print(df1)
     print("按学期分组：", df1.groupby("term").groups)
-    
+
     print("-" * 30, "遍历分组", "-" * 30)
 
     df1 = pd.DataFrame(series1)
@@ -417,31 +422,33 @@ def groupby():
     for group_name, member in group_data:
         print(group_name)
         print(member)
-    
+
     print("-" * 30, "获取指定分组", "-" * 30)
     df1 = pd.DataFrame(series1)
     group_data = df1.groupby("term")
     data = group_data.get_group("第二学期")
     print(data)
-    
+
     print("-" * 30, "分组聚合", "-" * 30)
     df1 = pd.DataFrame(series1)
     group_data = df1.groupby(["name"])
     print(f"\n分组聚合数据1：\n{group_data.agg('sum')}")
-    
+
     print("-" * 30, "数据转换", "-" * 30)
-    
+
     df1 = pd.DataFrame(series1)
     group_data = df1.groupby(["name"])
-    
-    df1[["en_percent", "math_percent"]] = group_data[["en_score", "math_score"]].transform('sum')
+
+    df1[["en_percent", "math_percent"]] = group_data[
+        ["en_score", "math_score"]
+    ].transform("sum")
     df1["en_percent"] = df1["en_score"] / df1["en_percent"]
     df1["math_percent"] = df1["math_score"] / df1["math_percent"]
 
     print(f"\n数据转换：\n{df1}")
-    
+
     print("-" * 30, "数据过滤", "-" * 30)
-    
+
     df1 = pd.DataFrame(series1)
     group_data = df1.groupby(["name"])
 
@@ -457,15 +464,16 @@ def groupby():
         total_score = item["math_score"].sum() + item["en_score"].sum()
         # 如果总和大于等于a，则返回True
         return total_score >= a
+
     print(f"\n过滤条件：数学和英语成绩之和大于等于{180}分")
-    print(f'\n过滤数据：\n{df1}')
-    
+    print(f"\n过滤数据：\n{df1}")
+
     # 使用groupby().filter()进行筛选
     data = group_data.filter(lambda x: f(x, a=180))
 
     # 打印过滤后的数据
-    print(f'\n过滤后的数据：\n{data}')
-    
+    print(f"\n过滤后的数据：\n{data}")
+
     print("-" * 30, "自定义过滤", "-" * 30)
 
     df1 = pd.DataFrame(series1)
@@ -473,42 +481,122 @@ def groupby():
     # 分组后计算总和
     group_data = df1.groupby("name").agg({"math_score": "sum", "en_score": "sum"})
     print(f"\n分组后数据：\n{group_data}")
+
     # 自定义过滤函数，检查分组总和是否满足条件
     def f(group):
         print(f'\n分组数据：\n{group["math_score"].sum()}, {group["en_score"].sum()}')
-        total_score = group["math_score"].sum() + group["en_score"].sum()  # 计算分组内的总和
+        total_score = (
+            group["math_score"].sum() + group["en_score"].sum()
+        )  # 计算分组内的总和
         return total_score >= 180  # 只保留符合总和大于等于 180 的分组
 
     # 使用 groupby.filter 过滤符合条件的分组
-    filtered_data = df1.groupby("name").filter(f)               
+    filtered_data = df1.groupby("name").filter(f)
 
     # 输出结果
     print(f"\n自定义过滤后的数据：\n{filtered_data}")
 
-    
+
 # 连接合并
 def merge():
     print("-" * 30, "连接合并", "-" * 30)
 
+    print("-" * 30, "使用on进行连接", "-" * 30)
     series1 = {
         "name": pd.Series(["Wilson", "Bruce", "Chelsea"]),
-        "age": pd.Series([15, 24, 19]),
-        "math_score": pd.Series([98, 88, 80]),
-        "en_score": pd.Series([70, 68, 85]),
+        "math_score": pd.Series([98, 88, 91]),
+        "en_score": pd.Series([92, 68, 94]),
+        "term": pd.Series(["第一学期", "第一学期", "第一学期"]),
     }
 
     series2 = {
         "name": pd.Series(["Wilson", "Bruce", "Chelsea"]),
-        "age": pd.Series([15, 24, 19]),
-        "sum_score": pd.Series([168, 156, 165]),
+        "math_score": pd.Series([90, 68, 75]),
+        "en_score": pd.Series([95, 99, 82]),
+        "term": pd.Series(["第二学期", "第二学期", "第二学期"]),
     }
+
     df1 = pd.DataFrame(series1)
     df2 = pd.DataFrame(series2)
-    print(f"\n源数据1：\n{df1}")
-    print(f"\n源数据2：\n{df2}")
-    df3 = pd.merge(df1, df2, on="name", how="inner")
-    print(f"\n合并数据：\n{df3}")
-        
+    df3 = df1.merge(df2, on="name")
+    # df3 = df1.merge(df2, on=["name", "term"])
+    print(f"\n数据1：\n{df1}")
+    print(f"\n数据2：\n{df2}")
+
+    print(f"\n合并数据3：\n{df3}")
+    
+    print("-" * 30, "使用left_on和right_on进行连接", "-" * 30)
+    series1 = {"name": pd.Series(["Wilson", "Bruce", "Chelsea", "Warren", "Ivy"]),
+           "math_score": pd.Series([98, 88, 91, 94, 74]),
+           "en_score": pd.Series([92, 68, 94, 78, 69]),
+           "term": pd.Series(["第一学期", "第一学期", "第一学期", "第一学期", "第一学期"])}
+
+    series2 = {"name": pd.Series(["Wilson", "Bruce", "Chelsea"]),
+           "math_score": pd.Series([90, 68, 75]),
+           "en_score": pd.Series([95, 99, 82]),
+           "term": pd.Series(["第二学期", "第二学期", "第二学期"])}
+    df1 = pd.DataFrame(series1)
+    df2 = pd.DataFrame(series2)
+    df3 = df1.merge(df2, on="name", how="left")
+    print(f"\nleft合并数据3：\n{df3}")
+    
+    df3 = df1.merge(df2, on="name", how="right")
+    print(f"\nright合并数据3：\n{df3}")
+    
+    print("-" * 30, "外连接", "-" * 30)
+    series1 = {"name": pd.Series(["Wilson", "Bruce", "Chelsea", "Warren", "Ivy"]),
+           "math_score": pd.Series([98, 88, 91, 94, 74]),
+           "en_score": pd.Series([92, 68, 94, 78, 69]),
+           "term": pd.Series(["第一学期", "第一学期", "第一学期", "第一学期", "第一学期"])}
+
+    series2 = {"name": pd.Series(["Wilson", "Bruce", "Chelsea", "Lucy", "Edith"]),
+            "math_score": pd.Series([90, 68, 75, 83, 67]),
+            "en_score": pd.Series([95, 99, 82, 89, 72]),
+            "term": pd.Series(["第二学期", "第二学期", "第二学期", "第二学期", "第二学期"])}
+
+    df1 = pd.DataFrame(series1)
+    df2 = pd.DataFrame(series2)
+    df3 = df1.merge(df2, on="name", how="outer")
+    print(f"\nouter合并数据3：\n{df3}")
+    
+    print("-" * 30, "contact连接", "-" * 30)
+    series1 = {"name": pd.Series(["Wilson", "Bruce", "Chelsea", "Warren", "Ivy"]),
+           "math_score": pd.Series([98, 88, 91, 94, 74]),
+           "en_score": pd.Series([92, 68, 94, 78, 69]),
+           "term": pd.Series(["第一学期", "第一学期", "第一学期", "第一学期", "第一学期"])}
+
+    series2 = {"name": pd.Series(["Wilson", "Bruce", "Chelsea", "Lucy", "Edith"]),
+            "math_score": pd.Series([90, 68, 75, 83, 67]),
+            "en_score": pd.Series([95, 99, 82, 89, 72]),
+            "term": pd.Series(["第二学期", "第二学期", "第二学期", "第二学期", "第二学期"])}
+
+    df1 = pd.DataFrame(series1)
+    df2 = pd.DataFrame(series2)
+    df3 = pd.concat([df1,df2], ignore_index=True)
+    print(f"\nconcat合并数据3：\n{df3}")
+    
+    print("-" * 30, "append连接", "-" * 30)
+    series1 = {"name": pd.Series(["Wilson", "Bruce", "Chelsea", "Warren", "Ivy"]),
+           "math_score": pd.Series([98, 88, 91, 94, 74]),
+           "en_score": pd.Series([92, 68, 94, 78, 69]),
+           "term": pd.Series(["第一学期", "第一学期", "第一学期", "第一学期", "第一学期"])}
+
+    series2 = {"name": pd.Series(["Wilson", "Bruce", "Chelsea", "Lucy", "Edith"]),
+            "math_score": pd.Series([90, 68, 75, 83, 67]),
+            "en_score": pd.Series([95, 99, 82, 89, 72]),
+            "term": pd.Series(["第二学期", "第二学期", "第二学期", "第二学期", "第二学期"])}
+
+    df1 = pd.DataFrame(series1)
+    df2 = pd.DataFrame(series2)
+    df3 =df1.append(df2,ignore_index=True)
+    print(f"\nappend合并数据3：\n{df3}")
+    
+def time_data():
+    print("-" * 30, "时间数据", "-" * 30)
+    
+    
+    
+
 
 if __name__ == "__main__":
-    groupby()
+    merge()
