@@ -57,13 +57,28 @@ class XHSBot:
         # 持久化每日评论计数
         self.comment_count_path = os.path.join(log_dir, "comment_count_daily.json")
         self.today = time.strftime("%Y-%m-%d")
+
+        # 读取原始数据
         if os.path.exists(self.comment_count_path):
             with open(self.comment_count_path, "r", encoding="utf-8") as f:
-                all_counts = json.load(f)
+                all_data = json.load(f)
         else:
-            all_counts = {}
-        self.comment_count = all_counts.get(self.today, 0)
-        self.comment_count_data = all_counts
+            all_data = {}
+
+        # 初始化类名下的数据
+        self.class_name = bot_id
+        class_data = all_data.get(self.class_name, {})
+        self.comment_count = class_data.get(self.today, 0)
+
+        # 保存引用用于更新
+        self.comment_count_data = all_data
+        self.comment_count_data.setdefault(self.class_name, {})[self.today] = self.comment_count
+
+        # 写入文件
+        with open(self.comment_count_path, "w", encoding="utf-8") as f:
+            json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
+
+        self.count_logger.info(f"{self.class_name} - {self.today} 累计评论：{self.comment_count}")
 
         self.cookie_path = os.path.join(base_dir, "xhs_cookies.json")
         self.note_cache_path = os.path.join(base_dir, f"{bot_id}_cached_notes.json")
@@ -184,7 +199,15 @@ class XHSBot:
                 cur = self.driver.current_url
                 if "login" in cur or "account" in cur:
                     self.logger.error(f"[XHSBot] 页面跳到登录「{cur}」，跳过：{url}")
-                    self.exit(1)
+                    # 移除cookie
+                    self.driver.delete_all_cookies()
+                    self.save_cookies([])
+                    # 清除浏览器缓存
+                    self.driver.execute_cdp_cmd("Network.clearBrowserCache", {})
+                    self.logger.info("[XHSBot] 清除浏览器缓存")
+                    
+                    # 尝试重新登录
+                    self.login_xhs()
 
                 # 滚动一点确保评论入口渲染
                 self.driver.execute_script("window.scrollBy(0, 400);")
@@ -374,9 +397,10 @@ class XHSBot:
                 )
                 self.comment_count += 1
                 self.failed_comment_count = 0
-                self.comment_count_data[self.today] = self.comment_count
+                self.comment_count_data[self.class_name][self.today] = self.comment_count
                 with open(self.comment_count_path, "w", encoding="utf-8") as f:
                     json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
+
                 self.count_logger.info(f"{self.today} 累计评论：{self.comment_count}")
                 # 已评论笔记由 CommentDB 管理，无需本地记录
                 # 实时更新 note_cache，移除已成功评论的链接

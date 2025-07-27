@@ -35,11 +35,13 @@ class JuejinBot:
         # 持久化每日评论计数
         self.comment_count_path = os.path.join(log_dir, "comment_count_daily.json")
         self.today = time.strftime("%Y-%m-%d")
+
+        # 读取原始数据
         if os.path.exists(self.comment_count_path):
             with open(self.comment_count_path, "r", encoding="utf-8") as f:
-                all_counts = json.load(f)
+                all_data = json.load(f)
         else:
-            all_counts = {}
+            all_data = {}
         self.comment_count = all_counts.get(self.today, 0)
         self.comment_count_data = all_counts
 
@@ -199,7 +201,7 @@ class JuejinBot:
                 self.logger.info(f"[JuejinBot] 已跳过已评论过的链接：{url}")
                 # --- 移除已评论链接 ---
                 if url in current_cache:
-                    del current_cache[url]
+                    self.remve_cache(url)
                 continue
             self.logger.info(
                 f"[JuejinBot] 正在评论第 {idx}/{len(note_links)} 条（标题：{title}）..."
@@ -233,8 +235,16 @@ class JuejinBot:
                 # 检测是否被踢回登录页（关键词 login 或 qrcode）
                 cur = self.driver.current_url
                 if "login" in cur or "account" in cur:
-                    self.logger.error(f"[JuejinBot] 页面跳到登录，跳过：{url}")
-                    self.exit(1)
+                    self.logger.error(f"[JuejinBot] 页面跳到登录「{cur}」，跳过：{url}")
+                    # 移除cookie
+                    self.driver.delete_all_cookies()
+                    self.save_cookies([])
+                    # 清除浏览器缓存
+                    self.driver.execute_cdp_cmd("Network.clearBrowserCache", {})
+                    self.logger.info("[JuejinBot] 清除浏览器缓存")
+                    
+                    # 尝试重新登录
+                    self.login_juejin()
 
                 # 用更短的等待 scroll 完成
                 time.sleep(random.uniform(0.5, 1.0))
@@ -450,7 +460,7 @@ class JuejinBot:
 
                 # --- 移除已评论链接 ---
                 if url in current_cache:
-                    del current_cache[url]
+                    self.remve_cache(url)
 
             except Exception as e:
                 self.logger.info(f"[JuejinBot] 评论链接失败: {url}，错误：{e}")
@@ -462,6 +472,19 @@ class JuejinBot:
         # --- 循环结束后统一写回缓存 ---
         with open(self.cache_path, "w", encoding="utf-8") as f:
             json.dump(current_cache, f, ensure_ascii=False, indent=2)
+
+    def remve_cache(self, url):
+        try:
+            if os.path.exists(self.cache_path):
+                with open(self.cache_path, "r", encoding="utf-8") as f:
+                    cached = json.load(f)
+                if url in cached:
+                    del cached[url]
+                    with open(self.cache_path, "w", encoding="utf-8") as f:
+                        json.dump(cached, f, ensure_ascii=False, indent=2)
+                    self.logger.info(f"[JuejinBot] 已从缓存中移除已评论链接：{url}")
+        except Exception as e:
+            self.logger.warning(f"[JuejinBot] 移除链接缓存失败: {e}")
 
     def exit(self, num=0):
         if self.driver:
@@ -480,30 +503,37 @@ class JuejinBot:
 
         # 等初次加载
         WebDriverWait(self.driver, 15).until(
-            EC.presence_of_element_located((By.TAG_NAME, "body"))
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, "div.entry-list.list > li.item")
+            )
         )
+
         time.sleep(3)
+
+        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
         hrefs = dict()
         last_height = 0
         for i in range(scroll_times):
-            lis = self.driver.find_elements(By.CSS_SELECTOR, "div.entry-list li.item")
+            lis = self.driver.find_elements(
+                By.CSS_SELECTOR, "div.entry-list.list > li.item"
+            )
             for li in lis:
                 try:
-                    a_tag = li.find_element(By.CSS_SELECTOR, "a.title")
+                    a_tag = li.find_element(By.CSS_SELECTOR, "a.jj-link.title")
                     href = a_tag.get_attribute("href") or ""
-                    title = a_tag.get_attribute("title") or ""
+                    title = a_tag.get_attribute("title") or a_tag.text or ""
                     if href and title:
-                        # 拼接完整 URL，确保 href 是绝对路径
                         if href.startswith("/"):
                             href = urllib.parse.urljoin("https://juejin.cn", href)
-                        # 跳过已评论过的链接
                         if self.comment_db.has_commented(href, Platform.JUEJIN):
                             continue
                         hrefs[href] = title
                         self.logger.info(f"[JuejinBot] 抓取链接: {href} 标题: {title}")
-                except Exception:
+                except Exception as e:
+                    self.logger.warning(f"[JuejinBot] 解析失败: {e}")
                     continue
+
             # 滚动到底部加载更多
             self.driver.execute_script(
                 "window.scrollBy(0, document.body.scrollHeight);"

@@ -11,7 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 from tqdm import tqdm
-from CommentDB import CommentDB, Platform
+from comment_db import CommentDB, Platform
 
 limitation = 100
 
@@ -293,8 +293,16 @@ class BilibiliBot:
                 # 检测是否被踢回登录页
                 cur = self.driver.current_url
                 if "login" in cur or "account" in cur:
-                    self.logger.error(f"[BilibiliBot] 页面跳到登录，跳过：{url}")
-                    self.exit(1)
+                    self.logger.error(f"[BilibiliBot] 页面跳到登录「{cur}」，跳过：{url}")
+                    # 移除cookie
+                    self.driver.delete_all_cookies()
+                    self.save_cookies([])
+                    # 清除浏览器缓存
+                    self.driver.execute_cdp_cmd("Network.clearBrowserCache", {})
+                    self.logger.info("[BilibiliBot] 清除浏览器缓存")
+                    
+                    # 尝试重新登录
+                    self.login_bilibili()
                 time.sleep(random.uniform(0.5, 1.0))
                 # 滚动页面确保评论区加载
                 self.driver.execute_script("window.scrollBy(0, window.innerHeight);")
