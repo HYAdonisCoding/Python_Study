@@ -15,7 +15,10 @@ class CommentDB:
     def __init__(self, db_path=None):
         if db_path is None:
             base_dir = os.path.dirname(os.path.abspath(__file__))
-            db_path = os.path.join(base_dir, "comments.db")
+            data_dir = os.path.join(base_dir, "data")
+            if not os.path.exists(data_dir):
+                os.makedirs(data_dir)  # 确保data目录存在
+            db_path = os.path.join(data_dir, "comments.db")
         self.conn = sqlite3.connect(db_path)
         self.conn = sqlite3.connect(db_path)
         self.conn.execute(
