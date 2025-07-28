@@ -1,3 +1,4 @@
+from BaseBot import BaseBot
 import os
 import random
 import time
@@ -11,134 +12,71 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 from comment_db import CommentDB, Platform
+from tqdm import tqdm
 
 limitation = 100
 
 
 # 模拟自动评论的主类
-class XHSBot:
+class XHSBot(BaseBot):
     def __init__(self):
-        bot_id = self.__class__.__name__
-        # 初始化 CommentDB
-        self.comment_db = CommentDB()
-        # 在本文件夹下的json文件
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        comment_path = os.path.join(base_dir, "comments.json")
-        with open(comment_path, "r", encoding="utf-8") as f:
-            self.comments = json.load(f)
-
         log_dir = os.path.join(base_dir, "log")
-        os.makedirs(log_dir, exist_ok=True)
-        log_path = os.path.join(log_dir, "rainbot.log")
-
-        # 设置全局 root logger，并绑定到文件
-        logging.basicConfig(
-            filename=log_path,
-            level=logging.INFO,
-            format="%(asctime)s [%(levelname)s] %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-            force=True,  # 强制覆盖其他 logging 设置
-        )
-        self.logger = logging.getLogger()
-
-        # 记录每日评论次数的独立日志
-        count_log_path = os.path.join(log_dir, "comment_count.log")
-        self.count_logger = logging.getLogger("CommentCounter")
-        count_handler = logging.FileHandler(count_log_path)
-        count_handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-            )
-        )
-        self.count_logger.addHandler(count_handler)
-        self.count_logger.setLevel(logging.INFO)
-        self.count_logger.propagate = False
-
-        # 持久化每日评论计数
-        self.comment_count_path = os.path.join(log_dir, "comment_count_daily.json")
-        self.today = time.strftime("%Y-%m-%d")
-
-        # 读取原始数据
-        if os.path.exists(self.comment_count_path):
-            with open(self.comment_count_path, "r", encoding="utf-8") as f:
-                all_data = json.load(f)
-        else:
-            all_data = {}
-
-        # 初始化类名下的数据
-        self.class_name = bot_id
-        class_data = all_data.get(self.class_name, {})
-        self.comment_count = class_data.get(self.today, 0)
-
-        # 保存引用用于更新
-        self.comment_count_data = all_data
-        self.comment_count_data.setdefault(self.class_name, {})[self.today] = self.comment_count
-
-        # 写入文件
-        with open(self.comment_count_path, "w", encoding="utf-8") as f:
-            json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
-
-        self.count_logger.info(f"{self.class_name} - {self.today} 累计评论：{self.comment_count}")
-
-        self.cookie_path = os.path.join(base_dir, "xhs_cookies.json")
-        self.note_cache_path = os.path.join(base_dir, f"{bot_id}_cached_notes.json")
-
+        data_dir = os.path.join(base_dir, "data")
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)  # 确保data目录存在
+        comment_path = os.path.join(data_dir, "comments.json")
+        home_url = "https://www.xiaohongshu.com"
+        super().__init__(log_dir, comment_path, home_url)
         self.driver = None
         self.failed_comment_count = 0
-        # 缓存路径
-        self.cache_path = os.path.join(base_dir, f"{bot_id}_cached_hrefs.json")
-
-    def remove_non_bmp(self, text):
-        # return "".join(c for c in text if ord(c) <= 0xFFFF)
-        return text
+        self.comment_db = CommentDB()
+        
+        self.cookie_path = os.path.join(data_dir, f"{self.class_name}_cookies.json")
+        self.cache_path = os.path.join(data_dir, f"{self.class_name}_cached_hrefs.json")
 
     def setup_browser(self):
-        # options = Options()
-        # options.add_argument("--start-maximized")
         chrome_options = Options()
+        # 如需无头运行，可启用下行
         # chrome_options.add_argument('--headless')
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
-        # driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+
         self.driver = webdriver.Chrome(options=chrome_options)
-        # 禁用图片和视频加载以节省流量
-        self.driver.execute_cdp_cmd("Network.setBlockedURLs", {"urls": ["*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.mp4", "*.webm"]})
+
+        # 启用网络模块，准备设置屏蔽资源规则
         self.driver.execute_cdp_cmd("Network.enable", {})
-        # self.driver = webdriver.Chrome(options=options)
 
-    def login_xhs(self):
-        self.logger.info("[XHSBot] 打开小红书首页以加载 Cookie...")
-        self.driver.get("https://www.xiaohongshu.com/")
+        # 拦截图片、视频、字体等资源以加快页面加载速度
+        self.driver.execute_cdp_cmd("Network.setBlockedURLs", {
+            "urls": [
+                "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp",
+                "*.mp4", "*.webm", "*.svg", "*.woff", "*.ttf"
+            ]
+        })
 
-        if self.load_and_inject_cookies():
-            self.logger.info("[XHSBot] 成功复用 Cookie 登录")
-            return
+        self.logger.info("[XHSBot] 已启用资源拦截规则")
 
-        self.logger.info("[XHSBot] Cookie 无效，请手动登录...")
-        input("[XHSBot] 请在当前页面完成登录后按回车继续...")
-
-        cookies = self.driver.get_cookies()
-        self.save_cookies(cookies)
-        self.logger.info("[XHSBot] Cookie 已保存，登录流程完成")
+    # 登录方法已假设在 BaseBot 中实现为 self.login()
 
     def get_random_comment(self):
         return random.choice(self.comments)
 
     def run(self, interval=30):
         self.setup_browser()
-        self.login_xhs()
+        self.login()
         while True:
             hrefs = self.get_recommended_note_links()
             if not hrefs:
                 self.logger.info("[XHSBot] 未获取到笔记链接，等待重试...")
-                time.sleep(10)
+                self.sleep_random(base=1.0, jitter=2.0)
                 continue
 
             self.comment_on_note_links(hrefs)
 
             sleep_time = max(1, interval + random.uniform(-1, 3))
             self.logger.info(f"下轮将在 {int(sleep_time)} 秒后继续...")
-            time.sleep(sleep_time)
+            self.sleep_random(base=1.0, jitter=sleep_time)
 
     def comment_on_note_links(self, note_links):
         """
@@ -146,27 +84,19 @@ class XHSBot:
         Includes robust waits + fallbacks to reduce ChromeDriver crashes caused by stale/absent elements.
         """
         base = "https://www.xiaohongshu.com"
-        for idx, (url, title) in enumerate(note_links.items(), 1):
-            # 显示进度条
-            percent = int((idx / len(note_links)) * 100)
-            bar_length = 30
-            filled_length = int(bar_length * percent // 100)
-            bar = "█" * filled_length + "-" * (bar_length - filled_length)
-            print(
-                f"\r[{percent:3}%] |{bar}| 第 {idx}/{len(note_links)} 条 - {title}",
-                end="",
-                flush=True,
-            )
+        for idx, (url, title) in enumerate(
+            tqdm(note_links.items(), desc="[XHSBot] 评论进度", unit="条"), 1
+        ):
             # 每次处理前看看数据库中是否评论过
             if self.comment_db.has_commented(url, Platform.XHS):
                 self.logger.info(f"[XHSBot] 已在数据库中记录为已评论，跳过：{url}")
                 try:
-                    if os.path.exists(self.note_cache_path):
-                        with open(self.note_cache_path, "r", encoding="utf-8") as f:
+                    if os.path.exists(self.cache_path):
+                        with open(self.cache_path, "r", encoding="utf-8") as f:
                             cached = json.load(f)
                         if url in cached:
                             del cached[url]
-                            with open(self.note_cache_path, "w", encoding="utf-8") as f:
+                            with open(self.cache_path, "w", encoding="utf-8") as f:
                                 json.dump(cached, f, ensure_ascii=False, indent=2)
                             self.logger.info(f"[XHSBot] 已从缓存中移除已评论链接：{url}")
                 except Exception as e:
@@ -193,7 +123,7 @@ class XHSBot:
                     lambda d: d.execute_script("return document.readyState")
                     == "complete"
                 )
-                time.sleep(random.uniform(0.5, 1.5))  # 给前端框架一点渲染缓冲
+                self.sleep_random(base=1.0, jitter=2.0)  # 给前端框架一点渲染缓冲
 
                 # 检测是否被踢回登录页（关键词 login 或 qrcode）
                 cur = self.driver.current_url
@@ -207,11 +137,11 @@ class XHSBot:
                     self.logger.info("[XHSBot] 清除浏览器缓存")
                     
                     # 尝试重新登录
-                    self.login_xhs()
+                    self.login()
 
                 # 滚动一点确保评论入口渲染
                 self.driver.execute_script("window.scrollBy(0, 400);")
-                time.sleep(random.uniform(0.5, 1.0))
+                self.sleep_random(base=1.0, jitter=2.0)
 
                 # 定位“说点什么...”触发元素（多种 fallback）
                 trigger_locators = [
@@ -252,7 +182,7 @@ class XHSBot:
                     )
                 except Exception:
                     pass
-                time.sleep(0.3)
+                self.sleep_random(base=1.0, jitter=2.0)
 
                 try:
                     comment_trigger.click()
@@ -292,9 +222,9 @@ class XHSBot:
                     ).click().perform()
                 except Exception:
                     self.driver.execute_script("arguments[0].click();", input_box)
-                time.sleep(0.2)
+                self.sleep_random(base=1.0, jitter=2.0)
 
-                comment = self.remove_non_bmp(self.get_random_comment())
+                comment = self.get_random_comment()
 
                 # 有些 contenteditable 节点不吃 send_keys；先试 send_keys，失败则 JS 赋值
                 typed_ok = True
@@ -401,16 +331,16 @@ class XHSBot:
                 with open(self.comment_count_path, "w", encoding="utf-8") as f:
                     json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
 
-                self.count_logger.info(f"{self.today} 累计评论：{self.comment_count}")
+                self.logger.info(f"[XHSBot] 今日评论数：{self.comment_count}")
                 # 已评论笔记由 CommentDB 管理，无需本地记录
                 # 实时更新 note_cache，移除已成功评论的链接
                 try:
-                    if os.path.exists(self.note_cache_path):
-                        with open(self.note_cache_path, "r", encoding="utf-8") as f:
+                    if os.path.exists(self.cache_path):
+                        with open(self.cache_path, "r", encoding="utf-8") as f:
                             cached = json.load(f)
                         if url in cached:
                             del cached[url]
-                            with open(self.note_cache_path, "w", encoding="utf-8") as f:
+                            with open(self.cache_path, "w", encoding="utf-8") as f:
                                 json.dump(cached, f, ensure_ascii=False, indent=2)
                             self.logger.info(f"[XHSBot] 已从缓存中移除已评论链接：{url}")
                 except Exception as e:
@@ -421,7 +351,7 @@ class XHSBot:
                     self.logger.info(f"[XHSBot] 今日评论已达 {limitation} 条，程序退出")
                     self.exit(0)
 
-                time.sleep(random.uniform(2.5, 5.5))
+                self.sleep_random(base=1.0, jitter=2.0)
 
             except Exception as e:
                 self.logger.info(f"[XHSBot] 评论链接失败: {url}，错误：{e}")
@@ -429,6 +359,58 @@ class XHSBot:
                 if self.failed_comment_count >= 3:
                     self.logger.info("[XHSBot] 连续失败 3 次，程序退出")
                     self.exit(1)
+    def login(self):
+        self.logger.info("[XHSBot] 打开小红书首页以加载 Cookie...")
+        self.driver.get("https://www.xiaohongshu.com/")
+
+        if self.load_and_inject_cookies():
+            self.logger.info("[XHSBot] 成功复用 Cookie 登录")
+            return
+
+        self.logger.info("[XHSBot] Cookie 无效，请手动登录...")
+        input("[XHSBot] 请在当前页面完成登录后按回车继续...")
+
+        cookies = self.driver.get_cookies()
+        self.save_cookies(self.driver, self.cookie_path)
+        self.logger.info("[XHSBot] Cookie 已保存，登录流程完成")
+    def load_and_inject_cookies(self):
+        if not os.path.exists(self.cookie_path):
+            self.logger.info("[XHSBot] Cookie 文件不存在")
+            return False
+
+        with open(self.cookie_path, "r", encoding="utf-8") as f:
+            cookies = json.load(f)
+
+        if not cookies:
+            self.logger.warning("[XHSBot] Cookie 文件内容为空")
+            return False
+
+        self.driver.get("https://www.xiaohongshu.com/")
+        
+        valid_cookie_count = 0
+        for cookie in cookies:
+            cookie.pop("sameSite", None)
+            try:
+                self.driver.add_cookie(cookie)
+                valid_cookie_count += 1
+            except Exception:
+                continue
+
+        if valid_cookie_count == 0:
+            self.logger.warning("[XHSBot] 无有效 Cookie 被注入")
+            return False
+
+        self.driver.refresh()
+        self.sleep_random(base=1.0, jitter=2.0)
+
+        # 检查是否仍在登录页（或二维码页）
+        current_url = self.driver.current_url
+        if "login" in current_url or "account" in current_url:
+            self.logger.warning("[XHSBot] 当前仍在登录页，Cookie 失效")
+            return False
+
+        self.logger.info("[XHSBot] 成功复用 Cookie 登录")
+        return True
 
     def exit(self, num=0):
         if self.driver:
@@ -442,9 +424,9 @@ class XHSBot:
         self.logger.info("[XHSBot] get_recommended_note_links...")
 
         # ✅ 优先尝试读取缓存
-        if use_cache and os.path.exists(self.note_cache_path):
+        if use_cache and os.path.exists(self.cache_path):
             try:
-                with open(self.note_cache_path, "r", encoding="utf-8") as f:
+                with open(self.cache_path, "r", encoding="utf-8") as f:
                     cached = json.load(f)
                 if cached:
                     self.logger.info(f"[XHSBot] 已从缓存加载 {len(cached)} 条链接")
@@ -463,7 +445,7 @@ class XHSBot:
         WebDriverWait(self.driver, 15).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
-        time.sleep(3)
+        self.sleep_random(base=1.0, jitter=2.0)
 
         hrefs = dict()
         last_height = 0
@@ -497,7 +479,7 @@ class XHSBot:
             self.driver.execute_script(
                 "window.scrollBy(0, document.body.scrollHeight);"
             )
-            time.sleep(random.uniform(1.5, 3.0))
+            self.sleep_random(base=1.0, jitter=2.0)
 
             try:
                 new_height = self.driver.execute_script(
@@ -516,7 +498,7 @@ class XHSBot:
         # ✅ 写入缓存文件
         try:
             if hrefs:  # 只有有数据才写缓存
-                with open(self.note_cache_path, "w", encoding="utf-8") as f:
+                with open(self.cache_path, "w", encoding="utf-8") as f:
                     json.dump(hrefs, f, ensure_ascii=False, indent=2)
                 self.logger.info("[XHSBot] 链接已写入缓存")
             else:
@@ -526,31 +508,6 @@ class XHSBot:
 
         return hrefs
 
-    def load_and_inject_cookies(self):
-        if not os.path.exists(self.cookie_path):
-            return False
-        with open(self.cookie_path, "r", encoding="utf-8") as f:
-            cookies = json.load(f)
-        self.driver.get("https://www.xiaohongshu.com/")
-        for cookie in cookies:
-            cookie.pop("sameSite", None)
-            try:
-                self.driver.add_cookie(cookie)
-            except Exception:
-                pass
-        self.driver.refresh()
-        time.sleep(2)
-        # 检查是否跳转到登录页或显示二维码等登录提示
-        current_url = self.driver.current_url
-        page_source = self.driver.page_source
-        if "xiaohongshu.com/login" in current_url:
-            self.logger.warning("[XHSBot] 当前页面为登录页，Cookie 失效")
-            return False
-        return True
-
-    def save_cookies(self, cookies):
-        with open(self.cookie_path, "w", encoding="utf-8") as f:
-            json.dump(cookies, f, indent=2, ensure_ascii=False)
 
 
 if __name__ == "__main__":
