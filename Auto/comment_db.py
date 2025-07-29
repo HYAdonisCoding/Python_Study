@@ -10,6 +10,7 @@ class Platform(str, Enum):
     XHS = "xhs"
     JUEJIN = "juejin"
     ZHIHU = "zhihu"
+    JIANSHU = "jianshu"
 
 
 class CommentDB:
