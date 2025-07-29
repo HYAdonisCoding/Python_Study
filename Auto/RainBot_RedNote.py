@@ -51,6 +51,7 @@ class XHSBot(BaseBot):
         # chrome_options.add_argument('--headless')
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--blink-settings=imagesEnabled=false")
 
         self.driver = webdriver.Chrome(options=chrome_options)
 
@@ -413,11 +414,24 @@ class XHSBot(BaseBot):
         self.driver.refresh()
         self.sleep_random(base=1.0, jitter=2.0)
 
-        # 检查是否仍在登录页（或二维码页）
-        current_url = self.driver.current_url
-        if "login" in current_url or "account" in current_url:
-            self.logger.warning("[XHSBot] 当前仍在登录页，Cookie 失效")
+        # 重新加载首页或 explore 页面
+        self.driver.get("https://www.xiaohongshu.com/explore")
+        self.sleep_random(base=1.0, jitter=2.0)
+
+        # 检查是否仍显示“登录”按钮，或登录弹窗存在
+        try:
+            self.driver.find_element(By.CSS_SELECTOR, "button#login-btn.login-btn")
+            self.logger.warning("[XHSBot] 页面包含登录按钮，说明未登录")
             return False
+        except Exception:
+            pass
+
+        try:
+            self.driver.find_element(By.CSS_SELECTOR, "div.login-container")
+            self.logger.warning("[XHSBot] 页面包含登录弹窗，说明未登录")
+            return False
+        except Exception:
+            pass
 
         self.logger.info("[XHSBot] 成功复用 Cookie 登录")
         return True
