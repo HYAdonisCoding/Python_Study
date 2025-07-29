@@ -118,7 +118,22 @@ class BaseBot:
         except Exception as e:
             self.logger.warning(f"[{self.class_name}] 登录状态检查出错：{e}")
             return False
-
+    def remove_cache(self, url):
+        try:
+            if os.path.exists(self.cache_path):
+                with open(self.cache_path, "r", encoding="utf-8") as f:
+                    cached = json.load(f)
+                if url in cached:
+                    del cached[url]
+                    with open(self.cache_path, "w", encoding="utf-8") as f:
+                        json.dump(cached, f, ensure_ascii=False, indent=2)
+                    self.logger.info(f"[{self.class_name}] 已从缓存中移除已评论链接：{url}")
+        except Exception as e:
+            self.logger.warning(f"[{self.class_name}] 移除链接缓存失败: {e}")
+    def exit(self, num=0):
+        if self.driver:
+            self.driver.quit()
+        exit(num)
     def ensure_login(self, driver, cookie_path, check_func):
         driver.get(self.home_url)  # 加载平台首页，确保 driver 初始化
         self.load_cookies(driver, cookie_path)

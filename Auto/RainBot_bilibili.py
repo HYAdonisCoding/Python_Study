@@ -2,62 +2,51 @@ import os
 import random
 import time
 import json
-import logging
 import urllib.parse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import WebDriverException
 from tqdm import tqdm
 from comment_db import CommentDB, Platform
+from BaseBot import BaseBot
 
 limitation = 100
 
 
 # 模拟自动评论的主类
-class BilibiliBot:
+class BilibiliBot(BaseBot):
 
     def __init__(self):
-        # 初始化 CommentDB
-        self.comment_db = CommentDB()
-        bot_id = self.__class__.__name__
-        self.class_name = bot_id
-        # 在本文件夹下的json文件
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        comment_path = os.path.join(base_dir, "comments.json")
-        with open(comment_path, "r", encoding="utf-8") as f:
-            self.comments = json.load(f)
-
-        self.cookie_path = os.path.join(base_dir, f"{bot_id}_cookies.json")
-
         log_dir = os.path.join(base_dir, "log")
+        data_dir = os.path.join(base_dir, "data")
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)  # 确保data目录存在
+        comment_path = os.path.join(data_dir, "comments.json")
+        
+        os.makedirs(data_dir, exist_ok=True)
         os.makedirs(log_dir, exist_ok=True)
-        log_path = os.path.join(log_dir, "rainbot.log")
 
-        # 缓存路径
-        self.cache_path = os.path.join(base_dir, f"{bot_id}_cached_hrefs.json")
-
-        # 设置全局 root logger，并绑定到文件
-        logging.basicConfig(
-            filename=log_path,
-            level=logging.INFO,
-            format="%(asctime)s [%(levelname)s] %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-            force=True,  # 强制覆盖其他 logging 设置
+        super().__init__(
+            log_dir=log_dir,
+            comment_path=comment_path,
+            home_url="https://www.bilibili.com"
         )
-        self.logger = logging.getLogger()
 
-        # 持久化每日评论计数
-        self.comment_count_path = os.path.join(log_dir, f"comment_count_daily.json")
+        self.comment_db = CommentDB()
+        self.cookie_path = os.path.join(data_dir, f"{self.class_name}_cookies.json")
+        self.cache_path = os.path.join(data_dir, f"{self.class_name}_cached_hrefs.json")
+        self.comment_count_path = os.path.join(log_dir, "comment_count_daily.json")
+
         self.today = time.strftime("%Y-%m-%d")
         if os.path.exists(self.comment_count_path):
             with open(self.comment_count_path, "r", encoding="utf-8") as f:
                 all_data = json.load(f)
         else:
             all_data = {}
-
         self.comment_count = all_data.get(self.class_name, {}).get(self.today, 0)
         self.comment_count_data = all_data
 
@@ -116,7 +105,7 @@ class BilibiliBot:
                             cookie["sameSite"] = "Strict"
                         self.driver.add_cookie(cookie)
                     self.driver.refresh()
-                    time.sleep(2)
+                    self.sleep_random(base=1.0, jitter=2.0)
                     self.logger.info("[BilibiliBot] 已加载本地cookie，尝试免登录")
                     return
                 except Exception as e:
@@ -182,7 +171,7 @@ class BilibiliBot:
             try:
                 return func()
             except Exception:
-                time.sleep(delay)
+                self.sleep_random(base=1.0, jitter=delay)
         return None
 
     def wait_for_shadow_element(self, outer_selector, inner_selector, timeout=10):
@@ -225,14 +214,14 @@ class BilibiliBot:
                         json.dump(hrefs, f, ensure_ascii=False, indent=2)
                 else:
                     self.logger.error("[BilibiliBot] 未获取到视频链接，等待重试...")
-                    time.sleep(10)
+                    self.sleep_random(base=1.0, jitter=2.0)
                     continue
             self.logger.info("[BilibiliBot] 开始评价...")
             self.comment_on_note_links(hrefs)
 
             sleep_time = max(1, interval + random.uniform(-1, 3))
             self.logger.info(f"下轮将在 {int(sleep_time)} 秒后继续...")
-            time.sleep(sleep_time)
+            self.sleep_random(base=1.0, jitter=sleep_time)
 
     def get_shadow_element(self, host_selector, shadow_selector, timeout=10):
         from selenium.webdriver.common.by import By
@@ -295,17 +284,17 @@ class BilibiliBot:
 
                     # 尝试重新登录
                     self.login_bilibili()
-                time.sleep(random.uniform(0.5, 1.0))
+                self.sleep_random(base=1.0, jitter=2.0)
                 # 滚动页面确保评论区加载
                 self.driver.execute_script("window.scrollBy(0, window.innerHeight);")
-                time.sleep(random.uniform(0.5, 1.5))
+                self.sleep_random(base=1.0, jitter=2.0)
                 self.driver.execute_script(
                     "window.scrollTo(0, document.body.scrollHeight);"
                 )
-                time.sleep(random.uniform(0.5, 1.5))
+                self.sleep_random(base=1.0, jitter=2.0)
 
                 comment = self.remove_non_bmp(self.get_random_comment())
-                success = comment_on_note(self.driver, comment, logger=self.logger)
+                success = self.comment_on_note(self.driver, comment, logger=self.logger)
                 if not success:
                     self.logger.info(f"[BilibiliBot] 评论失败，跳过：{url}")
                     self.failed_comment_count += 1
@@ -336,7 +325,7 @@ class BilibiliBot:
                         f"[BilibiliBot] 今日评论已达 {limitation} 条，程序退出"
                     )
                     self.exit(0)
-                time.sleep(random.uniform(1.0, 2.0))
+                self.sleep_random(base=1.0, jitter=2.0)
                 # 移除已评论链接并写回缓存
                 if os.path.exists(self.cache_path):
                     try:
@@ -378,7 +367,7 @@ class BilibiliBot:
         WebDriverWait(self.driver, 15).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
-        time.sleep(3)
+        self.sleep_random(base=1.0, jitter=2.0)
 
         hrefs = dict()
         last_height = 0
@@ -407,7 +396,7 @@ class BilibiliBot:
             self.driver.execute_script(
                 "window.scrollBy(0, document.body.scrollHeight);"
             )
-            time.sleep(random.uniform(1.5, 3.0))
+            self.sleep_random(base=1.0, jitter=2.0)
 
             # 可选：检测页面高度变化（粗略）
             try:
@@ -459,107 +448,105 @@ class BilibiliBot:
                     return el
             except Exception as e:
                 self.logger.debug(f"[ShadowDom] 获取失败：{e}")
-            time.sleep(0.5)
+            self.sleep_random(base=1.0, jitter=1.0)
         self.logger.warning(
             f"[ShadowDom] Timeout locating nested shadow element: {selectors}"
         )
         return None
 
 
-# 新增独立函数
-def comment_on_note(driver, comment_text, logger=None):
-    from selenium.common.exceptions import WebDriverException
-    import time
+    # 新增独立函数
+    def comment_on_note(self, driver, comment_text, logger=None):
+        
 
-    def log(msg):
-        if logger:
-            logger.info(msg)
-        else:
-            print(msg)
+        def log(msg):
+            if logger:
+                logger.info(msg)
+            else:
+                print(msg)
 
-    def get_nested_shadow_element(driver, selectors):
-        element = driver.execute_script(
-            f"return document.querySelector('{selectors[0]}')"
-        )
-        for selector in selectors[1:]:
-            if element is None:
-                return None
+        def get_nested_shadow_element(driver, selectors):
             element = driver.execute_script(
-                "return arguments[0].shadowRoot?.querySelector(arguments[1])",
-                element,
-                selector,
+                f"return document.querySelector('{selectors[0]}')"
             )
-        return element
-
-    try:
-        log("🔍 正在查找评论输入框...")
-        input_box = get_nested_shadow_element(
-            driver,
-            [
-                "bili-comments",
-                "bili-comment-box",
-                "bili-comment-rich-textarea",
-                'div[contenteditable="true"]',
-            ],
-        )
-        if not input_box:
-            log("❌ 未找到评论输入框，跳过")
-            return False
-
-        log("✅ 找到评论输入框，输入内容中...")
-        driver.execute_script("arguments[0].scrollIntoView(true);", input_box)
-        time.sleep(0.5)
+            for selector in selectors[1:]:
+                if element is None:
+                    return None
+                element = driver.execute_script(
+                    "return arguments[0].shadowRoot?.querySelector(arguments[1])",
+                    element,
+                    selector,
+                )
+            return element
 
         try:
-            input_box.click()
-        except Exception:
-            if logger:
-                logger.debug("fallback to JS focus")
-            else:
-                print("fallback to JS focus")
-            driver.execute_script("arguments[0].focus();", input_box)
-
-        try:
-            input_box.send_keys(comment_text)
-        except Exception:
-            if logger:
-                logger.debug("fallback to JS set innerText")
-            else:
-                print("fallback to JS set innerText")
-            driver.execute_script(
-                "arguments[0].innerText = arguments[1];", input_box, comment_text
+            log("🔍 正在查找评论输入框...")
+            input_box = get_nested_shadow_element(
+                driver,
+                [
+                    "bili-comments",
+                    "bili-comment-box",
+                    "bili-comment-rich-textarea",
+                    'div[contenteditable="true"]',
+                ],
             )
-        time.sleep(1)  # 等待触发 footer 显示
+            if not input_box:
+                log("❌ 未找到评论输入框，跳过")
+                return False
 
-        log("🔍 正在查找发布按钮...")
-        time.sleep(1)  # 等待 footer 激活
-        footer = get_nested_shadow_element(
-            driver, ["bili-comments", "bili-comment-box", "#footer"]
-        )
-        if not footer:
-            log("❌ 未找到 footer")
+            log("✅ 找到评论输入框，输入内容中...")
+            driver.execute_script("arguments[0].scrollIntoView(true);", input_box)
+            self.sleep_random(base=1.0, jitter=2.0)
+
+            try:
+                input_box.click()
+            except Exception:
+                if logger:
+                    logger.debug("fallback to JS focus")
+                else:
+                    print("fallback to JS focus")
+                driver.execute_script("arguments[0].focus();", input_box)
+
+            try:
+                input_box.send_keys(comment_text)
+            except Exception:
+                if logger:
+                    logger.debug("fallback to JS set innerText")
+                else:
+                    print("fallback to JS set innerText")
+                driver.execute_script(
+                    "arguments[0].innerText = arguments[1];", input_box, comment_text
+                )
+
+            log("🔍 正在查找发布按钮...")
+            self.sleep_random(base=1.0, jitter=2.0)  # 等待 footer 激活
+            footer = get_nested_shadow_element(
+                driver, ["bili-comments", "bili-comment-box", "#footer"]
+            )
+            if not footer:
+                log("❌ 未找到 footer")
+                return False
+
+            buttons = driver.execute_script(
+                "return arguments[0].querySelectorAll('button.active')", footer
+            )
+            for btn in buttons:
+                if (
+                    driver.execute_script("return arguments[0].textContent", btn).strip()
+                    == "发布"
+                ):
+                    log("✅ 点击发布按钮")
+                    btn.click()
+                    self.sleep_random(base=1.0, jitter=1.0)
+                    log("✅ 评论发布成功")
+                    return True
+
+            log("❌ 未找到发布按钮")
             return False
 
-        buttons = driver.execute_script(
-            "return arguments[0].querySelectorAll('button.active')", footer
-        )
-        for btn in buttons:
-            if (
-                driver.execute_script("return arguments[0].textContent", btn).strip()
-                == "发布"
-            ):
-                log("✅ 点击发布按钮")
-                btn.click()
-                time.sleep(1)
-                log("✅ 评论发布成功")
-                return True
-
-        log("❌ 未找到发布按钮")
-        return False
-
-    except WebDriverException as e:
-        log(f"❌ 异常中断: {e}")
-        return False
+        except WebDriverException as e:
+            log(f"❌ 异常中断: {e}")
+            return False
 
 
 if __name__ == "__main__":

@@ -1,8 +1,7 @@
 import os
 import random
-import time
 import json
-import logging
+import time
 import urllib.parse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -35,6 +34,17 @@ class JuejinBot(BaseBot):
         
         self.cookie_path = os.path.join(data_dir, f"{self.class_name}_cookies.json")
         self.cache_path = os.path.join(data_dir, f"{self.class_name}_cached_hrefs.json")
+        self.comment_count_path = os.path.join(log_dir, "comment_count_daily.json")
+        self.today = time.strftime("%Y-%m-%d")
+
+        if os.path.exists(self.comment_count_path):
+            with open(self.comment_count_path, "r", encoding="utf-8") as f:
+                self.comment_count_data = json.load(f)
+        else:
+            self.comment_count_data = {}
+
+        if self.class_name not in self.comment_count_data:
+            self.comment_count_data[self.class_name] = {}
 
 
     def remove_non_bmp(self, text):
@@ -111,21 +121,21 @@ class JuejinBot(BaseBot):
         ):
             # 跳过已评论过的链接
             if self.comment_db.has_commented(url, Platform.JUEJIN):
-                self.logger.info(f"[JuejinBot] 已跳过已评论过的链接：{url}")
+                self.logger.info(f"[{self.class_name}] 已跳过已评论过的链接：{url}")
                 # --- 移除已评论链接 ---
                 if url in current_cache:
                     self.remove_cache(url)
                     del current_cache[url]
                 continue
             self.logger.info(
-                f"[JuejinBot] 正在评论第 {idx}/{len(note_links)} 条（标题：{title}）..."
+                f"[{self.class_name}] 正在评论第 {idx}/{len(note_links)} 条（标题：{title}）..."
             )
             # Normalize URL (some feeds return relative URLs)
             if url and url.startswith("/"):
                 url = urllib.parse.urljoin(base, url)
 
             try:
-                self.logger.info(f"[JuejinBot] 打开笔记：{url}")
+                self.logger.info(f"[{self.class_name}] 打开笔记：{url}")
                 self.driver.get(url)
 
                 # 等待文档 ready (body 存在 & readyState == complete)
@@ -149,7 +159,7 @@ class JuejinBot(BaseBot):
                 # 检测是否被踢回登录页（关键词 login 或 qrcode）
                 cur = self.driver.current_url
                 if "login" in cur or "account" in cur:
-                    self.logger.error(f"[JuejinBot] 页面跳到登录「{cur}」，跳过：{url}")
+                    self.logger.error(f"[{self.class_name}] 页面跳到登录「{cur}」，跳过：{url}")
                     # 移除cookie
                     self.driver.delete_all_cookies()
                     self.save_cookies([])
@@ -189,7 +199,7 @@ class JuejinBot(BaseBot):
                         continue
 
                 if comment_trigger is None:
-                    self.logger.info(f"[JuejinBot] 未找到评论入口，跳过：{url}")
+                    self.logger.info(f"[{self.class_name}] 未找到评论入口，跳过：{url}")
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
                         self.logger.info(
@@ -241,7 +251,7 @@ class JuejinBot(BaseBot):
                         continue
 
                 if input_box is None:
-                    self.logger.info(f"[JuejinBot] 未找到评论输入框，跳过：{url}")
+                    self.logger.info(f"[{self.class_name}] 未找到评论输入框，跳过：{url}")
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
                         self.logger.info(
@@ -284,7 +294,7 @@ class JuejinBot(BaseBot):
                         typed_ok = False
 
                 if not typed_ok:
-                    self.logger.info(f"[JuejinBot] 无法输入评论，跳过：{url}")
+                    self.logger.info(f"[{self.class_name}] 无法输入评论，跳过：{url}")
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
                         self.logger.info("[JuejinBot] 连续无法输入评论 3 次，程序退出")
@@ -305,7 +315,7 @@ class JuejinBot(BaseBot):
                         continue
 
                 if submit_button is None:
-                    self.logger.info(f"[JuejinBot] 找不到发送按钮，跳过：{url}")
+                    self.logger.info(f"[{self.class_name}] 找不到发送按钮，跳过：{url}")
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
                         self.logger.info(
@@ -339,7 +349,7 @@ class JuejinBot(BaseBot):
                     pass
 
                 if toast_failed:
-                    self.logger.info(f"[JuejinBot] 评论失败（toast）：{url}")
+                    self.logger.info(f"[{self.class_name}] 评论失败（toast）：{url}")
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
                         self.logger.info("[JuejinBot] 连续失败 3 次，程序退出")
@@ -347,13 +357,13 @@ class JuejinBot(BaseBot):
                     continue  # 下一条
 
                 # 成功
-                self.logger.info(f"[JuejinBot] 已评论 {comment}   链接：{url}")
+                self.logger.info(f"[{self.class_name}] 已评论 {comment}   链接：{url}")
                 self.comment_count += 1
                 self.failed_comment_count = 0
                 self.comment_count_data.setdefault(self.class_name, {})[self.today] = self.comment_count
                 with open(self.comment_count_path, "w", encoding="utf-8") as f:
                     json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
-                self.logger.info(f"[JuejinBot] {self.today} 累计评论：{self.comment_count}")
+                self.logger.info(f"[{self.class_name}] {self.today} 累计评论：{self.comment_count}")
 
                 # 记录已评论
                 self.comment_db.record_comment(
@@ -365,7 +375,7 @@ class JuejinBot(BaseBot):
                 )
                 if self.comment_count >= limitation:
                     self.logger.info(
-                        f"[JuejinBot] 今日评论已达 {limitation} 条，程序退出"
+                        f"[{self.class_name}] 今日评论已达 {limitation} 条，程序退出"
                     )
                     self.exit(0)
 
@@ -378,7 +388,7 @@ class JuejinBot(BaseBot):
                     del current_cache[url]
 
             except Exception as e:
-                self.logger.info(f"[JuejinBot] 评论链接失败: {url}，错误：{e}")
+                self.logger.info(f"[{self.class_name}] 评论链接失败: {url}，错误：{e}")
                 self.failed_comment_count += 1
                 if self.failed_comment_count >= 3:
                     self.logger.info("[JuejinBot] 连续失败 3 次，程序退出")
@@ -401,9 +411,9 @@ class JuejinBot(BaseBot):
                     del cached[url]
                     with open(self.cache_path, "w", encoding="utf-8") as f:
                         json.dump(cached, f, ensure_ascii=False, indent=2)
-                    self.logger.info(f"[JuejinBot] 已从缓存中移除已评论链接：{url}")
+                    self.logger.info(f"[{self.class_name}] 已从缓存中移除已评论链接：{url}")
         except Exception as e:
-            self.logger.warning(f"[JuejinBot] 移除链接缓存失败: {e}")
+            self.logger.warning(f"[{self.class_name}] 移除链接缓存失败: {e}")
 
     def exit(self, num=0):
         if self.driver:
@@ -413,65 +423,90 @@ class JuejinBot(BaseBot):
     def get_recommended_note_links(self, scroll_times: int = 5):
         """
         Collect note links from the recommend feed.
-        Scroll multiple times to load more.
+        Scroll multiple times to load more, until enough un-commented links are found or max scrolls reached.
         Returns a dict: {url: title}
         """
         self.logger.info("[JuejinBot] get_recommended_note_links...")
 
-        self.driver.get("https://juejin.cn/?sort=three_days_hottest")
+        self.driver.get("https://juejin.cn/?sort=hottest")
 
-        # 等初次加载
-        WebDriverWait(self.driver, 15).until(
-            EC.presence_of_element_located(
-                (By.CSS_SELECTOR, "div.entry-list.list > li.item")
+        try:
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, "div.entry-list.list > li.item")
+                )
             )
-        )
+        except Exception as e:
+            self.logger.warning(f"[{self.class_name}] 页面初始内容加载失败: {e}")
+            return {}
 
         self.sleep_random(base=1.0, jitter=1.0)
 
-        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-
         hrefs = dict()
         last_height = 0
-        for i in range(scroll_times):
-            lis = self.driver.find_elements(
-                By.CSS_SELECTOR, "div.entry-list.list > li.item"
-            )
-            for li in lis:
-                try:
-                    a_tag = li.find_element(By.CSS_SELECTOR, "a.jj-link.title")
-                    href = a_tag.get_attribute("href") or ""
-                    title = a_tag.get_attribute("title") or a_tag.text or ""
-                    if href and title:
-                        if href.startswith("/"):
-                            href = urllib.parse.urljoin("https://juejin.cn", href)
-                        if self.comment_db.has_commented(href, Platform.JUEJIN):
-                            continue
-                        hrefs[href] = title
-                        self.logger.info(f"[JuejinBot] 抓取链接: {href} 标题: {title}")
-                except Exception as e:
-                    self.logger.warning(f"[JuejinBot] 解析失败: {e}")
-                    continue
 
-            # 滚动到底部加载更多
-            self.driver.execute_script(
-                "window.scrollBy(0, document.body.scrollHeight);"
-            )
+        max_scroll = scroll_times
+        collected = 0
+        max_needed = 100  # 至少获取100条未评论链接再退出
+
+        for i in range(max_scroll):
+            self.logger.info(f"[{self.class_name}] 第 {i+1} 次滚动加载")
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             self.sleep_random(base=1.0, jitter=2.0)
 
-            # 可选：检测页面高度变化（粗略）
+            a_tags = self.driver.find_elements(By.CSS_SELECTOR, "a.jj-link.title[href^='/post/']")
+            self.logger.info(f"[{self.class_name}] 当前抓取 a.jj-link.title 数量: {len(a_tags)}")
+            if not a_tags:
+                continue
+
+            # 导出 HTML 逻辑
+            if a_tags:
+                try:
+                    with open("debug_link_element.html", "w", encoding="utf-8") as f:
+                        f.write(self.driver.execute_script("return arguments[0].outerHTML;", a_tags[0]))
+                except Exception:
+                    pass
+
+            for a_tag in a_tags:
+                try:
+                    href = a_tag.get_attribute("href") or ""
+                    title = a_tag.get_attribute("title") or a_tag.text.strip() or ""
+
+                    if not href or not title:
+                        self.logger.debug(f"[{self.class_name}] href 或 title 为空，跳过元素: {a_tag.get_attribute('outerHTML')}")
+                        continue
+
+                    if href.startswith("/"):
+                        href = urllib.parse.urljoin("https://juejin.cn", href)
+
+                    if not href.startswith("http"):
+                        self.logger.warning(f"[{self.class_name}] 非标准链接跳过: {href}")
+                        continue
+
+                    if self.comment_db.has_commented(href, Platform.JUEJIN):
+                        self.logger.warning(f"[{self.class_name}] 已评论过，跳过链接: {href}")
+                        continue
+
+                    if href not in hrefs:
+                        hrefs[href] = title
+                        collected += 1
+                        self.logger.info(f"[{self.class_name}] 抓取链接: {href} 标题: {title}")
+                except Exception as e:
+                    self.logger.warning(f"[{self.class_name}] 解析 a_tag 元素失败: {e}")
+
+            if collected >= max_needed:
+                self.logger.info(f"[{self.class_name}] 已获取到 {collected} 条未评论链接，提前结束滚动")
+                break
+
             try:
-                new_height = self.driver.execute_script(
-                    "return document.body.scrollHeight;"
-                )
+                new_height = self.driver.execute_script("return document.body.scrollHeight;")
                 if new_height == last_height:
-                    # 没有新内容，提前退出
                     break
                 last_height = new_height
             except Exception:
-                pass
+                break
 
-        self.logger.info(f"[JuejinBot] 共获取到 {len(hrefs)} 条链接，其中包含标题信息")
+        self.logger.info(f"[{self.class_name}] 共获取到 {len(hrefs)} 条链接，其中包含标题信息")
         return hrefs
 
 

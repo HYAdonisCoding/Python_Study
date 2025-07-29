@@ -1,9 +1,8 @@
+import time
 from BaseBot import BaseBot
 import os
 import random
-import time
 import json
-import logging
 import urllib.parse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -34,6 +33,17 @@ class XHSBot(BaseBot):
         
         self.cookie_path = os.path.join(data_dir, f"{self.class_name}_cookies.json")
         self.cache_path = os.path.join(data_dir, f"{self.class_name}_cached_hrefs.json")
+        self.comment_count_path = os.path.join(log_dir, "comment_count_daily.json")
+        self.today = time.strftime("%Y-%m-%d")
+
+        if os.path.exists(self.comment_count_path):
+            with open(self.comment_count_path, "r", encoding="utf-8") as f:
+                self.comment_count_data = json.load(f)
+        else:
+            self.comment_count_data = {}
+
+        if self.class_name not in self.comment_count_data:
+            self.comment_count_data[self.class_name] = {}
 
     def setup_browser(self):
         chrome_options = Options()
