@@ -70,7 +70,14 @@ class CommentDB:
             (url, platform.value),
         )
         return cur.fetchone() is not None
+    def get_commented_urls_batch(self, hrefs: list[str], platform: str) -> list[str]:
+        if not hrefs:
+            return []
 
+        placeholder = ",".join(["?"] * len(hrefs))
+        query = f"SELECT url FROM comments WHERE url IN ({placeholder}) AND platform = ?"
+        rows = self.conn.execute(query, (*hrefs, platform)).fetchall()
+        return [row["url"] for row in rows]
     def close(self):
         self.conn.close()
 

@@ -248,7 +248,7 @@ class BilibiliBot(BaseBot):
         """
         base = "https://www.zhihu.com"
         for idx, (orig_url, title) in enumerate(
-            tqdm(note_links.items(), desc="评论进度"), 1
+            tqdm(note_links.items(), desc=f"[{self.class_name}]评论进度", unit="条"), 1
         ):
             self.logger.info(
                 f"[BilibiliBot] 正在评论第 {idx}/{len(note_links)} 条（标题：{title}）..."
@@ -301,6 +301,7 @@ class BilibiliBot(BaseBot):
                     if self.failed_comment_count >= 3:
                         self.logger.info("[BilibiliBot] 连续失败 3 次，程序退出")
                         self.exit(1)
+                        return
                     continue
                 self.logger.info(f"[BilibiliBot] 已评论 {comment}   链接：{url}")
                 self.comment_db.record_comment(
@@ -325,6 +326,7 @@ class BilibiliBot(BaseBot):
                         f"[BilibiliBot] 今日评论已达 {limitation} 条，程序退出"
                     )
                     self.exit(0)
+                    return
                 self.sleep_random(base=1.0, jitter=2.0)
                 # 移除已评论链接并写回缓存
                 if os.path.exists(self.cache_path):
@@ -345,13 +347,12 @@ class BilibiliBot(BaseBot):
                 if self.failed_comment_count >= 3:
                     self.logger.info("[BilibiliBot] 连续失败 3 次，程序退出")
                     self.exit(1)
+                    return
 
     def exit(self, num=0):
         if self.driver:
             self.driver.quit()
-        if hasattr(self, "db"):
-            self.comment_db.close()
-        exit(num)
+        # exit(num)
 
     def get_recommended_video_links(self, scroll_times: int = 5):
         """
@@ -549,8 +550,21 @@ class BilibiliBot(BaseBot):
             return False
 
 
+
+        
 if __name__ == "__main__":
     print("[BilibiliBot] started...")
-    bot = BilibiliBot()
-    bot.run()
-    print("[BilibiliBot] ended...")
+    bot = None
+    try:
+        bot = BilibiliBot()
+        bot.run()
+    except KeyboardInterrupt:
+        print("\n[BilibiliBot] 收到中断信号，正在退出...")
+    finally:
+        if bot and bot.comment_db:
+            try:
+                bot.comment_db.close()
+                print("[BilibiliBot] comment_db 连接已关闭")
+            except Exception as e:
+                print(f"[BilibiliBot] 关闭 comment_db 失败: {e}")
+        print("[BilibiliBot] ended...")

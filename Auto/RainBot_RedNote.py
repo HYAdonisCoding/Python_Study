@@ -30,7 +30,7 @@ class XHSBot(BaseBot):
         self.driver = None
         self.failed_comment_count = 0
         self.comment_db = CommentDB()
-        
+
         self.cookie_path = os.path.join(data_dir, f"{self.class_name}_cookies.json")
         self.cache_path = os.path.join(data_dir, f"{self.class_name}_cached_hrefs.json")
         self.comment_count_path = os.path.join(log_dir, "comment_count_daily.json")
@@ -51,22 +51,42 @@ class XHSBot(BaseBot):
         # chrome_options.add_argument('--headless')
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--blink-settings=imagesEnabled=false")
+        # chrome_options.add_argument("--blink-settings=imagesEnabled=false")
 
         self.driver = webdriver.Chrome(options=chrome_options)
-
-        # 启用网络模块，准备设置屏蔽资源规则
         self.driver.execute_cdp_cmd("Network.enable", {})
+        self.driver.execute_cdp_cmd(
+            "Network.setBlockedURLs",
+            {
+                "urls": [
+                    "*.mp4",
+                ]
+            },
+        )
 
-        # 拦截图片、视频、字体等资源以加快页面加载速度
-        self.driver.execute_cdp_cmd("Network.setBlockedURLs", {
-            "urls": [
-                "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp",
-                "*.mp4", "*.webm", "*.svg", "*.woff", "*.ttf"
-            ]
-        })
-
-        self.logger.info("[XHSBot] 已启用资源拦截规则")
+    def enable_resource_blocking(self):
+        try:
+            self.driver.execute_cdp_cmd("Network.enable", {})
+            self.driver.execute_cdp_cmd(
+                "Network.setBlockedURLs",
+                {
+                    "urls": [
+                        "*.png",
+                        "*.jpg",
+                        "*.jpeg",
+                        "*.gif",
+                        "*.webp",
+                        "*.mp4",
+                        "*.webm",
+                        "*.svg",
+                        "*.woff",
+                        "*.ttf",
+                    ]
+                },
+            )
+            self.logger.info(f"[{self.class_name}] ✅ 成功启用资源拦截")
+        except Exception as e:
+            self.logger.warning(f"[{self.class_name}] ❌ 启用资源拦截失败: {e}")
 
     # 登录方法已假设在 BaseBot 中实现为 self.login()
 
@@ -76,18 +96,22 @@ class XHSBot(BaseBot):
     def run(self, interval=30):
         self.setup_browser()
         self.login()
+        self.enable_resource_blocking()
         while True:
             hrefs = self.get_recommended_note_links()
             if not hrefs:
-                self.logger.info("[XHSBot] 未获取到笔记链接，等待重试...")
-                self.sleep_random(base=1.0, jitter=2.0)
+                self.logger.info(f"[{self.class_name}] 未获取到笔记链接，等待重试...")
+                self.sleep_random(base=0.2, jitter=0.6)
                 continue
 
             self.comment_on_note_links(hrefs)
+            if self.failed_comment_count >= 3:
+                self.logger.info(f"[{self.class_name}] 已累计失败超过 3 次，主循环退出")
+                break
 
             sleep_time = max(1, interval + random.uniform(-1, 3))
             self.logger.info(f"下轮将在 {int(sleep_time)} 秒后继续...")
-            self.sleep_random(base=1.0, jitter=sleep_time)
+            self.sleep_random(base=0.2, jitter=sleep_time)
 
     def comment_on_note_links(self, note_links):
         """
@@ -96,11 +120,13 @@ class XHSBot(BaseBot):
         """
         base = "https://www.xiaohongshu.com"
         for idx, (url, title) in enumerate(
-            tqdm(note_links.items(), desc="[XHSBot] 评论进度", unit="条"), 1
+            tqdm(note_links.items(), desc=f"[{self.class_name}]评论进度", unit="条"), 1
         ):
             # 每次处理前看看数据库中是否评论过
             if self.comment_db.has_commented(url, Platform.XHS):
-                self.logger.info(f"[XHSBot] 已在数据库中记录为已评论，跳过：{url}")
+                self.logger.info(
+                    f"[{self.class_name}] 已在数据库中记录为已评论，跳过：{url}"
+                )
                 try:
                     if os.path.exists(self.cache_path):
                         with open(self.cache_path, "r", encoding="utf-8") as f:
@@ -109,50 +135,56 @@ class XHSBot(BaseBot):
                             del cached[url]
                             with open(self.cache_path, "w", encoding="utf-8") as f:
                                 json.dump(cached, f, ensure_ascii=False, indent=2)
-                            self.logger.info(f"[XHSBot] 已从缓存中移除已评论链接：{url}")
+                            self.logger.info(
+                                f"[{self.class_name}] 已从缓存中移除已评论链接：{url}"
+                            )
                 except Exception as e:
-                    self.logger.warning(f"[XHSBot] 移除链接缓存失败: {e}")
+                    self.logger.warning(f"[{self.class_name}] 移除链接缓存失败: {e}")
                 continue
-            
+
             # 日志记录
             self.logger.info(
-                f"[XHSBot] 正在评论第 {idx}/{len(note_links)} 条（标题：{title}）..."
+                f"[{self.class_name}] 正在评论第 {idx}/{len(note_links)} 条（标题：{title}）..."
             )
             # Normalize URL (some feeds return relative URLs)
             if url and url.startswith("/"):
                 url = urllib.parse.urljoin(base, url)
 
             try:
-                self.logger.info(f"[XHSBot] 打开笔记：{url}（标题：{title}）")
+                self.logger.info(
+                    f"[{self.class_name}] 打开笔记：{url}（标题：{title}）"
+                )
                 self.driver.get(url)
 
                 # 等待文档 ready (body 存在 & readyState == complete)
-                WebDriverWait(self.driver, 15).until(
+                WebDriverWait(self.driver, 8).until(
                     EC.presence_of_element_located((By.TAG_NAME, "body"))
                 )
-                WebDriverWait(self.driver, 15).until(
+                WebDriverWait(self.driver, 8).until(
                     lambda d: d.execute_script("return document.readyState")
                     == "complete"
                 )
-                self.sleep_random(base=1.0, jitter=2.0)  # 给前端框架一点渲染缓冲
+                self.sleep_random(base=0.2, jitter=0.6)  # 给前端框架一点渲染缓冲
 
                 # 检测是否被踢回登录页（关键词 login 或 qrcode）
                 cur = self.driver.current_url
                 if "login" in cur or "account" in cur:
-                    self.logger.error(f"[XHSBot] 页面跳到登录「{cur}」，跳过：{url}")
+                    self.logger.error(
+                        f"[{self.class_name}] 页面跳到登录「{cur}」，跳过：{url}"
+                    )
                     # 移除cookie
                     self.driver.delete_all_cookies()
                     self.save_cookies([])
                     # 清除浏览器缓存
                     self.driver.execute_cdp_cmd("Network.clearBrowserCache", {})
-                    self.logger.info("[XHSBot] 清除浏览器缓存")
-                    
+                    self.logger.info(f"[{self.class_name}] 清除浏览器缓存")
+
                     # 尝试重新登录
                     self.login()
 
                 # 滚动一点确保评论入口渲染
                 self.driver.execute_script("window.scrollBy(0, 400);")
-                self.sleep_random(base=1.0, jitter=2.0)
+                self.sleep_random(base=0.2, jitter=0.6)
 
                 # 定位“说点什么...”触发元素（多种 fallback）
                 trigger_locators = [
@@ -167,10 +199,10 @@ class XHSBot(BaseBot):
                 comment_trigger = None
                 for how, what in trigger_locators:
                     try:
-                        comment_trigger = WebDriverWait(self.driver, 10).until(
+                        comment_trigger = WebDriverWait(self.driver, 5).until(
                             EC.presence_of_element_located((how, what))
                         )
-                        WebDriverWait(self.driver, 5).until(
+                        WebDriverWait(self.driver, 2.5).until(
                             EC.element_to_be_clickable((how, what))
                         )
                         break
@@ -178,11 +210,13 @@ class XHSBot(BaseBot):
                         continue
 
                 if comment_trigger is None:
-                    self.logger.info(f"[XHSBot] 未找到评论入口，跳过：{url}")
+                    self.logger.info(f"[{self.class_name}] 未找到评论入口，跳过：{url}")
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
-                        self.logger.info("[XHSBot] 连续未找到评论入口 3 次，程序退出")
-                        self.exit(1)
+                        self.logger.info(
+                            f"[{self.class_name}] 连续未找到评论入口 3 次，程序退出"
+                        )
+                        return
                     continue
 
                 # 确保在视口中
@@ -193,7 +227,7 @@ class XHSBot(BaseBot):
                     )
                 except Exception:
                     pass
-                self.sleep_random(base=1.0, jitter=2.0)
+                self.sleep_random(base=0.2, jitter=0.6)
 
                 try:
                     comment_trigger.click()
@@ -211,7 +245,7 @@ class XHSBot(BaseBot):
                 input_box = None
                 for how, what in input_locators:
                     try:
-                        input_box = WebDriverWait(self.driver, 10).until(
+                        input_box = WebDriverWait(self.driver, 5).until(
                             EC.presence_of_element_located((how, what))
                         )
                         break
@@ -219,11 +253,15 @@ class XHSBot(BaseBot):
                         continue
 
                 if input_box is None:
-                    self.logger.info(f"[XHSBot] 未找到评论输入框，跳过：{url}")
+                    self.logger.info(
+                        f"[{self.class_name}] 未找到评论输入框，跳过：{url}"
+                    )
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
-                        self.logger.info("[XHSBot] 连续未找到评论输入框 3 次，程序退出")
-                        self.exit(1)
+                        self.logger.info(
+                            f"[{self.class_name}] 连续未找到评论输入框 3 次，程序退出"
+                        )
+                        return
                     continue
 
                 # 激活输入框（有些前端需要点击 innerEditable 子节点）
@@ -233,7 +271,7 @@ class XHSBot(BaseBot):
                     ).click().perform()
                 except Exception:
                     self.driver.execute_script("arguments[0].click();", input_box)
-                self.sleep_random(base=1.0, jitter=2.0)
+                self.sleep_random(base=0.2, jitter=0.6)
 
                 comment = self.get_random_comment()
 
@@ -260,11 +298,13 @@ class XHSBot(BaseBot):
                         typed_ok = False
 
                 if not typed_ok:
-                    self.logger.info(f"[XHSBot] 无法输入评论，跳过：{url}")
+                    self.logger.info(f"[{self.class_name}] 无法输入评论，跳过：{url}")
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
-                        self.logger.info("[XHSBot] 连续无法输入评论 3 次，程序退出")
-                        self.exit(1)
+                        self.logger.info(
+                            f"[{self.class_name}] 连续无法输入评论 3 次，程序退出"
+                        )
+                        return
                     continue
 
                 # 发送评论按钮（多个 fallback）
@@ -280,7 +320,7 @@ class XHSBot(BaseBot):
                 submit_button = None
                 for how, what in send_locators:
                     try:
-                        submit_button = WebDriverWait(self.driver, 10).until(
+                        submit_button = WebDriverWait(self.driver, 5).until(
                             EC.element_to_be_clickable((how, what))
                         )
                         break
@@ -288,11 +328,13 @@ class XHSBot(BaseBot):
                         continue
 
                 if submit_button is None:
-                    self.logger.info(f"[XHSBot] 找不到发送按钮，跳过：{url}")
+                    self.logger.info(f"[{self.class_name}] 找不到发送按钮，跳过：{url}")
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
-                        self.logger.info("[XHSBot] 连续找不到发送按钮 3 次，程序退出")
-                        self.exit(1)
+                        self.logger.info(
+                            f"[{self.class_name}] 连续找不到发送按钮 3 次，程序退出"
+                        )
+                        return
                     continue
 
                 try:
@@ -320,15 +362,15 @@ class XHSBot(BaseBot):
                     pass
 
                 if toast_failed:
-                    self.logger.info(f"[XHSBot] 评论失败（toast）：{url}")
+                    self.logger.info(f"[{self.class_name}] 评论失败（toast）：{url}")
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
-                        self.logger.info("[XHSBot] 连续失败 3 次，程序退出")
-                        self.exit(1)
+                        self.logger.info(f"[{self.class_name}] 连续失败 3 次，程序退出")
+                        return
                     continue  # 下一条
 
                 # 成功
-                self.logger.info(f"[XHSBot] 已评论 {comment} 链接：{url}")
+                self.logger.info(f"[{self.class_name}] 已评论 {comment} 链接：{url}")
                 self.comment_db.record_comment(
                     platform=Platform.XHS,
                     url=url,
@@ -338,11 +380,15 @@ class XHSBot(BaseBot):
                 )
                 self.comment_count += 1
                 self.failed_comment_count = 0
-                self.comment_count_data[self.class_name][self.today] = self.comment_count
+                self.comment_count_data[self.class_name][
+                    self.today
+                ] = self.comment_count
                 with open(self.comment_count_path, "w", encoding="utf-8") as f:
                     json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
 
-                self.logger.info(f"[XHSBot] 今日评论数：{self.comment_count}")
+                self.logger.info(
+                    f"[{self.class_name}] 今日评论数：{self.comment_count}"
+                )
                 # 已评论笔记由 CommentDB 管理，无需本地记录
                 # 实时更新 note_cache，移除已成功评论的链接
                 try:
@@ -353,51 +399,56 @@ class XHSBot(BaseBot):
                             del cached[url]
                             with open(self.cache_path, "w", encoding="utf-8") as f:
                                 json.dump(cached, f, ensure_ascii=False, indent=2)
-                            self.logger.info(f"[XHSBot] 已从缓存中移除已评论链接：{url}")
+                            self.logger.info(
+                                f"[{self.class_name}] 已从缓存中移除已评论链接：{url}"
+                            )
                 except Exception as e:
-                    self.logger.warning(f"[XHSBot] 移除链接缓存失败: {e}")
-                
+                    self.logger.warning(f"[{self.class_name}] 移除链接缓存失败: {e}")
 
                 if self.comment_count >= limitation:
-                    self.logger.info(f"[XHSBot] 今日评论已达 {limitation} 条，程序退出")
-                    self.exit(0)
+                    self.logger.info(
+                        f"[{self.class_name}] 今日评论已达 {limitation} 条，程序退出"
+                    )
+                    return
 
-                self.sleep_random(base=1.0, jitter=2.0)
+                self.sleep_random(base=0.2, jitter=0.6)
 
             except Exception as e:
-                self.logger.info(f"[XHSBot] 评论链接失败: {url}，错误：{e}")
+                self.logger.info(f"[{self.class_name}] 评论链接失败: {url}，错误：{e}")
                 self.failed_comment_count += 1
                 if self.failed_comment_count >= 3:
-                    self.logger.info("[XHSBot] 连续失败 3 次，程序退出")
-                    self.exit(1)
+                    self.logger.info(f"[{self.class_name}] 连续失败 3 次，程序退出")
+                    return
+
     def login(self):
-        self.logger.info("[XHSBot] 打开小红书首页以加载 Cookie...")
+        self.logger.info(f"[{self.class_name}] 打开小红书首页以加载 Cookie...")
         self.driver.get("https://www.xiaohongshu.com/")
 
         if self.load_and_inject_cookies():
-            self.logger.info("[XHSBot] 成功复用 Cookie 登录")
+            self.logger.info(f"[{self.class_name}] 成功复用 Cookie 登录")
             return
 
-        self.logger.info("[XHSBot] Cookie 无效，请手动登录...")
-        input("[XHSBot] 请在当前页面完成登录后按回车继续...")
+        self.logger.info(f"[{self.class_name}] Cookie 无效，请手动登录...")
+        input(f"[{self.class_name}] 请在当前页面完成登录后按回车继续...")
 
         cookies = self.driver.get_cookies()
         self.save_cookies(self.driver, self.cookie_path)
-        self.logger.info("[XHSBot] Cookie 已保存，登录流程完成")
+        self.logger.info(f"[{self.class_name}] Cookie 已保存，登录流程完成")
+
     def load_and_inject_cookies(self):
         if not os.path.exists(self.cookie_path):
-            self.logger.info("[XHSBot] Cookie 文件不存在")
+            self.logger.info(f"[{self.class_name}] Cookie 文件不存在")
             return False
 
         with open(self.cookie_path, "r", encoding="utf-8") as f:
             cookies = json.load(f)
 
         if not cookies:
-            self.logger.warning("[XHSBot] Cookie 文件内容为空")
+            self.logger.warning(f"[{self.class_name}] Cookie 文件内容为空")
             return False
 
         self.driver.get("https://www.xiaohongshu.com/")
-        
+
         valid_cookie_count = 0
         for cookie in cookies:
             cookie.pop("sameSite", None)
@@ -408,44 +459,44 @@ class XHSBot(BaseBot):
                 continue
 
         if valid_cookie_count == 0:
-            self.logger.warning("[XHSBot] 无有效 Cookie 被注入")
+            self.logger.warning(f"[{self.class_name}] 无有效 Cookie 被注入")
             return False
 
         self.driver.refresh()
-        self.sleep_random(base=1.0, jitter=2.0)
+        self.sleep_random(base=0.2, jitter=0.6)
 
         # 重新加载首页或 explore 页面
         self.driver.get("https://www.xiaohongshu.com/explore")
-        self.sleep_random(base=1.0, jitter=2.0)
+        self.sleep_random(base=0.2, jitter=0.6)
 
         # 检查是否仍显示“登录”按钮，或登录弹窗存在
         try:
             self.driver.find_element(By.CSS_SELECTOR, "button#login-btn.login-btn")
-            self.logger.warning("[XHSBot] 页面包含登录按钮，说明未登录")
+            self.logger.warning(f"[{self.class_name}] 页面包含登录按钮，说明未登录")
             return False
         except Exception:
             pass
 
         try:
             self.driver.find_element(By.CSS_SELECTOR, "div.login-container")
-            self.logger.warning("[XHSBot] 页面包含登录弹窗，说明未登录")
+            self.logger.warning(f"[{self.class_name}] 页面包含登录弹窗，说明未登录")
             return False
         except Exception:
             pass
 
-        self.logger.info("[XHSBot] 成功复用 Cookie 登录")
+        self.logger.info(f"[{self.class_name}] 成功复用 Cookie 登录")
         return True
 
     def exit(self, num=0):
         if self.driver:
             self.driver.quit()
-        exit(num)
+        # exit(num)
 
     def get_recommended_note_links(self, scroll_times: int = 5, use_cache: bool = True):
         """
         Collect note links from the recommend feed. Returns a dict: {url: title}
         """
-        self.logger.info("[XHSBot] get_recommended_note_links...")
+        self.logger.info(f"[{self.class_name}] get_recommended_note_links...")
 
         # ✅ 优先尝试读取缓存
         if use_cache and os.path.exists(self.cache_path):
@@ -453,12 +504,14 @@ class XHSBot(BaseBot):
                 with open(self.cache_path, "r", encoding="utf-8") as f:
                     cached = json.load(f)
                 if cached:
-                    self.logger.info(f"[XHSBot] 已从缓存加载 {len(cached)} 条链接")
+                    self.logger.info(
+                        f"[{self.class_name}] 已从缓存加载 {len(cached)} 条链接"
+                    )
                     return cached
                 else:
-                    self.logger.warning("[XHSBot] 缓存为空，将重新抓取链接")
+                    self.logger.warning(f"[{self.class_name}] 缓存为空，将重新抓取链接")
             except Exception as e:
-                self.logger.warning(f"[XHSBot] 读取缓存失败: {e}")
+                self.logger.warning(f"[{self.class_name}] 读取缓存失败: {e}")
 
         # ✅ 正常爬取流程（原逻辑）
         base_url = "https://www.xiaohongshu.com"
@@ -466,10 +519,10 @@ class XHSBot(BaseBot):
             "https://www.xiaohongshu.com/search_result?keyword=%25E7%25A7%2591%25E6%258A%2580%25E6%2595%25B0%25E7%25A0%2581&source=web_explore_feed"
         )
 
-        WebDriverWait(self.driver, 15).until(
+        WebDriverWait(self.driver, 8).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
-        self.sleep_random(base=1.0, jitter=2.0)
+        self.sleep_random(base=0.2, jitter=0.6)
 
         hrefs = dict()
         last_height = 0
@@ -498,12 +551,12 @@ class XHSBot(BaseBot):
                 except Exception:
                     title = ""
                 hrefs[href] = title
-                self.logger.info(f"[XHSBot] 抓取链接: {href} 标题: {title}")
+                self.logger.info(f"[{self.class_name}] 抓取链接: {href} 标题: {title}")
 
             self.driver.execute_script(
                 "window.scrollBy(0, document.body.scrollHeight);"
             )
-            self.sleep_random(base=1.0, jitter=2.0)
+            self.sleep_random(base=0.2, jitter=0.6)
 
             try:
                 new_height = self.driver.execute_script(
@@ -514,28 +567,49 @@ class XHSBot(BaseBot):
                 last_height = new_height
             except Exception:
                 pass
-        # 过滤已评论链接
-        commented = self.comment_db.get_commented_urls(Platform.XHS)
+        # 过滤已评论链接（高效批量版）
+        commented = set(
+            self.comment_db.get_commented_urls_batch(list(hrefs.keys()), Platform.XHS)
+        )
         hrefs = {url: title for url, title in hrefs.items() if url not in commented}
-        self.logger.info(f"[XHSBot] 共获取到 {len(hrefs)} 条链接")
+        self.logger.info(f"[{self.class_name}] 共获取到 {len(hrefs)} 条链接")
 
         # ✅ 写入缓存文件
         try:
             if hrefs:  # 只有有数据才写缓存
                 with open(self.cache_path, "w", encoding="utf-8") as f:
                     json.dump(hrefs, f, ensure_ascii=False, indent=2)
-                self.logger.info("[XHSBot] 链接已写入缓存")
+                self.logger.info(f"[{self.class_name}] 链接已写入缓存")
             else:
-                self.logger.warning("[XHSBot] 抓取结果为空，未写入缓存")
+                self.logger.warning(f"[{self.class_name}] 抓取结果为空，未写入缓存")
         except Exception as e:
-            self.logger.warning(f"[XHSBot] 写入缓存失败: {e}")
+            self.logger.warning(f"[{self.class_name}] 写入缓存失败: {e}")
 
         return hrefs
 
 
-
 if __name__ == "__main__":
     print("[XHSBot] started...")
-    bot = XHSBot()
-    bot.run()
-    print("[XHSBot] ended...")
+    bot = None
+    try:
+        bot = XHSBot()
+        bot.run()
+    except KeyboardInterrupt:
+        print("\n[XHSBot] 收到中断信号，正在退出...")
+    finally:
+        if bot:
+            try:
+                if bot.driver:
+                    bot.driver.quit()
+                    print("[XHSBot] 浏览器已关闭")
+            except Exception as e:
+                print(f"[XHSBot] 浏览器关闭失败: {e}")
+
+            try:
+                if bot.comment_db:
+                    bot.comment_db.close()
+                    print("[XHSBot] comment_db 连接已关闭")
+            except Exception as e:
+                print(f"[XHSBot] 关闭 comment_db 失败: {e}")
+
+        print("[XHSBot] ended...")

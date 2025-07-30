@@ -31,7 +31,7 @@ class JuejinBot(BaseBot):
         self.driver = None
         self.failed_comment_count = 0
         self.comment_db = CommentDB()
-        
+
         self.cookie_path = os.path.join(data_dir, f"{self.class_name}_cookies.json")
         self.cache_path = os.path.join(data_dir, f"{self.class_name}_cached_hrefs.json")
         self.comment_count_path = os.path.join(log_dir, "comment_count_daily.json")
@@ -46,7 +46,6 @@ class JuejinBot(BaseBot):
         if self.class_name not in self.comment_count_data:
             self.comment_count_data[self.class_name] = {}
 
-
     def remove_non_bmp(self, text):
         # return "".join(c for c in text if ord(c) <= 0xFFFF)
         return text
@@ -56,17 +55,40 @@ class JuejinBot(BaseBot):
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--window-size=1920,1080")
+
         self.driver = webdriver.Chrome(options=chrome_options)
+
+        # 启用 CDP 进行图片/视频拦截
+        try:
+            self.driver.execute_cdp_cmd("Network.enable", {})
+            self.driver.execute_cdp_cmd(
+                "Network.setBlockedURLs",
+                {
+                    "urls": [
+                        "*.png",
+                        "*.jpg",
+                        "*.jpeg",
+                        "*.gif",
+                        "*.webp",
+                        "*.svg",
+                        "*.mp4",
+                        "*.avi",
+                    ]
+                },
+            )
+            self.logger.info("[JuejinBot] 已设置阻止图片和视频资源加载")
+        except Exception as e:
+            self.logger.warning(f"[JuejinBot] 设置资源拦截失败: {e}")
 
     def login_juejin(self):
         def check_login(driver):
-            return "login" not in driver.current_url and "account" not in driver.current_url
+            return (
+                "login" not in driver.current_url
+                and "account" not in driver.current_url
+            )
 
         self.logger.info("[JuejinBot] 检查登录状态...")
         self.ensure_login(self.driver, self.cookie_path, check_login)
-
-
-    
 
     def run(self, interval=30):
         self.setup_browser()
@@ -117,7 +139,7 @@ class JuejinBot(BaseBot):
             current_cache = {}
 
         for idx, (url, title) in enumerate(
-            tqdm(note_links.items(), desc="评论进度"), 1
+            tqdm(note_links.items(), desc=f"[{self.class_name}]评论进度", unit="条"), 1
         ):
             # 跳过已评论过的链接
             if self.comment_db.has_commented(url, Platform.JUEJIN):
@@ -159,14 +181,16 @@ class JuejinBot(BaseBot):
                 # 检测是否被踢回登录页（关键词 login 或 qrcode）
                 cur = self.driver.current_url
                 if "login" in cur or "account" in cur:
-                    self.logger.error(f"[{self.class_name}] 页面跳到登录「{cur}」，跳过：{url}")
+                    self.logger.error(
+                        f"[{self.class_name}] 页面跳到登录「{cur}」，跳过：{url}"
+                    )
                     # 移除cookie
                     self.driver.delete_all_cookies()
                     self.save_cookies([])
                     # 清除浏览器缓存
                     self.driver.execute_cdp_cmd("Network.clearBrowserCache", {})
                     self.logger.info("[JuejinBot] 清除浏览器缓存")
-                    
+
                     # 尝试重新登录
                     self.login_juejin()
 
@@ -206,6 +230,7 @@ class JuejinBot(BaseBot):
                             "[JuejinBot] 连续未找到评论入口 3 次，程序退出"
                         )
                         self.exit(1)
+                        return
                     continue
 
                 # 确保在视口中
@@ -251,13 +276,16 @@ class JuejinBot(BaseBot):
                         continue
 
                 if input_box is None:
-                    self.logger.info(f"[{self.class_name}] 未找到评论输入框，跳过：{url}")
+                    self.logger.info(
+                        f"[{self.class_name}] 未找到评论输入框，跳过：{url}"
+                    )
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
                         self.logger.info(
                             "[JuejinBot] 连续未找到评论输入框 3 次，程序退出"
                         )
                         self.exit(1)
+                        return
                     continue
 
                 # 激活输入框（有些前端需要点击 innerEditable 子节点）
@@ -299,6 +327,7 @@ class JuejinBot(BaseBot):
                     if self.failed_comment_count >= 3:
                         self.logger.info("[JuejinBot] 连续无法输入评论 3 次，程序退出")
                         self.exit(1)
+                        return
                     continue
 
                 # 发送评论按钮（新版样式）
@@ -322,6 +351,7 @@ class JuejinBot(BaseBot):
                             "[JuejinBot] 连续找不到发送按钮 3 次，程序退出"
                         )
                         self.exit(1)
+                        return
                     continue
 
                 try:
@@ -354,16 +384,21 @@ class JuejinBot(BaseBot):
                     if self.failed_comment_count >= 3:
                         self.logger.info("[JuejinBot] 连续失败 3 次，程序退出")
                         self.exit(1)
+                        return
                     continue  # 下一条
 
                 # 成功
                 self.logger.info(f"[{self.class_name}] 已评论 {comment}   链接：{url}")
                 self.comment_count += 1
                 self.failed_comment_count = 0
-                self.comment_count_data.setdefault(self.class_name, {})[self.today] = self.comment_count
+                self.comment_count_data.setdefault(self.class_name, {})[
+                    self.today
+                ] = self.comment_count
                 with open(self.comment_count_path, "w", encoding="utf-8") as f:
                     json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
-                self.logger.info(f"[{self.class_name}] {self.today} 累计评论：{self.comment_count}")
+                self.logger.info(
+                    f"[{self.class_name}] {self.today} 累计评论：{self.comment_count}"
+                )
 
                 # 记录已评论
                 self.comment_db.record_comment(
@@ -378,6 +413,7 @@ class JuejinBot(BaseBot):
                         f"[{self.class_name}] 今日评论已达 {limitation} 条，程序退出"
                     )
                     self.exit(0)
+                    return
 
                 # 改为更短的延迟
                 self.sleep_random(base=1.0, jitter=1.0)
@@ -393,10 +429,12 @@ class JuejinBot(BaseBot):
                 if self.failed_comment_count >= 3:
                     self.logger.info("[JuejinBot] 连续失败 3 次，程序退出")
                     self.exit(1)
+                    return
 
         # --- 循环结束后统一写回缓存（仅保留未被移除的链接） ---
         remaining_cache = {
-            url: title for url, title in current_cache.items()
+            url: title
+            for url, title in current_cache.items()
             if not self.comment_db.has_commented(url, Platform.JUEJIN)
         }
         with open(self.cache_path, "w", encoding="utf-8") as f:
@@ -411,24 +449,37 @@ class JuejinBot(BaseBot):
                     del cached[url]
                     with open(self.cache_path, "w", encoding="utf-8") as f:
                         json.dump(cached, f, ensure_ascii=False, indent=2)
-                    self.logger.info(f"[{self.class_name}] 已从缓存中移除已评论链接：{url}")
+                    self.logger.info(
+                        f"[{self.class_name}] 已从缓存中移除已评论链接：{url}"
+                    )
         except Exception as e:
             self.logger.warning(f"[{self.class_name}] 移除链接缓存失败: {e}")
 
     def exit(self, num=0):
         if self.driver:
             self.driver.quit()
-        exit(num)
+        try:
+            if self.comment_db:
+                self.comment_db.close()
+        except Exception as e:
+            self.logger.warning(f"[{self.class_name}] 关闭 comment_db 失败: {e}")
+        # exit(num)
 
     def get_recommended_note_links(self, scroll_times: int = 5):
         """
         Collect note links from the recommend feed.
         Scroll multiple times to load more, until enough un-commented links are found or max scrolls reached.
         Returns a dict: {url: title}
+
+        https://juejin.cn/?sort=monthly_hottest 30天内
+        https://juejin.cn/?sort=weekly_hottest 7天内
+        https://juejin.cn/?sort=three_days_hottest 3天内
+        https://juejin.cn/?sort=hottest 全部
+        https://juejin.cn/ 推荐
         """
         self.logger.info("[JuejinBot] get_recommended_note_links...")
 
-        self.driver.get("https://juejin.cn/?sort=hottest")
+        self.driver.get("https://juejin.cn/?sort=weekly_hottest")
 
         try:
             WebDriverWait(self.driver, 15).until(
@@ -451,11 +502,17 @@ class JuejinBot(BaseBot):
 
         for i in range(max_scroll):
             self.logger.info(f"[{self.class_name}] 第 {i+1} 次滚动加载")
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            self.driver.execute_script(
+                "window.scrollTo(0, document.body.scrollHeight);"
+            )
             self.sleep_random(base=1.0, jitter=2.0)
 
-            a_tags = self.driver.find_elements(By.CSS_SELECTOR, "a.jj-link.title[href^='/post/']")
-            self.logger.info(f"[{self.class_name}] 当前抓取 a.jj-link.title 数量: {len(a_tags)}")
+            a_tags = self.driver.find_elements(
+                By.CSS_SELECTOR, "a.jj-link.title[href^='/post/']"
+            )
+            self.logger.info(
+                f"[{self.class_name}] 当前抓取 a.jj-link.title 数量: {len(a_tags)}"
+            )
             if not a_tags:
                 continue
 
@@ -463,7 +520,11 @@ class JuejinBot(BaseBot):
             if a_tags:
                 try:
                     with open("debug_link_element.html", "w", encoding="utf-8") as f:
-                        f.write(self.driver.execute_script("return arguments[0].outerHTML;", a_tags[0]))
+                        f.write(
+                            self.driver.execute_script(
+                                "return arguments[0].outerHTML;", a_tags[0]
+                            )
+                        )
                 except Exception:
                     pass
 
@@ -473,45 +534,70 @@ class JuejinBot(BaseBot):
                     title = a_tag.get_attribute("title") or a_tag.text.strip() or ""
 
                     if not href or not title:
-                        self.logger.debug(f"[{self.class_name}] href 或 title 为空，跳过元素: {a_tag.get_attribute('outerHTML')}")
+                        self.logger.debug(
+                            f"[{self.class_name}] href 或 title 为空，跳过元素: {a_tag.get_attribute('outerHTML')}"
+                        )
                         continue
 
                     if href.startswith("/"):
                         href = urllib.parse.urljoin("https://juejin.cn", href)
 
                     if not href.startswith("http"):
-                        self.logger.warning(f"[{self.class_name}] 非标准链接跳过: {href}")
+                        self.logger.warning(
+                            f"[{self.class_name}] 非标准链接跳过: {href}"
+                        )
                         continue
 
                     if self.comment_db.has_commented(href, Platform.JUEJIN):
-                        self.logger.warning(f"[{self.class_name}] 已评论过，跳过链接: {href}")
+                        self.logger.warning(
+                            f"[{self.class_name}] 已评论过，跳过链接: {href}"
+                        )
                         continue
 
                     if href not in hrefs:
                         hrefs[href] = title
                         collected += 1
-                        self.logger.info(f"[{self.class_name}] 抓取链接: {href} 标题: {title}")
+                        self.logger.info(
+                            f"[{self.class_name}] 抓取链接: {href} 标题: {title}"
+                        )
                 except Exception as e:
                     self.logger.warning(f"[{self.class_name}] 解析 a_tag 元素失败: {e}")
 
             if collected >= max_needed:
-                self.logger.info(f"[{self.class_name}] 已获取到 {collected} 条未评论链接，提前结束滚动")
+                self.logger.info(
+                    f"[{self.class_name}] 已获取到 {collected} 条未评论链接，提前结束滚动"
+                )
                 break
 
             try:
-                new_height = self.driver.execute_script("return document.body.scrollHeight;")
+                new_height = self.driver.execute_script(
+                    "return document.body.scrollHeight;"
+                )
                 if new_height == last_height:
                     break
                 last_height = new_height
             except Exception:
                 break
 
-        self.logger.info(f"[{self.class_name}] 共获取到 {len(hrefs)} 条链接，其中包含标题信息")
+        self.logger.info(
+            f"[{self.class_name}] 共获取到 {len(hrefs)} 条链接，其中包含标题信息"
+        )
         return hrefs
 
 
 if __name__ == "__main__":
     print("[JuejinBot] started...")
-    bot = JuejinBot()
-    bot.run()
-    print("[JuejinBot] ended...")
+    bot = None
+    try:
+        bot = JuejinBot()
+        bot.run()
+    except KeyboardInterrupt:
+        print("\n[JuejinBot] 收到中断信号，正在退出...")
+    finally:
+        if bot and bot.comment_db:
+            try:
+                bot.comment_db.close()
+                print("[JuejinBot] comment_db 连接已关闭")
+            except Exception as e:
+                print(f"[JuejinBot] 关闭 comment_db 失败: {e}")
+        print("[JuejinBot] ended...")
