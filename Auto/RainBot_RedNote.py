@@ -36,6 +36,9 @@ class XHSBot(BaseBot):
         self.comment_count_path = os.path.join(log_dir, "comment_count_daily.json")
         self.today = time.strftime("%Y-%m-%d")
 
+        # 延迟配置参数，可切换 fast/safe 模式
+        self.delay_profile = {"base": 0.1, "jitter": 0.3}  # 可调整为 {"base": 0.2, "jitter": 0.6} 用于慢模式
+
         if os.path.exists(self.comment_count_path):
             with open(self.comment_count_path, "r", encoding="utf-8") as f:
                 self.comment_count_data = json.load(f)
@@ -101,17 +104,18 @@ class XHSBot(BaseBot):
             hrefs = self.get_recommended_note_links()
             if not hrefs:
                 self.logger.info(f"[{self.class_name}] 未获取到笔记链接，等待重试...")
-                self.sleep_random(base=0.2, jitter=0.6)
+                self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
                 continue
 
             self.comment_on_note_links(hrefs)
             if self.failed_comment_count >= 3:
                 self.logger.info(f"[{self.class_name}] 已累计失败超过 3 次，主循环退出")
+                print(f"[{self.class_name}] 已累计失败超过 3 次，主循环退出")
                 break
 
             sleep_time = max(1, interval + random.uniform(-1, 3))
             self.logger.info(f"下轮将在 {int(sleep_time)} 秒后继续...")
-            self.sleep_random(base=0.2, jitter=sleep_time)
+            self.sleep_random(base=self.delay_profile["base"], jitter=sleep_time)
 
     def comment_on_note_links(self, note_links):
         """
@@ -156,43 +160,40 @@ class XHSBot(BaseBot):
                 )
                 self.driver.get(url)
 
-                # 等待文档 ready (body 存在 & readyState == complete)
-                WebDriverWait(self.driver, 8).until(
-                    EC.presence_of_element_located((By.TAG_NAME, "body"))
+                # 精简页面加载等待，只等 readyState 为 interactive 或 complete
+                WebDriverWait(self.driver, 5).until(
+                    lambda d: d.execute_script("return document.readyState") in ["interactive", "complete"]
                 )
-                WebDriverWait(self.driver, 8).until(
-                    lambda d: d.execute_script("return document.readyState")
-                    == "complete"
-                )
-                self.sleep_random(base=0.2, jitter=0.6)  # 给前端框架一点渲染缓冲
+                self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])  # 给前端框架一点渲染缓冲
 
                 # 检测是否被踢回登录页（关键词 login 或 qrcode）
                 cur = self.driver.current_url
                 if "login" in cur or "account" in cur:
-                    self.logger.error(
-                        f"[{self.class_name}] 页面跳到登录「{cur}」，跳过：{url}"
-                    )
-                    # 移除cookie
+                    self.logger.error(f"[{self.class_name}] 页面跳到登录「{cur}」，跳过：{url}")
+
+                    # 清除登录信息（防止下一次仍失败）
                     self.driver.delete_all_cookies()
-                    self.save_cookies([])
-                    # 清除浏览器缓存
                     self.driver.execute_cdp_cmd("Network.clearBrowserCache", {})
                     self.logger.info(f"[{self.class_name}] 清除浏览器缓存")
 
-                    # 尝试重新登录
-                    self.login()
+                    # 强制跳转到首页 + 等待用户手动登录
+                    self.driver.get("https://www.xiaohongshu.com/")
+                    self.logger.info(f"[{self.class_name}] 请在当前页面完成登录，然后回到终端按回车继续...")
+                    input(f"[{self.class_name}] >>> 手动登录完成后请按下回车")
+
+                    # 保存新的 Cookie
+                    cookies = self.driver.get_cookies()
+                    self.save_cookies(self.driver, self.cookie_path)
+                    self.logger.info(f"[{self.class_name}] 登录已完成，Cookie 已保存")
 
                 # 滚动一点确保评论入口渲染
                 self.driver.execute_script("window.scrollBy(0, 400);")
-                self.sleep_random(base=0.2, jitter=0.6)
+                self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
 
                 # 定位“说点什么...”触发元素（多种 fallback）
                 trigger_locators = [
                     (By.XPATH, "//span[normalize-space()='说点什么...']"),
-                    (
-                        By.XPATH,
-                        "//div[contains(@class,'not-active')]//span[contains(text(),'说点什么')]",
-                    ),
+                    (By.XPATH, "//div[contains(@class,'not-active')]//span[contains(text(),'说点什么')]"),
                     (By.CSS_SELECTOR, "div.not-active.inner-when-not-active span"),
                 ]
 
@@ -227,7 +228,7 @@ class XHSBot(BaseBot):
                     )
                 except Exception:
                     pass
-                self.sleep_random(base=0.2, jitter=0.6)
+                self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
 
                 try:
                     comment_trigger.click()
@@ -237,8 +238,6 @@ class XHSBot(BaseBot):
                 # 等评论输入框（contenteditable）
                 input_locators = [
                     (By.CSS_SELECTOR, "p#content-textarea[contenteditable='true']"),
-                    (By.XPATH, "//p[@id='content-textarea']"),
-                    (By.CSS_SELECTOR, "[contenteditable='true'].content-input"),
                     (By.CSS_SELECTOR, "div.comment-editor [contenteditable='true']"),
                 ]
 
@@ -271,7 +270,7 @@ class XHSBot(BaseBot):
                     ).click().perform()
                 except Exception:
                     self.driver.execute_script("arguments[0].click();", input_box)
-                self.sleep_random(base=0.2, jitter=0.6)
+                self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
 
                 comment = self.get_random_comment()
 
@@ -309,12 +308,8 @@ class XHSBot(BaseBot):
 
                 # 发送评论按钮（多个 fallback）
                 send_locators = [
-                    (
-                        By.XPATH,
-                        "//button[contains(@class,'submit') and contains(.,'发送')]",
-                    ),
                     (By.CSS_SELECTOR, "button.btn.submit"),
-                    (By.XPATH, "//button[.//text()[contains(.,'发送')]]"),
+                    (By.XPATH, "//button[contains(@class,'submit') and contains(.,'发送')]"),
                 ]
 
                 submit_button = None
@@ -411,7 +406,7 @@ class XHSBot(BaseBot):
                     )
                     return
 
-                self.sleep_random(base=0.2, jitter=0.6)
+                self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
 
             except Exception as e:
                 self.logger.info(f"[{self.class_name}] 评论链接失败: {url}，错误：{e}")
@@ -463,11 +458,11 @@ class XHSBot(BaseBot):
             return False
 
         self.driver.refresh()
-        self.sleep_random(base=0.2, jitter=0.6)
+        self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
 
         # 重新加载首页或 explore 页面
         self.driver.get("https://www.xiaohongshu.com/explore")
-        self.sleep_random(base=0.2, jitter=0.6)
+        self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
 
         # 检查是否仍显示“登录”按钮，或登录弹窗存在
         try:
@@ -519,10 +514,10 @@ class XHSBot(BaseBot):
             "https://www.xiaohongshu.com/search_result?keyword=%25E7%25A7%2591%25E6%258A%2580%25E6%2595%25B0%25E7%25A0%2581&source=web_explore_feed"
         )
 
-        WebDriverWait(self.driver, 8).until(
-            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        WebDriverWait(self.driver, 5).until(
+            lambda d: d.execute_script("return document.readyState") in ["interactive", "complete"]
         )
-        self.sleep_random(base=0.2, jitter=0.6)
+        self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
 
         hrefs = dict()
         last_height = 0
@@ -556,7 +551,7 @@ class XHSBot(BaseBot):
             self.driver.execute_script(
                 "window.scrollBy(0, document.body.scrollHeight);"
             )
-            self.sleep_random(base=0.2, jitter=0.6)
+            self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
 
             try:
                 new_height = self.driver.execute_script(

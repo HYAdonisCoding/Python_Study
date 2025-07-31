@@ -5,9 +5,22 @@ import threading
 
 def run_bot(bot_cls, name):
     print(f"[{name}] started...")
-    bot = bot_cls()
-    bot.run()
-    print(f"[{name}] ended...")
+    
+    
+    bot = None
+    try:
+        bot = bot_cls()
+        bot.run()
+    except KeyboardInterrupt:
+        print(f"[{name}] 收到中断信号，正在退出...")
+    finally:
+        if bot and bot.comment_db:
+            try:
+                bot.comment_db.close()
+                print(f"[{name}] comment_db 连接已关闭")
+            except Exception as e:
+                print(f"[{name}] 关闭 comment_db 失败: {e}")
+        print(f"[{name}] ended...")
 
 if __name__ == "__main__":
     threads = [

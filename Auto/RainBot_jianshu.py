@@ -430,12 +430,12 @@ class JianshuBot(BaseBot):
                 continue
 
             # 导出 HTML 逻辑
-            if a_tags:
-                try:
-                    with open("debug_link_element.html", "w", encoding="utf-8") as f:
-                        f.write(self.driver.execute_script("return arguments[0].outerHTML;", a_tags[0]))
-                except Exception:
-                    pass
+            # if a_tags:
+            #     try:
+            #         with open("debug_link_element.html", "w", encoding="utf-8") as f:
+            #             f.write(self.driver.execute_script("return arguments[0].outerHTML;", a_tags[0]))
+            #     except Exception:
+            #         pass
 
             for a_tag in a_tags:
                 try:
