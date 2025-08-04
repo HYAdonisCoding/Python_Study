@@ -6,12 +6,34 @@ import json
 import random
 import time
 import logging
-
+from filelock import FileLock
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
 class BaseBot:
+    
+
+    def save_comment_count(self):
+        lock_path = self.comment_count_path + ".lock"
+        with FileLock(lock_path):
+            # 读取现有文件数据
+            if os.path.exists(self.comment_count_path):
+                try:
+                    with open(self.comment_count_path, "r", encoding="utf-8") as f:
+                        existing_data = json.load(f)
+                except Exception:
+                    existing_data = {}
+            else:
+                existing_data = {}
+
+            # 确保结构完整
+            if self.class_name not in existing_data:
+                existing_data[self.class_name] = {}
+            existing_data[self.class_name][self.today] = self.comment_count
+
+            with open(self.comment_count_path, "w", encoding="utf-8") as f:
+                json.dump(existing_data, f, ensure_ascii=False, indent=2)
     def __init__(self, log_dir, comment_path, home_url):
         self.home_url = home_url
         self.class_name = self.__class__.__name__

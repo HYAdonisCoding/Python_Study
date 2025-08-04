@@ -313,11 +313,7 @@ class BilibiliBot(BaseBot):
                 )
                 self.comment_count += 1
                 self.failed_comment_count = 0
-                self.comment_count_data.setdefault(self.class_name, {})[
-                    self.today
-                ] = self.comment_count
-                with open(self.comment_count_path, "w", encoding="utf-8") as f:
-                    json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
+                self.save_comment_count()
                 self.logger.info(
                     f"[JuejinBot] {self.today} 累计评论：{self.comment_count}"
                 )

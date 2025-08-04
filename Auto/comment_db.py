@@ -77,7 +77,7 @@ class CommentDB:
         placeholder = ",".join(["?"] * len(hrefs))
         query = f"SELECT url FROM comments WHERE url IN ({placeholder}) AND platform = ?"
         rows = self.conn.execute(query, (*hrefs, platform)).fetchall()
-        return [row[0] for row in rows]  # ✅ 改这里，访问 tuple 的第一个元素
+        return [row["url"] for row in rows]
     def close(self):
         self.conn.close()
 

@@ -115,7 +115,9 @@ class JuejinBot(BaseBot):
                     self.sleep_random(base=1.0, jitter=1.0)
                     continue
             self.logger.info(f"[{self.class_name}] 开始评价...")
-            self.comment_on_note_links(hrefs)
+            should_exit = self.comment_on_note_links(hrefs)
+            if should_exit:
+                break
 
             sleep_time = max(1, interval + random.uniform(-1, 3))
             self.logger.info(f"下轮将在 {int(sleep_time)} 秒后继续...")
@@ -230,7 +232,7 @@ class JuejinBot(BaseBot):
                             f"[{self.class_name}] 连续未找到评论入口 3 次，程序退出"
                         )
                         self.exit(1)
-                        return
+                        return True
                     continue
 
                 # 确保在视口中
@@ -285,7 +287,7 @@ class JuejinBot(BaseBot):
                             f"[{self.class_name}] 连续未找到评论输入框 3 次，程序退出"
                         )
                         self.exit(1)
-                        return
+                        return True
                     continue
 
                 # 激活输入框（有些前端需要点击 innerEditable 子节点）
@@ -327,7 +329,7 @@ class JuejinBot(BaseBot):
                     if self.failed_comment_count >= 3:
                         self.logger.info(f"[{self.class_name}] 连续无法输入评论 3 次，程序退出")
                         self.exit(1)
-                        return
+                        return True
                     continue
 
                 # 发送评论按钮（新版样式）
@@ -351,7 +353,7 @@ class JuejinBot(BaseBot):
                             f"[{self.class_name}] 连续找不到发送按钮 3 次，程序退出"
                         )
                         self.exit(1)
-                        return
+                        return True
                     continue
 
                 try:
@@ -384,18 +386,14 @@ class JuejinBot(BaseBot):
                     if self.failed_comment_count >= 3:
                         self.logger.info(f"[{self.class_name}] 连续失败 3 次，程序退出")
                         self.exit(1)
-                        return
+                        return True
                     continue  # 下一条
 
                 # 成功
                 self.logger.info(f"[{self.class_name}] 已评论 {comment}   链接：{url}")
                 self.comment_count += 1
                 self.failed_comment_count = 0
-                self.comment_count_data.setdefault(self.class_name, {})[
-                    self.today
-                ] = self.comment_count
-                with open(self.comment_count_path, "w", encoding="utf-8") as f:
-                    json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
+                self.save_comment_count()
                 self.logger.info(
                     f"[{self.class_name}] {self.today} 累计评论：{self.comment_count}"
                 )
@@ -413,7 +411,7 @@ class JuejinBot(BaseBot):
                         f"[{self.class_name}] 今日评论已达 {limitation} 条，程序退出"
                     )
                     self.exit(0)
-                    return
+                    return True
 
                 # 改为更短的延迟
                 self.sleep_random(base=1.0, jitter=1.0)
@@ -429,7 +427,7 @@ class JuejinBot(BaseBot):
                 if self.failed_comment_count >= 3:
                     self.logger.info(f"[{self.class_name}] 连续失败 3 次，程序退出")
                     self.exit(1)
-                    return
+                    return True
 
         # --- 循环结束后统一写回缓存（仅保留未被移除的链接） ---
         remaining_cache = {
@@ -439,6 +437,7 @@ class JuejinBot(BaseBot):
         }
         with open(self.cache_path, "w", encoding="utf-8") as f:
             json.dump(remaining_cache, f, ensure_ascii=False, indent=2)
+        return False
 
     def remove_cache(self, url):
         try:
