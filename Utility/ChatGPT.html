@@ -1,1916 +1,537 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>:root {
+<html lang="zh-CN"><script src="chrome-extension://jnlgamecbpmbajjfhmmmlhejkemejdma/static/js/inpage.js"></script><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>机场推荐</title>
+  <link rel="shortcut icon" href="https://eason-yanyun.github.io/airport/favicon.ico" type="image/x-icon">
+  <link rel="icon" sizes="any" mask="" href="https://eason-yanyun.github.io/airport/favicon.ico">
+  <script>
+/*************  ✨ Windsurf Command ⭐  *************/
+/**
+ * Toggles the theme of the webpage between light and dark.
+ * It updates the data-theme attribute of the body element,
+ * stores the selected theme in localStorage, and updates
+ * the theme icon accordingly.
+ */
 
-    /********************************* Text alignment 文本对齐方式 *************************************
-     **************************************************************************************************
-     * - left:         Align Left         左对齐 
-     * - right:        Align right        右对齐
-     * - center:       Align center       居中对齐
-     * - justify:      Align justify      两端对齐
-     * - justify-all:  Align justify-all  全部两端对齐
-     * - start:        Align start        行首对齐
-     * - end:          Align end          行尾对齐
-     **************************************************************************************************/
-    --text-align: justify;
+/*******  b6d655d9-840d-4b95-b36d-664b27f6d1c6  *******/
+    function toggleTheme() {
+      const body = document.body;
+      const currentTheme = body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      setThemeIcon(newTheme);
+      return;
+    }
 
-    /************************* Interactive animation configuration 交互动画配置 ************************
-     **************************************************************************************************
-     ** 1.To use interactive animations, first set --use-dynamic-effect` to 1, Then adjust other 
-     **   configuration items as needed.
-     ** 2.To turn off all interactive animations, set `--use-dynamic-effect` to 0
-     **                                           set `--list-ol-text-style` to italic
-     *
-     ** 1.若要使用交互动画, 请先将 `--use-dynamic-effect` 设置为 1, 然后根据需要调整其他配置项
-     ** 2.若要关闭全部交互动画, 请将 `--use-dynamic-effect` 设置为 0  
-     **                            `--list-ol-text-style` 设置为 italic
-     *
-     * 其余配置项请根据需要自行配置
-     * - 0: Close 关闭
-     * - 1: Open 开启
-     **************************************************************************************************/
-    /* Use/Close interactive animations 使用/关闭交互动画 */
-    --use-dynamic-effect: 1;
-
-    /* H1 interactive effect 一级标题交互效果 */
-    --h1-hover-effect: 1;
-
-    /* H2 interactive effect 二级标题交互效果 */
-    --h2-after-effect: 1;
-
-    /* H3 H4 H5 H6 interactive effect 三,四,五,六级标题交互效果 */
-    --h3-6-hover-effect: 1;
-
-    /* Paragraph interactive effect 段落交互效果 */
-    --p-hover-effect: 1;
-
-    /* Image interactive effect 图片交互效果 */
-    --img-hover-effect: 1;
-
-    /* Blockquote interactive effect 引用块交互效果 */
-    --blockquote-hover-effect: 1;
+    function setThemeIcon(theme) {
+      const iconSpan = document.getElementById("theme-icon");
+      if (iconSpan) {
+        iconSpan.textContent = theme === "light" ? "🌙" : "☀️";
+      }
+    }
+    const airports = [
+  {
+    "name": "蓝帆云机场",
+    "star": "★★★★★",
+    "description": "蓝帆云是一家 2024 年新开的机场，支持 ShadowsocksR 和 Vmess 多种协议。蓝帆云解锁能力一般，节点数量很多，覆盖国内常用地区，没有冷门地区节点。",
+    "tags": "BGP中转 + IPLC 专线节点 SSR / V2ray 机场",
+    "protocols": ["Hysteria 2", "SSR", "V2ray"],
+    "price": "￥11.99/月起",
+    "traffic": "50G/月起",
+    "meal": ["入门版：￥11.99/月，50G流量。"],
+    "annual_discount": "7折",
+    "discount": "🎉 年费7折优惠代码：lanfan 请购买时验证使用。在新疆省无法使用！请勿购买",
+    "url": "https://lanfanz.cc/auth/register?code=E1I7",
+    "parallel": true
+  },
+  {
+    "name": "Riolu 精灵学院",
+    "star": "★★★★☆",
+    "description": "2023 年开业，支持直连+中转，多协议自选，客户端定制化体验。",
+    "tags": "SS / Vless / Trojan 多协议，小白友好",
+    "meal": ["Iron：￥6/月，30G/月（季付￥15）", "Iron Plus：￥12/月，120G/月（年付￥125）", "不限时流量Small：￥60，永久 400G 流量"],
+    "discount": "新用户优惠码： New2025（九五折，季付、半年付、年付可用，不限时不可用）",
+    "url": "https://jump.riolu.work/register?aff=UNlKm79n",
+    "protocols": ["SS", "Trojan", "Hysteria 2"],
+    "price": "￥6/月起",
+    "traffic": "30G/月起",
+    "annual_discount": "95折",
+    "parallel": true
     
-    /* Alert interactive effect 提示框交互效果 */
-    --alert-hover-effect: 1;
+  },
+  {
+    "name": "阿拉丁机场",
+    "star": "★★★★★",
+    "description": "2024 年开业，支持多地区节点和个性化定制。Netflix、Disney+、ChatGPT 支持优良。",
+    "tags": "SS 协议，奈飞免登录，中转性价比高",
+    "protocols": ["Shadowsocks"],
+    "price": "￥9.9/月",
+    "traffic": "50G/月",
+    "meal": ["入门套餐：￥8/月，50G/月", "轻量套餐：￥15/月，100G/月"],
+    "url": "https://www.avatargpt.xyz/register?aff=9D4SamHzdl"
     
-    /* Strong text interactive effect 粗体文本交互效果 */
-    --strong-hover-effect: 1;
+  },
+  {
+    "name": "Nutbit 坚果机场",
+    "star": "★★★★☆",
+    "description": "2022 年开业，稳定佛系，全节点公网中转。支持 Netflix、Disney+、TikTok 和 ChatGPT。",
+    "tags": "SS 协议，支持多平台",
+    "protocols": ["SSR", "V2ray"],
 
-    /* Italic text interactive effect 斜体文本交互效果 */
-    --em-hover-effect: 1;
-
-    /* Underline interactive effect 下划线交互效果 */
-    --u-hover-effect: 1;
-
-    /* Marked text interactive effect 高亮文本交互效果 */
-    --mark-hover-effect: 1;
-
-    /* Deleted text interactive effect 删除线交互效果 */
-    --del-hover-effect: 1;
-
-    /* Inline code block interactive effect 内联代码块交互效果 */
-    --code-hover-effect: 1;
-
-    /* Code block interactive effect 代码块交互效果 */
-    --fence-hover-effect: 1;
+    "meal": ["开心果：￥15/季度，50G/月（不常见）", "核桃：￥15/月，100G/月", "杏仁：￥24/月，200G/月"],
+    "chatgpt": true,
+    "streaming": "一般",
+    "annual_discount": "7折",
+    "discount": "🎁 五一优惠：全套餐 8 折（除开心果），结账输入优惠码：51",
+    "discount_expire": true,
+    "url": "https://www.nutbit.net/#/register?code=ITvJagqb"
     
-    /* List interactive effect 列表交互效果
-     * The following two values ​​need to be changed synchronously
-     * 下面两个值需同步更改 0-italic or 1-normal */
-    --list-marker-effect: 1;
-    --list-ol-text-style: normal;
+  },
+  {
+    "name": "Bigme 大米加速",
+    "star": "★★★★★",
+    "description": "2023 年开业，主打性价比，支持 Netflix、Disney+、TikTok 和 ChatGPT。不限时长按量付费，全节点公网中转。",
+    "tags": "SS / Trojan / Hysteria 2 多协议，流媒体解锁好",
+    "meal": ["超小：￥6/月，45G/月（年付￥57）", "中：￥10/季度，120G/月（年付￥96）", "不限时流量Small：￥55，永久 400G 流量"],
+    "protocols": ["Trojan", "Hysteria 2", "Anytls"],
+    "price": "￥6/月起",
+    "traffic": "45G/月起",
+    "annual_discount": "8折",
+    "url": "https://1s.bigmeok.me/user#/register?code=hrBKYct6",
+    "parallel": true
+  },
+  {
+    "name": "FATCAT 肥猫云机场",
+    "star": "★★★★☆",
+    "description": "2023 年成立，IEPL 专线节点，支持多流媒体和 ChatGPT，年付套餐优惠大。",
+    "tags": "Trojan 协议，专线稳定，团队海外",
+    "protocols": ["Shadowsocks"],
+    "price": "￥9.9/月",
+    "traffic": "50G/月",
+    "meal": ["肥猫小包：￥72/年，60G/月（爆款限时热销）", "基础版：￥20/月，200G/月（3年付享6折）"],
+    "discount": "🎉 51 活动至 5.14：全场 8 折，优惠码：happy51",
+    "discount_expire": true,
+    "url": "https://inv02.fatcatcloud.cc/register?aff=wzxvsdIy"
     
-    /* Divider interactive effect 分割线交互效果 */
-    --hr-hover-effect: 1;
-    
-    /* Table interactive effect 表格交互效果 */
-    --table-hover-effect: 1;
-
-    /*************************** Theme color configuration 主题颜色配置 ********************************
-     **************************************************************************************************
-     * - 
-     **************************************************************************************************/
-     --body-text-color: #282c34;
-     --content-write-bg-color: #fefefe;
-     --selection-color: #def2e8;
-
-     --write-h1-before-bg: linear-gradient(90deg, rgba(152, 251, 152, 0), #e8f4ee, rgba(152, 251, 152, 0));
-
-     --write-h2-after-bg: linear-gradient(90deg, rgba(106, 158, 69, 0), #3ea174, rgba(106, 158, 69, 0));
-
-     --p-hover-bg-color: rgba(123, 181, 147, calc(0.1 * var(--p-hover-effect) * var(--use-dynamic-effect)));
-     
-     --ul-marker-color: #087725;
-     --ulul-marker-color: #087725;
-     --ululul-marker-color: #087725;
-
-     --ol-hover-marker-color:rgb(0, calc(100 * var(--list-marker-effect) * var(--use-dynamic-effect)), 0);
-
-     --blockquote-border-color: #2f845e;
-     --blockquote-bg-color: #e8f4eb;
-     --blockquote-hover-border-color: #2f845e;
-     --blockquote-thead-bg-color: #3b9457;
-     --blockquote-thead-text-color: #3b3b3b4e;
-     --blockquote-td-bg-color: #fafafa;
-
-     --alert-tip-border-color: #1F883D;
-     --alert-tip-bg-color: #e8f4eb;
-     --alert-tip-hover-border-color: #1F883D;
-     --alert-tip-thead-bg-color: #3b9457;
-     --alert-tip-thead-text-color: #fafbfa;
-
-     --alert-caution-border-color: #CF222E;
-     --alert-caution-bg-color: #f5ecec;
-     --alert-caution-hover-border-color: #CF222E;
-     --alert-caution-hover-bg-color: #cf222d0a;
-     --alter-caution-selection-bg-color: #cf222d17;
-     --alert-caution-text-color: #CF222E;
-     --alert-caution-thead-bg-color: #d83c46;
-     --alert-caution-thead-text-color: #fafbfa;
-     --alert-caution-td-hover-bg-color: #f5ecec;
-     --alert-caution-list-item-marker-color: #CF222E;
-
-     --alert-warning-border-color: #9A6700;
-     --alert-warning-bg-color: #f4f1e9;
-     --alert-warning-hover-border-color: #9A6700;
-     --alert-warning-hover-bg-color: #9a67000a;
-     --alert-warning-selection-bg-color: #9a670017;
-     --alert-warning-text-color: #9A6700;
-     --alert-warning-thead-bg-color: #b7831c;
-     --alert-warning-thead-text-color: #fafbfa;
-     --alert-warning-list-item-marker-color: #9A6700;
-
-     --alert-important-border-color: #8250DF;
-     --alert-important-bg-color: #eae6f2;
-     --alert-important-hover-border-color: #8250DF;
-     --alert-important-hover-bg-color: #8250df0a;
-     --alert-important-selection-bg-color: #8250df17;
-     --alert-important-text-color: #8250DF;
-     --alert-important-thead-bg-color: #8250DF;
-     --alert-important-thead-text-color: #fafbfa;
-     --alert-important-list-item-marker-color: #8250DF;
-
-     --alert-note-border-color: #0969DA;
-     --alert-note-bg-color: #e5ebf1;
-     --alert-note-hover-border-color: #0969DA;
-     --alert-note-hover-bg-color: #0969da0a;
-     --alert-note-selection-bg-color: #0969da17;
-     --alert-note-text-color: #0969DA;
-     --alert-note-thead-bg-color: #0969DA;
-     --alert-note-thead-text-color: #fafbfa;
-     --alert-note-list-item-marker-color: #0969DA;
-
-     --alert-code-bg-color: #67676716;
-     --alert-code-3circle-1: #fc625d;
-     --alert-code-3circle-2: #fdbc40;
-     --alert-code-3circle-3: #34c759;
-     --alert-td-bg-color: #fafafa;
-
-     --hr-bg-image: linear-gradient(90deg, #5ea67c, #2f845e, #5ea67c);
-     --hr-box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-
-     --table-border-color: #e0e0e0;
-     --table-td-hover-bg: rgba(239, 245, 242, calc(0.7 * var(--table-hover-effect))) calc(var(--table-hover-effect) * 100%);
-     --blockquote-td-hover-bg: rgba(239, 245, 242, calc(0.7 * var(--table-hover-effect))) calc(var(--table-hover-effect) * 100%);
-     --alert-tip-td-hover-bg: rgba(239, 245, 242, calc(0.7 * var(--table-hover-effect))) calc(var(--table-hover-effect) * 100%);
-     --alert-caution-td-hover-bg: rgba(245, 236, 236, calc(0.7 * var(--table-hover-effect))) calc(var(--table-hover-effect) * 100%);
-     --alert-warning-td-hover-bg: rgba(245, 241, 236, calc(0.7 * var(--table-hover-effect))) calc(var(--table-hover-effect) * 100%);
-     --alert-important-td-hover-bg: rgba(236, 236, 245, calc(0.7 * var(--table-hover-effect))) calc(var(--table-hover-effect) * 100%);
-     --alert-note-td-hover-bg: rgba(236, 236, 245, calc(0.7 * var(--table-hover-effect))) calc(var(--table-hover-effect) * 100%);
-
-     --table-thead-bg-color: #eff5f2;
-     --table-thead-text-color: #06621e;
-
-     --table-tbody-border-color: #e8f4ee;
-     --table-edit-bg-color: #ffffff;
-     --table-edit-hover-bg-color: #e8f4ee;
-
-     --table-webkit-box-shadow-color1: rgba(0, 0, 0, 0.16);
-     --table-webkit-box-shadow-color2: rgba(0, 0, 0, 0.12);
-
-     --table-reset-bg-color: #ffffff;
-     --table-reset-input-color: #282c34;
-     --table-some-border-top-color: #eee;
-
-     --table-meta-block-bg-color: #eaf3ec;
-     --table-meta-block-color: #3f8a5f;
-
-     --task-list-border-color: #737373;
-     --task-list-bg-color: #ffffff;
-     --task-list-input-after-border-color: #fff;
-     --task-list-input-checked-bg-color: #399b6f;
-     --task-list-done-color: #999;
-
-     --math-html-webkit-box-shadow-color1: rgba(0, 0, 0, 0.16);
-     --math-html-webkit-box-shadow-color2: rgba(0, 0, 0, 0.12);
-     --math-html-rawblock-bg-color: #f5f6f7;
-     --math-html-rawblock-control-bg-color: #f5f6f7;
-     --math-html-rawblock-tooltip-bg-color: #f5f6f7;
-     --math-html-rawblock-input-color: #282c34;
-     --math-html-rawblock-gutter-bg-color: #f5f6f7;
-     --math-html-rawblock-selected-bg-color: #bac6e9;
-     --math-html-rawblock-selected-bg-color2: #def2e8;
-
-     --strong-color: #06621e;
-     --em-color: #000000;
-     --em-hover-color: #006400;
-     --u-border-color: rgb(9, 156, 70);
-
-     --code-bg-color: rgba(221, 235, 213, 0.5);
-     --code-color: #359d09;
-     --code-hover-bg-color: rgba(221, 235, 213, calc(0.5 + 0.5 * var(--code-hover-effect) * var(--use-dynamic-effect)));
-
-     --del-color: rgba(50, 100, 50, 0.5);
-     --del-text-decoration-color:rgba(76, 175, 80, 0.7);
-     --del-hover-color: rgba(50, 100, 50, calc(0.5 + 0.5 * var(--del-hover-effect) * var(--use-dynamic-effect)));
-     --del-hover-text-decoration-color: rgba(76, 175, 80, calc(0.7 + 0.3 * var(--del-hover-effect) * var(--use-dynamic-effect)));
-
-     --mark-bg-color: #aee6c3;
-     --mark-hover-bg-color: rgba(174, 230, 195, calc(1 - 0.5 * var(--mark-hover-effect) * var(--use-dynamic-effect)));
-
-     --a-color: #0c8f94;
-     --a-hover-color: #02502a;
-
-     --code-fences-color: #2f4f4f;
-     --code-fences-bg-color: #ffffff;
-     --code-fences-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-     --code-fences-before-bg: #015e19;
-     --code-fences-before-box-shadow: 20px 0 #068f28, 40px 0 rgb(116, 219, 38);
-     --code-fences-3circle-1: #fc625d;
-     --code-fences-3circle-2: #fdbc40;
-     --code-fences-3circle-3: #34c759;
-
-     --cm-s-inner-linenumber-color: #2f845e;
-
-     --scrollbar-track-bg: #fafafa;
-     --scrollbar-thumb-bg: linear-gradient(to top right, #4aad23, #1b5b3e) !important;
-
-     --quick-open-bg-color: #fff;
-     --quick-open-color: #282c34;
-     --quick-open-item-active-bg-color: #bac6e9;
-     --quick-open-category-border-color: #eee;
-
-     --modal-dialog-webkit-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
-     --modal-dialog-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
-     --modal-dialog-bg-color: #f5f6f7;
-     --modal-dialog-btn-default-hover-bg-color: #bac6e9;
-     
-     --preferences-color: #282c34;
-     --preference-sidebar-nav-group-item-active-color: #efefef;
-     --preference-sidebar-nav-group-item-active-bg-color: #2f845e;
-
-     --html-for-mac-sidebar-webkit-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
-     --html-for-mac-sidebar-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
-
-     --notification-bg-color: #fff;
-     --notification-hover-bg-color: #bac6e9;
-     --menu-sidebar-color: #282c34;
-     --menu-sidebar-list-border-color: #2f353a;
-     --menu-sidebar-list-bg-color: #2f353a;
-     --menu-sidebar-li-a-color: #e3dede;
-     --menu-sidebar-li-a-active-hover-color: #3e4249;
-     --megamenu-content-color: #000;
-
-     --sidebar-bg-color: #2f845e;
-     --sidebar-content-file-list-item-border-color: #eee;
-     --sidebar-content-file-list-item-active-bg-color: rgba(66, 185, 131, 0.1);
-     --sidebar-content-file-list-item-active-border-color: #2f845e;
-     --sidebar-content-file-list-item-search-pannel-border-color: #eee;
-     --sidebar-content-file-list-item-search-pannel-search-option-btn-bg-color: #fff;
-     --file-tree-node-hover-border-color: #2f845e;
-     --file-tree-node-hover-bg-color: rgba(66, 185, 131, 0.1);
-     --file-tree-node-active-border-color: #2f845e;
-     --file-tree-node-active-bg-color: rgba(66, 185, 131, 0.1);
-     --file-library-file-node-hover-border-color: #2f845e;
-     --file-library-file-node-hover-bg-color: rgba(66, 185, 131, 0.1);
-     
-     --outline-item-hover-bg-color: #e8f4ee;
-     --sidebar-footer-border-color: #eee;
-     --sidebar-footer-hover-bg-color: #caebdb;
-     --sidebar-files-menu-webkit-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
-     --sidebar-files-menu-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
-
-     --dropdown-menu-border-color: #eee;
-     --dropdown-menu-li-a-color: #282c34;
-     --dropdown-menu-li-a-hover-color: #e8f4ee;
-     --dropdown-menu-divider-border-color: #fff;
-
-     --toc-bg-color: #fff;
-     --toc-webkit-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
-     --toc-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
-     --toc-hover-bg-color: #caebdb;
-
-     --auto-suggest-container-bg-color: #d4eee1;
-
-     --source-color: #6a6a6a;
-     --source-cm-header-color: #428bca;
-     --source-cm-atom-color: #777777;
-}
-
-content #write {
-    background-color: var(--content-write-bg-color);
-    max-width: 90%;
-    margin: 0 auto;
-    padding-bottom: 7.5rem;
-}
-
-content #write p {
-    word-spacing: 0.1rem;
-    line-height: 1.9rem;
-    margin: 3px;
-}
-
-content #write ol li {
-    padding-left: 0.5rem;
-}
-
-content #write>h5.md-focus:before {
-    top: 2px;
-}
-
-::-moz-selection {
-    background-color: var(--selection-color);
-}
-
-::selection {
-    background-color: var(--selection-color);
-}
-
-/* h1-h3 */
-#write h1,
-#write h2,
-#write h3 {
-    font-style: normal;
-}
-
-#write h1,
-#write h2 {
-    text-align: center;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-}
-
-#write h1 {
-    font-size: 2.4rem;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.4s ease;
-}
-
-#write h1:before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: var(--write-h1-before-bg);
-    transition: transform 0.4s ease;
-    transform: scaleX(0);
-    transform-origin: center;
-    z-index: -1;
-    display: calc(var(--h1-hover-effect) * var(--use-dynamic-effect));
-}
-
-#write h1:hover {
-    transform: scale(calc(1 + 0.1 * var(--h1-hover-effect) * var(--use-dynamic-effect)));
-}
-
-#write h1:hover:before {
-    transform: scaleX(calc(var(--h1-hover-effect) * var(--use-dynamic-effect)));
-}
-
-#write h2 {
-    font-size: 2rem;
-    position: relative;
-    padding-bottom: 0rem;
-    font-weight: bold;
-    margin-bottom: 0rem;
-}
-
-#write h2:after {
-    content: "";
-    display: block;
-    width: 30rem;
-    height: 2.5px;
-    margin: 0.5rem auto 0;
-    background: var(--write-h2-after-bg);
-    border-radius: 10px;
-    transform: scaleX(0);
-    transition: transform 0.4s ease, background 0.4s ease;
-}
-
-#write h2:hover:after {
-    transform: scaleX(calc(1 * var(--h2-after-effect) * var(--use-dynamic-effect)));
-}
-
-#write h3 {
-    font-size: 1.8rem;
-}
-
-#write h4 {
-    font-size: 1.5rem;
-}
-
-#write h5 {
-    font-size: 1.3rem;
-}
-
-#write h6 {
-    font-size: 1.2rem;
-}
-
-#write h3,
-#write h4,
-#write h5,
-#write h6 {
-    position: relative;
-    margin-top: 1.0rem;
-    margin-bottom: 0.5rem;
-    transition: transform 0.3s ease;
-}
-
-#write h3:hover,
-#write h4:hover,
-#write h5:hover,
-#write h6:hover {
-    transform: scale(calc(1 + 0.01 * var(--h3-6-hover-effect) * var(--use-dynamic-effect)));
-}
-
-/* image */
-img {
-    border-radius: 10px;
-    max-width: 100%;
-    display: block;
-    margin: 1em auto;
-    transition: transform 0.15s ease, border-radius 0.15s ease;
-}
-
-img:hover {
-    transform: scale(calc(1 + 0.01 * var(--img-hover-effect) * var(--use-dynamic-effect)));
-    border-radius: calc(10px - 10px * var(--img-hover-effect) * var(--use-dynamic-effect));
-}
-
-/* paragraph */
-p {
-    font-size: 1rem;
-    padding: 0 0.3rem;
-    transition: all 0.25s ease;
-}
-
-p:not(:has(img)):hover {
-    background-color: var(--p-hover-bg-color);
-}
-
-p.md-toc-content:hover {
-    padding-left: 20px;
-}
-
-/* ul ol */
-ul,
-ol {
-    padding-left: 1.5rem;
-}
-
-ul:first-child,
-ol:first-child {
-    margin-top: 0;
-}
-
-ul:last-child,
-ol:last-child {
-    margin-bottom: 0;
-}
-
-@keyframes bounce {
-
-    0%,
-    100% {
-        transform: scale(1);
+  }
+];
+/*************  ✨ Windsurf Command ⭐  *************/
+  /**
+   * 生成机场信息的表格和卡片，用于渲染 HTML
+   * @async
+   * @throws {Error} 加载机场信息失败
+   */
+/*******  ad6257e1-20b2-4c4c-882a-59c13dbc04e7  *******/
+    async function loadAirportTable() {
+      try {
+
+        // 渲染表格
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        const filtered = airports.filter(d => d.parallel === true);
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>协议</th>
+              <th>月费</th>
+              <th>流量</th>
+              <th>年付折扣</th>
+              <th>访问</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.map(d => `
+              <tr>
+                <td>${d.name}</td>
+                <td>${d.protocols.join(', ')}</td>
+                <td>${d.price}</td>
+                <td>${d.traffic}</td>
+                <td>${d.annual_discount || '-'}</td>
+                <td><a href="${d.url}" target="_blank">官网</a></td>
+              </tr>`).join('')}
+          </tbody>
+        `;
+        document.getElementById('airport-table-container').appendChild(table);
+
+        // 渲染卡片
+        const container = document.getElementById('airport-card-container');
+        airports.forEach(d => {
+          const section = document.createElement('section');
+          section.className = 'card';
+          section.innerHTML = `
+            <h3><a href="${d.url}" target="_blank" style="color:#7ed6df; text-decoration: none;">${d.name}</a> <span style="color:#f1c40f; font-weight:bold; font-size:2rem;">${d.star || ''}</span></h3>
+            <div class="tagline">${d.tags || d.protocols.join(', ')}</div>
+            <p>${d.description || ''}</p>
+            <div class="price">
+              ${(Array.isArray(d.meal) ? d.meal : [d.meal]).map(m => `<span>${m}</span>`).join('')}
+            </div>
+            ${
+              d.discount_expire
+                ? `<p class="note"><s>${d.discount}</s></p>`
+                : (d.discount ? `<p class="note">${d.discount}</p>` : '')
+            }
+            <a href="${d.url}" class="link-btn" target="_blank">访问官网</a>
+          `;
+          container.appendChild(section);
+        });
+      } catch (err) {
+        console.error("加载机场信息失败：", err);
+      }
     }
 
-    50% {
-        transform: scale(calc(1 + 0.3 * var(--list-marker-effect) * var(--use-dynamic-effect)));
-    }
-}
-
-ul .md-list-item::marker {
-    list-style-type: disc;
-    font-size: 27px !important;
-    color: var(--ul-marker-color);
-    transition: transform 0.3s;
-}
-
-ul .md-list-item:hover::marker {
-    animation: bounce 0.6s ease-in-out;
-}
-
-ul ul .md-list-item::marker {
-    list-style-type: circle;
-    font-size: 27px;
-    color: var(--ulul-marker-color);
-    font-weight: bold;
-    transition: transform 0.3s;
-}
-
-ul ul .md-list-item:hover::marker {
-    animation: bounce 0.6s ease-in-out;
-}
-
-ul ul ul .md-list-item::marker {
-    list-style-type: square;
-    font-size: 27px;
-    color: var(--ululul-marker-color);
-    transition: transform 0.3s;
-}
-
-ul ul ul .md-list-item:hover::marker {
-    animation: bounce 0.6s ease-in-out;
-}
-
-ol .md-list-item::marker {
-    font-family: "Times New Roman", Times, serif;
-    font-size: 20px;
-    font-style: italic;
-    transition: font-weight 0.2s ease, font-style 0.2s ease, color 0.2s ease, font-size 0.2s ease;
-}
-
-ol .md-list-item:hover::marker {
-    font-style: var(--list-ol-text-style);
-    font-weight: calc(500 + 100 * var(--list-marker-effect) * var(--use-dynamic-effect));
-    font-size: calc(20px + 3px * var(--list-marker-effect) * var(--use-dynamic-effect));
-    color: var(--ol-hover-marker-color);
-}
-
-/* blockquote */
-blockquote {
-    padding: 0.5rem 1rem;
-    border-left: 8px solid var(--blockquote-border-color);
-    background-color: var(--blockquote-bg-color);
-    border-radius: 7px;
-    transition: box-shadow 0.3s ease, border-radius 0.3s ease, border-left 0.3s ease;
-}
-
-blockquote p {
-    margin: 0.1rem 0;
-}
-
-blockquote:hover {
-    border-left: calc(8px + 1px * var(--blockquote-hover-effect) * var(--use-dynamic-effect)) solid var(--blockquote-hover-border-color);
-    box-shadow: calc(0px + 1px * var(--blockquote-hover-effect) * var(--use-dynamic-effect)) calc(1px + 1px * var(--blockquote-hover-effect) * var(--use-dynamic-effect)) calc(3px + 3px * var(--blockquote-hover-effect) * var(--use-dynamic-effect)) rgba(0, 0, 0, calc(0.15 * var(--blockquote-hover-effect) * var(--use-dynamic-effect)));
-    border-radius: calc(7px + 8px * var(--blockquote-hover-effect) * var(--use-dynamic-effect));
-}
-
-blockquote table thead,
-blockquote .md-table-fig .md-table thead {
-    background-color: var(--blockquote-thead-bg-color);
-    color: var(--blockquote-thead-text-color);
-}
-
-blockquote td {
-    background-color: var(--blockquote-td-bg-color);
-}
-
-.md-alert.md-alert-tip {
-    padding: 0.5rem 1rem;
-    border-left: 8px solid var(--alert-tip-border-color);
-    background-color: var(--alert-tip-bg-color);
-    border-radius: 7px;
-    transition: box-shadow 0.3s ease, border-radius 0.3s ease, border-left 0.3s ease;
-}
-
-.md-alert.md-alert-tip:hover {
-    border-left: calc(8px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) solid var(--alert-tip-hover-border-color);
-    box-shadow: calc(0px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) calc(1px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) calc(3px + 3px * var(--alert-hover-effect) * var(--use-dynamic-effect)) rgba(0, 0, 0, calc(0.15 * var(--alert-hover-effect) * var(--use-dynamic-effect)));
-    border-radius: calc(7px + 8px * var(--alert-hover-effect) * var(--use-dynamic-effect));
-}
-
-.md-alert.md-alert-tip table thead,
-.md-alert.md-alert-tip .md-table-fig .md-table thead {
-    background-color: var(--alert-tip-thead-bg-color);
-    color: var(--alert-tip-thead-text-color);
-}
-
-.md-alert.md-alert-caution {
-    padding: 0.5rem 1rem;
-    border-left: 8px solid var(--alert-caution-border-color);
-    background-color: var(--alert-caution-bg-color);
-    border-radius: 7px;
-    transition: box-shadow 0.3s ease, border-radius 0.3s ease, border-left 0.3s ease;
-}
-
-.md-alert.md-alert-caution:hover {
-    border-left: calc(8px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) solid var(--alert-caution-hover-border-color);
-    box-shadow: calc(0px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) calc(1px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) calc(3px + 3px * var(--alert-hover-effect) * var(--use-dynamic-effect)) rgba(0, 0, 0, calc(0.15 * var(--alert-hover-effect) * var(--use-dynamic-effect)));
-    border-radius: calc(7px + 8px * var(--alert-hover-effect) * var(--use-dynamic-effect));
-}
-
-.md-alert.md-alert-caution p:hover {
-    background-color: var(--alert-caution-hover-bg-color);
-}
-
-.md-alert.md-alert-caution ::selection {
-    background-color: var(--alter-caution-selection-bg-color);
-}
-
-.md-alert.md-alert-caution strong,
-.md-alert.md-alert-caution em,
-.md-alert.md-alert-caution code,
-.md-alert.md-alert-caution a {
-    color: var(--alert-caution-text-color);
-}
-
-.md-alert.md-alert-caution table thead,
-.md-alert.md-alert-caution .md-table-fig .md-table thead {
-    background-color: var(--alert-caution-thead-bg-color);
-    color: var(--alert-caution-thead-text-color);
-}
-
-.md-alert.md-alert-caution td:hover {
-    background-color: var(--alert-caution-td-hover-bg-color);
-}
-
-.md-alert.md-alert-caution ul .md-list-item::marker,
-.md-alert.md-alert-caution ul ul .md-list-item::marker,
-.md-alert.md-alert-caution ul ul .md-list-item::marker,
-.md-alert.md-alert-caution ol .md-list-item:hover::marker {
-    color: var(--alert-caution-list-item-marker-color);
-}
-
-.md-alert.md-alert-warning {
-    padding: 0.5rem 1rem;
-    border-left: 8px solid var(--alert-warning-border-color);
-    background-color: var(--alert-warning-bg-color);
-    border-radius: 7px;
-    transition: box-shadow 0.3s ease, border-radius 0.3s ease, border-left 0.3s ease;
-}
-
-.md-alert.md-alert-warning:hover {
-    border-left: calc(8px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) solid var(--alert-warning-hover-border-color);
-    box-shadow: calc(0px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) calc(1px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) calc(3px + 3px * var(--alert-hover-effect) * var(--use-dynamic-effect)) rgba(0, 0, 0, calc(0.15 * var(--alert-hover-effect) * var(--use-dynamic-effect)));
-    border-radius: calc(7px + 8px * var(--alert-hover-effect) * var(--use-dynamic-effect));
-}
-
-.md-alert.md-alert-warning p:hover {
-    background-color: var(--alert-warning-hover-bg-color);
-}
-
-.md-alert.md-alert-warning ::selection {
-    background-color: var(--alert-warning-selection-bg-color);
-}
-
-.md-alert.md-alert-warning strong,
-.md-alert.md-alert-warning em,
-.md-alert.md-alert-warning code,
-.md-alert.md-alert-warning a {
-    color: var(--alert-warning-text-color);
-}
-
-.md-alert.md-alert-warning table thead,
-.md-alert.md-alert-warning .md-table-fig .md-table thead {
-    background-color: var(--alert-warning-thead-bg-color);
-    color: var(--alert-warning-thead-text-color);
-}
-
-.md-alert.md-alert-warning ul .md-list-item::marker,
-.md-alert.md-alert-warning ul ul .md-list-item::marker,
-.md-alert.md-alert-warning ul ul .md-list-item::marker,
-.md-alert.md-alert-warning ol .md-list-item:hover::marker {
-    color: var(--alert-warning-list-item-marker-color);
-}
-
-.md-alert.md-alert-important {
-    padding: 0.5rem 1rem;
-    border-left: 8px solid var(--alert-important-border-color);
-    background-color: var(--alert-important-bg-color);
-    border-radius: 7px;
-    transition: box-shadow 0.3s ease, border-radius 0.3s ease, border-left 0.3s ease;
-}
-
-.md-alert.md-alert-important:hover {
-    border-left: calc(8px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) solid var(--alert-important-hover-border-color);
-    box-shadow: calc(0px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) calc(1px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) calc(3px + 3px * var(--alert-hover-effect) * var(--use-dynamic-effect)) rgba(0, 0, 0, calc(0.15 * var(--alert-hover-effect) * var(--use-dynamic-effect)));
-    border-radius: calc(7px + 8px * var(--alert-hover-effect) * var(--use-dynamic-effect));
-}
-
-.md-alert.md-alert-important p:hover {
-    background-color: var(--alert-important-hover-bg-color);
-}
-
-.md-alert.md-alert-important ::selection {
-    background-color: var(--alert-important-selection-bg-color);
-}
-
-.md-alert.md-alert-important strong,
-.md-alert.md-alert-important em,
-.md-alert.md-alert-important code,
-.md-alert.md-alert-important a {
-    color: var(--alert-important-text-color);
-}
-
-.md-alert.md-alert-important table thead,
-.md-alert.md-alert-important .md-table-fig .md-table thead {
-    background-color: var(--alert-important-thead-bg-color);
-    color: var(--alert-important-thead-text-color);
-}
-
-.md-alert.md-alert-important ul .md-list-item::marker,
-.md-alert.md-alert-important ul ul .md-list-item::marker,
-.md-alert.md-alert-important ul ul .md-list-item::marker,
-.md-alert.md-alert-important ol .md-list-item:hover::marker {
-    color: var(--alert-important-list-item-marker-color);
-}
-
-.md-alert.md-alert-note {
-    padding: 0.5rem 1rem;
-    border-left: 8px solid var(--alert-note-border-color);
-    background-color: var(--alert-note-bg-color);
-    border-radius: 7px;
-    transition: box-shadow 0.3s ease, border-radius 0.3s ease, border-left 0.3s ease;
-}
-
-.md-alert.md-alert-note:hover {
-    border-left: calc(8px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) solid var(--alert-note-hover-border-color);
-    box-shadow: calc(0px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) calc(1px + 1px * var(--alert-hover-effect) * var(--use-dynamic-effect)) calc(3px + 3px * var(--alert-hover-effect) * var(--use-dynamic-effect)) rgba(0, 0, 0, calc(0.15 * var(--alert-hover-effect) * var(--use-dynamic-effect)));
-    border-radius: calc(7px + 8px * var(--alert-hover-effect) * var(--use-dynamic-effect));
-}
-
-.md-alert.md-alert-note p:hover {
-    background-color: var(--alert-note-hover-bg-color);
-}  
-
-.md-alert.md-alert-note ::selection {
-    background-color: var(--alert-note-selection-bg-color);
-}
-
-.md-alert.md-alert-note strong,
-.md-alert.md-alert-note em,
-.md-alert.md-alert-note code,
-.md-alert.md-alert-note a {
-    color: var(--alert-note-text-color);
-}
-
-.md-alert.md-alert-note table thead,
-.md-alert.md-alert-note .md-table-fig .md-table thead {
-    background-color: var(--alert-note-thead-bg-color);
-    color: var(--alert-note-thead-text-color);
-}
-
-.md-alert.md-alert-note ul .md-list-item::marker,
-.md-alert.md-alert-note ul ul .md-list-item::marker,
-.md-alert.md-alert-note ul ul .md-list-item::marker,
-.md-alert.md-alert-note ol .md-list-item:hover::marker {
-    color: var(--alert-note-list-item-marker-color);
-}
-
-.md-alert p {
-    margin: 0.1rem 0;
-}
-
-blockquote code,
-.md-alert.md-alert-tip code,
-.md-alert.md-alert-caution code,
-.md-alert.md-alert-warning code,
-.md-alert.md-alert-important code,
-.md-alert.md-alert-note code {
-    background-color: var(--alert-code-bg-color);
-}
-
-.md-alert.md-alert-tip .md-fences::before,
-.md-alert.md-alert-caution .md-fences::before,
-.md-alert.md-alert-warning .md-fences::before,
-.md-alert.md-alert-important .md-fences::before,
-.md-alert.md-alert-note .md-fences::before {
-    background: var(--alert-code-3circle-1);
-    box-shadow: 20px 0 var(--alert-code-3circle-2), 40px 0 var(--alert-code-3circle-3);
-}
-
-blockquote td,
-.md-alert.md-alert-tip td,
-.md-alert.md-alert-caution td,
-.md-alert.md-alert-warning td,
-.md-alert.md-alert-important td,
-.md-alert.md-alert-note td {
-    background-color: var(--alert-td-bg-color);
-}
-
-.md-alert-text-container {
-    font-size: 20px;
-}
-
-/* horizontal line */
-hr {
-    position: relative;
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-    border: none;
-    border-top: 2px solid transparent;
-    background-image: var(--hr-bg-image);
-    height: 1.5px;
-    overflow: visible;
-    color: #abb2bf;
-    opacity: 0.8;
-    border-radius: 5px;
-    box-shadow: var(--hr-box-shadow);
-    animation: dashAnimation 0.5s ease-in-out;
-
-    transition: transform 0.3s ease, background-position 0.3s ease, height 0.3s ease;
-    background-size: 200% 100%;
-    background-position: 0 0;
-}
-
-hr:hover {
-    background-position: calc(100% * var(--hr-hover-effect) * var(--use-dynamic-effect)), 0;
-    transform: scale(calc(1 + 0.02 * var(--hr-hover-effect) * var(--use-dynamic-effect)));
-    height: calc(1.5px + 1px * var(--hr-hover-effect) * var(--use-dynamic-effect));
-}
-
-@keyframes dashAnimation {
-    0% {
-        width: calc(100% - 100% * var(--hr-hover-effect) * var(--use-dynamic-effect));
-        opacity: calc(1 - 1 * var(--hr-hover-effect) * var(--use-dynamic-effect));
-    }
-
-    100% {
-        width: 100%;
-        opacity: 1;
-    }
-}
-
-/* table */
-table,
-.md-table-fig .md-table {
-    border: 1px solid var(--table-border-color);
-    border-radius: 10px;
-    border-collapse: separate;
-    overflow: hidden;
-}
-
-table th,
-table td,
-.md-table-fig .md-table th,
-.md-table-fig .md-table td {
-    padding: 10px 16px;
-    border-top: 1px solid var(--table-border-color);
-    border: 0.5px solid var(--table-border-color);
-    transition: all 0.3s ease;
-}
-
-table th,
-.md-table-fig .md-table th {
-    border-bottom: 1px solid var(--table-border-color);
-    border-top: 0;
-}
-
-table td:hover,
-.md-table-fig .md-table td:hover {
-    background: var(--table-td-hover-bg);
-    transition: all calc(0.3s * var(--table-hover-effect)) ease;
-}
-
-blockquote td:hover {
-    background: var(--blockquote-td-hover-bg);
-}
-
-.md-alert.md-alert-tip td:hover {
-    background: var(--alert-tip-td-hover-bg);
-}
-
-.md-alert.md-alert-caution td:hover {
-    background: var(--alert-caution-td-hover-bg);
-}
-
-.md-alert.md-alert-warning td:hover {
-    background: var(--alert-warning-td-hover-bg);
-}
-
-.md-alert.md-alert-important td:hover {
-    background: var(--alert-important-td-hover-bg);
-}
-
-.md-alert.md-alert-note td:hover {
-    background: var(--alert-note-td-hover-bg);
-}
-
-table thead,
-.md-table-fig .md-table thead {
-    background-color: var(--table-thead-bg-color);
-    color: var(--table-thead-text-color);
-}
-
-table tbody+tbody,
-.md-table-fig .md-table tbody+tbody {
-    border-top: 2px solid var(--table-tbody-border-color);
-}
-
-.md-table-fig .md-table-edit {
-    background-color: var(--table-edit-bg-color);
-}
-
-.md-table-fig .md-table-edit .btn-default:hover {
-    background-color: var(--table-edit-hover-bg-color);
-}
-
-.md-table-fig .md-table-edit .md-table-resize-popover {
-    -webkit-box-shadow: 0 2px 5px 0 var(--table-webkit-box-shadow-color1), 0 2px 10px 0 var(--table-webkit-box-shadow-color2);
-    box-shadow: 0 2px 5px 0 var(--table-webkit-box-shadow-color1), 0 2px 10px 0 var(--table-webkit-box-shadow-color2);
-    border: none;
-    padding: 0;
-    background-color: transparent;
-}
-
-.md-table-fig .md-table-edit .md-table-resize-popover .arrow {
-    top: -10px;
-}
-
-.md-table-fig .md-table-edit .md-table-resize-popover .arrow::after {
-    border-bottom-color: var(--table-border-color);
-}
-
-.md-table-fig .md-table-edit .md-table-resize-popover .md-reset {
-    border-radius: 10px;
-    background-color: var(--table-reset-bg-color);
-}
-
-.md-table-fig .md-table-edit .md-table-resize-popover .md-reset input {
-    color: var(--table-reset-input-color) !important;
-}
-
-.md-table-fig .md-table-edit .md-table-resize-popover .md-reset input#md-grid-width,
-.md-table-fig .md-table-edit .md-table-resize-popover .md-reset input#md-grid-height {
-    text-align: center;
-}
-
-.md-table-fig .md-table-edit .md-table-resize-popover .popover-title {
-    border-top: 1px solid var(--table-some-border-top-color);
-}
-
-/* yaml front matter */
-#write pre.md-meta-block {
-    background: var(--table-meta-block-bg-color);
-    color: var(--table-meta-block-color);
-    border: 0;
-    border-radius: 6px;
-    line-height: 1.3rem;
-    padding: 0.5rem 1.5rem;
-    margin-top: -1rem;
-    margin-bottom: 2rem;
-}
-
-/* table of contents */
-.md-toc {
-    margin-bottom: 1.25rem;
-}
-
-/* task list */
-.md-task-list-item>input::before {
-    content: "";
-    position: absolute;
-    top: -1.5px;
-    left: -3.5px;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    border: 1px solid var(--task-list-border-color);
-    background: var(--task-list-bg-color);
-    -webkit-transition: background-color 200ms ease-in-out;
-    transition: background-color 200ms ease-in-out;
-}
-
-.md-task-list-item>input::after {
-    content: "";
-    position: absolute;
-    top: 5px;
-    left: 1px;
-    width: 0.6rem;
-    height: 0.3rem;
-    border:2px solid var(--task-list-input-after-border-color);
-    border-top: 0;
-    border-right: 0;
-    -webkit-transform: rotate(-45deg);
-    transform: rotate(-45deg);
-    opacity: 0;
-    -webkit-transition: opacity 200ms ease-in-out;
-    transition: opacity 200ms ease-in-out;
-}
-
-.md-task-list-item>input:checked::before {
-    background-color: var(--task-list-input-checked-bg-color);
-    border: none;
-}
-
-.md-task-list-item>input:checked::after {
-    opacity: 1;
-}
-
-.md-task-list-item.task-list-done {
-    text-decoration: line-through;
-    color: var(--task-list-done-color);
-}
-
-/* footnote */
-.footnotes {
-    font-size: 1rem;
-}
-
-/* math,html block common */
-.mathjax-block[contenteditable="false"]:active,
-.mathjax-block[contenteditable="false"]:focus,
-.md-htmlblock[contenteditable="false"]:active,
-.md-htmlblock[contenteditable="false"]:focus {
-    -webkit-box-shadow: 0 2px 5px 0 var(--math-html-webkit-box-shadow-color1), 0 2px 10px 0 var(--math-html-webkit-box-shadow-color2);
-    box-shadow: 0 2px 5px 0 var(--math-html-webkit-box-shadow-color1), 0 2px 10px 0 var(--math-html-webkit-box-shadow-color2);
-}
-
-.mathjax-block:hover .md-rawblock-container,
-.mathjax-block:hover .md-rawblock-tooltip,
-.md-htmlblock:hover .md-rawblock-container,
-.md-htmlblock:hover .md-rawblock-tooltip {
-    background-color: var(--math-html-rawblock-bg-color);
-    -webkit-animation: showRawBlockTooltip 0s linear;
-    animation: showRawBlockTooltip 0s linear;
-}
-
-.mathjax-block:hover .md-rawblock-container,
-.md-htmlblock:hover .md-rawblock-container {
-    border-radius: 6px 0 6px 6px;
-}
-
-.mathjax-block .md-rawblock-control,
-.md-htmlblock .md-rawblock-control {
-    background-color: var(--math-html-rawblock-control-bg-color);
-}
-
-.mathjax-block .md-rawblock-tooltip,
-.md-htmlblock .md-rawblock-tooltip {
-    background-color: var(--math-html-rawblock-tooltip-bg-color);
-    -webkit-animation: showRawBlockTooltip 0s linear;
-    animation: showRawBlockTooltip 0s linear;
-    border-radius: 4px 4px 0 0;
-}
-
-/* math block */
-.mathjax-block .md-mathblock-panel .code-tooltip[contenteditable="false"] {
-    -webkit-box-shadow: none;
-    box-shadow: none;
-}
-
-.mathjax-block .md-mathblock-panel .md-rawblock-before {
-    padding-top: 6px;
-    border-top-left-radius: 6px;
-}
-
-.mathjax-block .md-mathblock-panel .md-rawblock-after {
-    padding-bottom: 6px;
-}
-
-.mathjax-block .md-mathblock-panel .md-rawblock-input .cm-s-inner {
-    color: var(--math-html-rawblock-input-color);
-}
-
-.mathjax-block .md-mathblock-panel .md-rawblock-input .cm-s-inner .CodeMirror-lines {
-    color: var(--math-html-rawblock-input-color);
-}
-
-.mathjax-block .md-mathblock-panel .md-rawblock-input .cm-s-inner .CodeMirror-gutters {
-    background-color: var(--math-html-rawblock-gutter-bg-color);
-}
-
-.mathjax-block .md-mathblock-panel .md-rawblock-input .cm-s-inner .CodeMirror-selected,
-.mathjax-block .md-mathblock-panel .md-rawblock-input .cm-s-inner .CodeMirror-selectedtext {
-    background-color: var(--math-html-rawblock-selected-bg-color) !important;
-}
-
-.mathjax-block .md-math-container {
-    padding-top: 10px;
-    padding-bottom: 10px;
-}
-
-/* html block */
-.md-htmlblock .md-htmlblock-panel {
-    border-radius: 10px;
-    border-top-right-radius: 0;
-    padding-left: 6px;
-    padding-right: 6px;
-}
-
-.md-htmlblock .md-htmlblock-panel .md-rawblock-input {
-    padding-top: 14px;
-    padding-bottom: 10px;
-}
-
-.md-htmlblock .md-htmlblock-panel .md-rawblock-input .cm-s-inner .CodeMirror-selected,
-.md-htmlblock .md-htmlblock-panel .md-rawblock-input .cm-s-inner .CodeMirror-selectedtext {
-    background-color: var(--math-html-rawblock-selected-bg-color2) !important;
-}
-
-/* strong */
-strong {
-    font-weight: bold;
-    color: var(--strong-color);
-    font-size: 1.05rem;
-    transition: font-size 0.3s ease, padding 0.3s ease;
-    display: inline-block;
-    margin: 0 2px;
-}
-
-strong:hover {
-    font-size: calc(1.05rem + 0.05rem * var(--strong-hover-effect) * var(--use-dynamic-effect));
-    padding: calc(0px + 3px * var(--strong-hover-effect) * var(--use-dynamic-effect));
-}
-
-/* emphasis */
-em {
-    background-color: inherit;
-    color: var(--em-color);
-    transition: all 0.3s ease;
-    padding-left: 1px;
-    padding-right: 1px;
-}
-
-em:hover {
-    color: var(--em-hover-color);
-    font-weight: calc(500 + 100 * var(--em-hover-effect) * var(--use-dynamic-effect));
-    padding-left: calc(1px + 2px * var(--em-hover-effect) * var(--use-dynamic-effect));
-    padding-right: calc(1px + 2px * var(--em-hover-effect) * var(--use-dynamic-effect));
-}
-
-/* underline */
-u {
-    background-color: inherit;
-    color: inherit;
-    text-decoration: none;
-    border-bottom: 2px solid var(--u-border-color);
-    padding-bottom: 2.5px;
-    transition: all 0.3s ease;
-}
-
-u:hover {
-    border: calc(2px * var(--u-hover-effect) * var(--use-dynamic-effect)) solid var(--u-border-color);
-    padding: calc(0px + 4px * var(--u-hover-effect) * var(--use-dynamic-effect));
-    margin: calc(0px + 4px * var(--u-hover-effect) * var(--use-dynamic-effect));
-    border-radius: calc(0px + 7px * var(--u-hover-effect) * var(--use-dynamic-effect));
-    border-bottom: 2px solid var(--u-border-color);
-    padding-bottom: 2.5px;
-}
-
-/* code */
-h1 code,
-h2 code,
-h3 code,
-h4 code,
-h5 code,
-h6 code {
-    font-size: inherit;
-}
-
-code {
-    background-color: var(--code-bg-color);
-    color: var(--code-color);
-    font-family: "Fira Code", Consolas, "Lucida Console", "Courier", monospace, "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 1rem;
-    font-weight: 550;
-    margin: 0 2px;
-    padding: 3px 3px 1px;
-    border-radius: 7px;
-    transition: all 0.3s ease;
-    z-index: -1;
-}
-
-code:hover {
-    background-color: var(--code-hover-bg-color);
-    font-weight: calc(550 + 150 * var(--code-hover-effect) * var(--use-dynamic-effect));
-    padding: 3px 3px calc(1px + 2px * var(--code-hover-effect) * var(--use-dynamic-effect));
-}
-
-/* strike */
-del {
-    color: var(--del-color);
-    text-decoration: line-through;
-    text-decoration-color: var(--del-text-decoration-color);
-    text-decoration-thickness: 1.5px;
-    font-style: italic;
-    opacity: 0.8;
-    transition: color 0.3s ease, opacity 0.3s ease;
-}
-
-del:hover {
-    color: var(--del-hover-color);
-    opacity: calc(0.8 + 0.2 * var(--del-hover-effect) * var(--use-dynamic-effect));
-    text-decoration-color: var(--del-hover-text-decoration-color);
-}
-
-/* hightlight */
-mark {
-    font-weight: 500;
-    background-color: var(--mark-bg-color);
-    color: inherit;
-    margin: 0 2px;
-    padding: 3px 3px 2.5px;
-    border-radius: 0px;
-    transition: all 0.3s ease
-}
-
-mark:hover {
-    border-radius: calc(0px + 7px * var(--mark-hover-effect) * var(--use-dynamic-effect));
-    background-color: var(--mark-hover-bg-color);
-    padding: 3px 3px calc(2.5px + 1.5px * var(--mark-hover-effect) * var(--use-dynamic-effect));
-}
-
-/* hyperlink */
-a {
-    background-color: inherit;
-    color: var(--a-color);
-    text-decoration: none;
-    transition: color 0.3s ease;
-}
-
-a:hover {
-    text-decoration: underline;
-    color: var(--a-hover-color);
-}
-
-a img {
-    border: none;
-}
-
-/* code fences */
-.md-fences {
-    font-family: "Fira Code", Consolas, "Lucida Console", "Courier", monospace, "Helvetica Neue", Helvetica, Arial, sans-serif;
-    color: var(--code-fences-color);
-    background-color: var(--code-fences-bg-color);
-    padding: 17px;
-    padding-top: 32px;
-    border-radius: 10px;
-    box-shadow: var(--code-fences-box-shadow);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    position: relative;
-}
-
-.md-fences::before {
-    background: var(--code-fences-before-bg);
-    border-radius: 50%;
-    box-shadow: var(--code-fences-before-box-shadow);
-    content: ' ';
-    height: 12px;
-    width: 12px;
-    position: absolute;
-    left: 13px;
-    top: 12px;
-    transition: all 0.3s ease;
-}
-
-/* 1. Scale animation */
-/* @keyframes bounce-code {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.01); 
-    }
-} */
-
-/* 2. Displacement Animation */
-@keyframes bounce-code {
-
-    0%,
-    100% {
-        width: 100%;
-        height: 100%;
-        transform: translate(0, 0);
-    }
-
-    50% {
-        transform: translate(calc(-3px * var(--fence-hover-effect) * var(--use-dynamic-effect)), calc(-3px * var(--fence-hover-effect) * var(--use-dynamic-effect)));
-    }
-}
-
-.md-fences:hover {
-    animation: bounce-code 0.5s ease-in-out;
-    box-shadow: 0 calc(1px + 1px * var(--fence-hover-effect) * var(--use-dynamic-effect)) calc(3px + 1px * var(--fence-hover-effect) * var(--use-dynamic-effect)) rgba(0, 0, 0, calc(0.15 + 0.05 * var(--fence-hover-effect) * var(--use-dynamic-effect)));
-}
-
-.md-fences:hover::before {
-    background: var(--code-fences-3circle-1);
-    box-shadow: 20px 0 var(--code-fences-3circle-2), 40px 0 var(--code-fences-3circle-3);
-}
-
-.code-tooltip[contenteditable="false"] {
-    border-radius: 7px;
-}
-
-.cm-s-inner .CodeMirror-linenumber {
-    margin-left: 7px;
-    margin-right: 3px;
-    color: var(--cm-s-inner-linenumber-color);
-}
-
-/* 关键字 */
-.cm-s-inner .cm-keyword {
-    color: #222fa7;
-    font-weight: bold;
-}
-
-/* 操作符 */
-.cm-s-inner .cm-operator {
-    color: #006400;
-}
-
-/* 变量 */
-.cm-s-inner .cm-variable {
-    color: #239d37;
-    font-weight: bold;
-}
-
-/* 函数参数 */
-.cm-s-inner .cm-variable-2 {
-    color: #108979;
-}
-
-/* 类名 */
-.cm-s-inner .cm-variable-3 {
-    color: #183da2;
-    font-weight: bold;
-    font-style: italic;
-}
-
-/* 内建函数 */
-.cm-s-inner .cm-builtin {
-    color: #006400;
-    font-style: italic;
-}
-
-/* 常量 */
-.cm-s-inner .cm-atom {
-    color: #3b8f8f;
-}
-
-/* 数字 */
-.cm-s-inner .cm-number {
-    color: #3e19cf;
-}
-
-/* 函数定义 */
-.cm-s-inner .cm-def {
-    color: #10623e;
-    font-weight: bold;
-}
-
-/* 字符串 */
-.cm-s-inner .cm-string {
-    color: #0264bf;
-    font-style: italic;
-}
-
-/* 模板字符串 */
-.cm-s-inner .cm-string-2 {
-    color: #6b8e23;
-}
-
-/* 注释 */
-.cm-s-inner .cm-comment {
-    color: #6a737d;
-    font-style: italic;
-}
-
-/* HTML 标签 */
-.cm-s-inner .cm-tag {
-    color: #042c99;
-}
-
-/* HTML 标签属性 */
-.cm-s-inner .cm-attribute {
-    color: #2b34e3;
-}
-
-/* CSS 属性 */
-.cm-s-inner .cm-property {
-    color: #2e8b57;
-}
-
-/* 选择器 */
-.cm-s-inner .cm-qualifier {
-    color: #2e8b57;
-}
-
-/* 元信息 */
-.cm-s-inner .cm-meta {
-    color: #099f8b;
-    font-weight: bold;
-    font-style: italic;
-}
-
-/* 链接 */
-.cm-s-inner .cm-link {
-    color: #1565c0;
-    text-decoration: underline;
-}
-
-/* 错误信息 */
-.cm-s-inner .cm-error {
-    color: #d32f2f;
-    background-color: #fdd;
-}
-
-/* 布尔值 */
-.cm-s-inner .cm-boolean {
-    color: #228b22;
-    font-weight: bold;
-}
-
-/* 类型 */
-.cm-s-inner .cm-type {
-    color: #1565c0;
-    font-weight: bold;
-}
-
-/* 标题 */
-.cm-s-inner .cm-header {
-    color: #2e8b57;
-    font-weight: bold;
-}
-
-/* 引用 */
-.cm-s-inner .cm-quote {
-    color: #3503a8;
-    font-style: italic;
-}
-
-/* scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--scrollbar-track-bg);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb-bg);
-    border-radius: 5px;
-}
-
-/* find dialog */
-#typora-quick-open {
-    background-color: var(--quick-open-bg-color);
-    color: var(--quick-open-color);
-}
-
-#typora-quick-open .typora-quick-open-item.active {
-    background-color: var(--quick-open-item-active-bg-color) !important;
-}
-
-#typora-quick-open .ty-quick-open-category-title {
-    border-top: 1px solid var(--quick-open-category-border-color) !important;
-}
-
-/* modal dialog */
-#common-dialog .modal-dialog .modal-content {
-    -webkit-box-shadow: var(--modal-dialog-webkit-box-shadow);
-    box-shadow: var(--modal-dialog-box-shadow);
-    background-color: var(--modal-dialog-bg-color);
-    border: none;
-    border-radius: 6px;
-}
-
-#common-dialog .modal-dialog .modal-content .modal-footer .btn-default:hover {
-    background-color: var(--modal-dialog-btn-default-hover-bg-color) !important;
-}
-
-/* preferences */
-.ty-preferences {
-    font-family: "Fira Code", Consolas, "Lucida Console", "Courier", monospace, "Helvetica Neue", Helvetica, Arial, sans-serif;
-    color: var(--preferences-color);
-}
-
-.ty-preferences .window-header h2 {
-    font-size: 1.6rem;
-}
-
-.ty-preferences .sidebar {
-    font-size: 1.4rem;
-}
-
-.ty-preferences .sidebar .nav-group-item.active,
-.ty-preferences .sidebar .nav-group-item:active {
-    color: var(--preference-sidebar-nav-group-item-active-color);
-    background-color: var(--preference-sidebar-nav-group-item-active-bg-color);
-}
-
-/* sidebar includes file-tree,articles and outline*/
-.html-for-mac #typora-sidebar {
-    -webkit-box-shadow: var(--html-for-mac-sidebar-webkit-box-shadow);
-    box-shadow: var(--html-for-mac-sidebar-box-shadow);
-}
-
-/* focus mode/typewriter mode notification  */
-#md-notification {
-    background-color: var(--notification-bg-color) !important;
-}
-
-#md-notification #ty-surpress-mode-warning-close-btn:hover {
-    background-color: var(--notification-hover-bg-color) !important;
-}
-
-/* Unibody sidebar */
-#megamenu-menu-sidebar {
-    color: var(--menu-sidebar-color);
-    font-size: 1rem;
-}
-
-#megamenu-menu-sidebar #megamenu-menu-list {
-    border-top-color: var(--menu-sidebar-list-border-color);
-    background-color: var(--menu-sidebar-list-bg-color);
-}
-
-#megamenu-menu-sidebar #megamenu-menu-list li a {
-    color: var(--menu-sidebar-li-a-color) !important;
-}
-
-#megamenu-menu-sidebar #megamenu-menu-list li a.active,
-#megamenu-menu-sidebar #megamenu-menu-list li a:hover {
-    background-color: var(--menu-sidebar-li-a-active-hover-color) !important;
-}
-
-#megamenu-menu-sidebar #megamenu-menu-list li a#m-saved {
-    background-color: transparent !important;
-}
-
-.megamenu-opened .megamenu-menu {
-    left: 0;
-}
-
-#megamenu-content {
-    color: var(--megamenu-content-color);
-}
-
-/* sidebar */
-#typora-sidebar .info-panel-tab-wrapper .info-panel-tab .info-panel-tab-border {
-    background-color: var(--sidebar-bg-color);
-    border-radius: 4px;
-}
-
-#typora-sidebar .sidebar-osx-tab .sidebar-tabs {
-    border-bottom-color: transparent;
-}
-
-#typora-sidebar #sidebar-content .file-list-item {
-    border-bottom: 1px solid var(--sidebar-content-file-list-item-border-color);
-}
-
-#typora-sidebar #sidebar-content .file-list-item.active {
-    background-color: var(--sidebar-content-file-list-item-active-bg-color);
-    border-left: 4px solid var(--sidebar-content-file-list-item-active-border-color);
-}
-
-#typora-sidebar #sidebar-content .ty-sidebar-search-panel {
-    border-bottom: 1px solid var(--sidebar-content-file-list-item-search-pannel-border-color);
-}
-
-#typora-sidebar #sidebar-content .ty-sidebar-search-panel .searchpanel-search-option-btn {
-    background-color: var(--sidebar-content-file-list-item-search-pannel-search-option-btn-bg-color);
-}
-
-#typora-sidebar #sidebar-content .sidebar-content-content .file-tree-node:not(.file-node-root):hover>.file-node-background {
-    border-left: 4px solid var(--file-tree-node-hover-border-color);
-    background-color: var(--file-tree-node-hover-bg-color);
-}
-
-#typora-sidebar #sidebar-content .sidebar-content-content .file-tree-node.active>.file-node-background {
-    border-color: var(--file-tree-node-active-border-color);
-    background-color: var(--file-tree-node-active-bg-color);
-}
-
-#typora-sidebar #sidebar-content .sidebar-content-content #file-library-list-children .file-library-file-node:hover {
-    border-left: 4px solid var(--file-library-file-node-hover-border-color);
-    background-color: var(--file-library-file-node-hover-bg-color);
-}
-
-#typora-sidebar #sidebar-content #outline-content .no-collapse-outline .outline-item {
-    line-height: 1.375rem;
-    font-size: 1rem;
-}
-
-#typora-sidebar #sidebar-content #outline-content .outline-expander:before {
-    color: inherit;
-    font-size: 14px;
-    top: auto;
-    content: "\f0da";
-    font-family: FontAwesome;
-}
-
-#typora-sidebar #sidebar-content #outline-content .outline-expander:hover:before,
-#typora-sidebar #sidebar-content #outline-content .outline-item-open>.outline-item>.outline-expander:before {
-    content: "\f0d7";
-}
-
-#typora-sidebar #sidebar-content #outline-content .outline-item:hover {
-    background-color: var(--outline-item-hover-bg-color) !important;
-}
-
-#typora-sidebar #ty-sidebar-footer {
-    border-top: 1px solid var(--sidebar-footer-border-color);
-}
-
-#typora-sidebar #ty-sidebar-footer .sidebar-footer-item:hover {
-    background-color: var(--sidebar-footer-hover-bg-color) !important;
-}
-
-#typora-sidebar #ty-sidebar-footer #sidebar-files-menu {
-    -webkit-box-shadow: var(--sidebar-files-menu-webkit-box-shadow);
-    box-shadow: var(--sidebar-files-menu-box-shadow);
-}
-
-/* dropdown menu */
-.dropdown-menu>.show+.menuitem-group-label.show {
-    border-top: 1px solid var(--dropdown-menu-border-color) !important;
-}
-
-.dropdown-menu li a {
-    color: var(--dropdown-menu-li-a-color) !important;
-}
-
-.dropdown-menu li a:hover {
-    background-color: var(--dropdown-menu-li-a-hover-color) !important;
-}
-
-.dropdown-menu .divider {
-    border-color: var(--dropdown-menu-divider-border-color);
-}
-
-/* sidebar-files-menu,toc-dropmenu,suggest common */
-#sidebar-files-menu,
-#toc-dropmenu,
-.auto-suggest-container {
-    background-color: var(--toc-bg-color);
-    -webkit-box-shadow: var(--toc-webkit-box-shadow);
-    box-shadow: var(--toc-box-shadow);
-    border: none;
-}
-
-#toc-dropmenu .outline-item:hover {
-    background-color: var(--toc-hover-bg-color) !important;
-}
-
-/* emoji,fences,word suggest */
-.auto-suggest-container {
-    padding-top: 4px;
-    padding-bottom: 4px;
-}
-
-.auto-suggest-container li.active,
-.auto-suggest-container li:hover {
-    background-color: var(--auto-suggest-container-bg-color) !important;
-}
-
-/* source code mode */
-#typora-source {
-    font-family: "Fira Code", Consolas, "Lucida Console", "Courier", monospace, "Helvetica Neue", Helvetica, Arial, sans-serif;
-    color: var(--source-color);
-}
-
-#typora-source .cm-s-typora-default .cm-header,
-#typora-source .cm-s-typora-default .cm-property,
-#typora-source .CodeMirror.cm-s-typora-default div.CodeMirror-cursor {
-    color: var(--source-cm-header-color);
-}
-
-#typora-source .cm-s-typora-default .cm-atom,
-#typora-source .cm-s-typora-default .cm-number {
-    color: var(--source-cm-atom-color);
-}
-
-#typora-source .CodeMirror-selectedtext {
-    background-color: transparent !important;
-}
-
-.typora-node .file-list-item-parent-loc,
-.typora-node .file-list-item-time,
-.typora-node .file-list-item-summary {
-    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-
-@media print {
+    // 初始化主题，使用DOMContentLoaded事件
+    document.addEventListener('DOMContentLoaded', function () {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      document.body.setAttribute('data-theme', savedTheme);
+      setThemeIcon(savedTheme);
+      console.log("🚀 正在加载机场列表...");
+      // loadAirportTable();
+    });
+  </script>
+  <style>
     body {
-        zoom: 70%;
-        margin: 0rem 1rem;
+      font-family: 'Courier New', Courier, monospace, sans-serif;
+      background: linear-gradient(120deg, #0f0c29, #302b63);
+      margin: 0;
+      padding: 2rem;
+      color: #e0e0e0;
+    }
+
+    h2 {
+      text-align: center;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 1.2rem;
+    }
+
+    blockquote {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 1.2rem;
+      border-left: 4px solid #f39c12;
+      font-style: italic;
+      margin: 0 auto 2rem;
+      max-width: 100%;
+      color: #ffebc6;
+      border-radius: 10px;
+      box-sizing: border-box;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      padding: 1.2rem;
+      margin-bottom: 2rem;
+      color: #e5e5e5;
+    }
+
+    .card h3 {
+      color: #7ed6df;
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+    }
+    .card h3 a:hover {
+      text-decoration: underline;
+    }
+
+    .tagline {
+      color: #c8d6e5;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+
+    .price {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+      color: #dddddd;
+    }
+
+    .price span {
+      display: block;
+      margin-bottom: 0.4rem;
+    }
+
+    .link-btn {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.6rem 1.2rem;
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      color: #f0f0f0;
+      font-weight: 600;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: background 0.3s ease;
+    }
+
+    .link-btn:hover {
+      background: linear-gradient(135deg, #0072ff, #00c6ff);
+    }
+
+    .highlight {
+      color: #e17055;
+      font-weight: bold;
+    }
+
+    .note {
+      background-color: rgba(255, 255, 255, 0.07);
+      padding: 1rem;
+      border-left: 4px solid #f1c40f;
+      margin-top: 1rem;
+      color: #ffeaa7;
+    }
+
+    body[data-theme='light'] {
+      background: linear-gradient(120deg, #e6f4ea, #c9e4d6);
+      color: #2c3e50;
+    }
+
+    body[data-theme='light'] h2 {
+      color: #2c3e50;
+    }
+
+    body[data-theme='light'] blockquote {
+      background: rgba(255, 255, 255, 0.8);
+      color: #2c3e50;
+      border-left: 4px solid #66bb6a;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    body[data-theme='light'] .card {
+      background: rgba(255, 255, 255, 0.85);
+      color: #2c3e50;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    }
+
+    body[data-theme='light'] .card h3 {
+      color: #2e7d32;
+    }
+
+    body[data-theme='light'] .tagline {
+      color: #388e3c;
+    }
+
+    body[data-theme='light'] .price {
+      background: #f0f3f4;
+      color: #2c3e50;
+    }
+
+    body[data-theme='light'] .note {
+      background: #fffbe6;
+      color: #2c3e50;
+      border-left-color: #f39c12;
+    }
+
+    body[data-theme='light'] .link-btn {
+      background: linear-gradient(135deg, #66bb6a, #43a047);
+      color: #fff;
+    }
+
+    body[data-theme='light'] .link-btn:hover {
+      background: linear-gradient(135deg, #43a047, #66bb6a);
+    }
+
+    table {
+      border: 1px solid #888;
+      font-size: 0.95rem;
+      margin: 1rem 0;
+    }
+
+    th, td {
+      padding: 0.6rem 1rem;
+      text-align: center;
+      border: 1px solid #555;
+    }
+
+    thead {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    body[data-theme='light'] table {
+      border-color: #bbb;
+    }
+
+    body[data-theme='light'] th, body[data-theme='light'] td {
+      border-color: #ccc;
+    }
+
+    body[data-theme='light'] thead {
+      background-color: #e0f2f1;
+    }
+
+    @media (max-width: 768px) {
+      body {
         padding: 1rem;
-    }
+        font-size: 0.95rem;
+      }
 
-    table,
-    .md-table-fig .md-table {
-        border: none;
-        border-radius: 10px;
-        border-collapse: separate;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); 
-    }
+      h2 {
+        font-size: 2rem;
+      }
 
-    table th,
-    table td,
-    .md-table-fig .md-table th,
-    .md-table-fig .md-table td {
-        padding: 10px 16px;
-        border-top: none;
-        border: none;
-    }
+      .card {
+        padding: 1.2rem;
+      }
 
-    table th,
-    .md-table-fig .md-table th {
-        background-color: var(--table-thead-bg-color);
-        color: var(--table-thead-text-color);
-    }
+      .link-btn {
+        padding: 0.8rem 1.4rem;
+        font-size: 1rem;
+        display: block;
+        width: 100%;
+        text-align: center;
+        margin: 1.2rem 0 0;
+        box-sizing: border-box;
+      }
 
-    blockquote table th,
-    blockquote .md-table-fig .md-table th {
-        background-color: var(--blockquote-thead-bg-color);
-        color: var(--blockquote-thead-text-color);
-    }
+      table {
+        font-size: 0.85rem;
+      }
 
-    .md-alert.md-alert-tip table th,
-    .md-alert.md-alert-tip .md-table-fig .md-table th {
-        background-color: var(--alert-tip-thead-bg-color);
-        color: var(--alert-tip-thead-text-color);
-    }
+      th, td {
+        padding: 0.5rem;
+      }
 
-    .md-alert.md-alert-caution table th,
-    .md-alert.md-alert-caution .md-table-fig .md-table th {
-        background-color: var(--alert-caution-thead-bg-color);
-        color: var(--alert-caution-thead-text-color);
-    }
+      #airport-table-container {
+        display: none;
+      }
 
-    .md-alert.md-alert-warning table th,
-    .md-alert.md-alert-warning .md-table-fig .md-table th {
-        background-color: var(--alert-warning-thead-bg-color);
-        color: var(--alert-warning-thead-text-color);
+      #theme-toggle-btn {
+        min-height: 44px;
+        padding: 0.6rem 1.2rem;
+      }
     }
-
-    .md-alert.md-alert-important table th,
-    .md-alert.md-alert-important .md-table-fig .md-table th {
-        background-color: var(--alert-important-thead-bg-color);
-        color: var(--alert-important-thead-text-color);
-    }
-
-    .md-alert.md-alert-note table th,
-    .md-alert.md-alert-note .md-table-fig .md-table th {
-        background-color: var(--alert-note-thead-bg-color);
-        color: var(--alert-note-thead-text-color);
-    }
-
-    :where(table, .md-table-fig .md-table) {
-        & tr:nth-child(even) {
-            background-color: var(--table-row-even-bg-color, #eff5f262);
+  </style>
+<style id="monica-reading-highlight-style">
+        .monica-reading-highlight {
+          animation: fadeInOut 1.5s ease-in-out;
         }
-        & tr:nth-child(odd) {
-            background-color: var(--table-row-odd-bg-color, #ffffff);
+
+        @keyframes fadeInOut {
+          0%, 100% { background-color: transparent; }
+          30%, 70% { background-color: rgba(2, 118, 255, 0.20); }
         }
-    }
+      </style></head>
+<body data-theme="dark" monica-id="ofpnmcalabcbjgholdjcjblkibolbppb" monica-version="7.9.6">
 
-    hr {
-        position: relative;
-        margin: 1.2rem auto;
-        border: none;
-        background-color: #2f845e;
-        height: 2.5px;
-        width: 1024px !important;
-        opacity: 0.8;
-        border-radius: 1.75px;
-    }
-}
+  <div style="text-align:right; margin-bottom:1rem;">
+    <button onclick="toggleTheme()" id="theme-toggle-btn" style="padding: 0.5rem 1rem; border: none; border-radius: 6px; background-color: #ffffff33; color: #fff; cursor: pointer; font-weight: 600;">
+      <span id="theme-icon">☀️</span> 切换模式
+    </button>
+  </div>
 
-@media only screen and (min-width: 1400px) {
-    #write {
-        max-width: 1024px;
-    }
+  <h2>支持ChatGPT的机场推荐</h2>
+  
+  <p style="text-align:center; color:#dcdde1; font-size:1.1rem; margin-top:-0.5rem; margin-bottom:2rem;">
+    🚀 高速 · 稳定 · 解锁流媒体 · 支持ChatGPT
+  </p>
+  <blockquote>最近整理了一批高速稳定、价格亲民、完美支持ChatGPT和流媒体解锁的优质机场，适合日常科学上网、远程办公与内容解锁需求，欢迎参考体验 🎁</blockquote>
 
-    hr {
-        position: relative;
-        margin: 2rem auto;
-        border: none;
-        background-color: #2f845e;
-        height: 3px;
-        opacity: 0.8;
-        border-radius: 1.5px;
-    }
+  <div id="airport-card-container"><section class="card">
+            <h3><a href="https://lanfanz.cc/auth/register?code=E1I7" target="_blank" style="color:#7ed6df; text-decoration: none;">蓝帆云机场</a> <span style="color:#f1c40f; font-weight:bold; font-size:2rem;">★★★★★</span></h3>
+            <div class="tagline">BGP中转 + IPLC 专线节点 SSR / V2ray 机场</div>
+            <p>蓝帆云是一家 2024 年新开的机场，支持 ShadowsocksR 和 Vmess 多种协议。蓝帆云解锁能力一般，节点数量很多，覆盖国内常用地区，没有冷门地区节点。</p>
+            <div class="price">
+              <span>入门版：￥11.99/月，50G流量。</span>
+            </div>
+            <p class="note">🎉 年费7折优惠代码：lanfan 请购买时验证使用。在新疆省无法使用！请勿购买</p>
+            <a href="https://lanfanz.cc/auth/register?code=E1I7" class="link-btn" target="_blank">访问官网</a>
+          </section><section class="card">
+            <h3><a href="https://jump.riolu.work/register?aff=UNlKm79n" target="_blank" style="color:#7ed6df; text-decoration: none;">Riolu 精灵学院</a> <span style="color:#f1c40f; font-weight:bold; font-size:2rem;">★★★★☆</span></h3>
+            <div class="tagline">SS / Vless / Trojan 多协议，小白友好</div>
+            <p>2023 年开业，支持直连+中转，多协议自选，客户端定制化体验。</p>
+            <div class="price">
+              <span>Iron：￥6/月，30G/月（季付￥15）</span><span>Iron Plus：￥12/月，120G/月（年付￥125）</span><span>不限时流量Small：￥60，永久 400G 流量</span>
+            </div>
+            <p class="note">新用户优惠码： New2025（九五折，季付、半年付、年付可用，不限时不可用）</p>
+            <a href="https://jump.riolu.work/register?aff=UNlKm79n" class="link-btn" target="_blank">访问官网</a>
+          </section><section class="card">
+            <h3><a href="https://www.avatargpt.xyz/register?aff=9D4SamHzdl" target="_blank" style="color:#7ed6df; text-decoration: none;">阿拉丁机场</a> <span style="color:#f1c40f; font-weight:bold; font-size:2rem;">★★★★★</span></h3>
+            <div class="tagline">SS 协议，奈飞免登录，中转性价比高</div>
+            <p>2024 年开业，支持多地区节点和个性化定制。Netflix、Disney+、ChatGPT 支持优良。</p>
+            <div class="price">
+              <span>入门套餐：￥8/月，50G/月</span><span>轻量套餐：￥15/月，100G/月</span>
+            </div>
+            
+            <a href="https://www.avatargpt.xyz/register?aff=9D4SamHzdl" class="link-btn" target="_blank">访问官网</a>
+          </section><section class="card">
+            <h3><a href="https://www.nutbit.net/#/register?code=ITvJagqb" target="_blank" style="color:#7ed6df; text-decoration: none;">Nutbit 坚果机场</a> <span style="color:#f1c40f; font-weight:bold; font-size:2rem;">★★★★☆</span></h3>
+            <div class="tagline">SS 协议，支持多平台</div>
+            <p>2022 年开业，稳定佛系，全节点公网中转。支持 Netflix、Disney+、TikTok 和 ChatGPT。</p>
+            <div class="price">
+              <span>开心果：￥15/季度，50G/月（不常见）</span><span>核桃：￥15/月，100G/月</span><span>杏仁：￥24/月，200G/月</span>
+            </div>
+            <p class="note"><s>🎁 五一优惠：全套餐 8 折（除开心果），结账输入优惠码：51</s></p>
+            <a href="https://www.nutbit.net/#/register?code=ITvJagqb" class="link-btn" target="_blank">访问官网</a>
+          </section><section class="card">
+            <h3><a href="https://1s.bigmeok.me/user#/register?code=hrBKYct6" target="_blank" style="color:#7ed6df; text-decoration: none;">Bigme 大米加速</a> <span style="color:#f1c40f; font-weight:bold; font-size:2rem;">★★★★★</span></h3>
+            <div class="tagline">SS / Trojan / Hysteria 2 多协议，流媒体解锁好</div>
+            <p>2023 年开业，主打性价比，支持 Netflix、Disney+、TikTok 和 ChatGPT。不限时长按量付费，全节点公网中转。</p>
+            <div class="price">
+              <span>超小：￥6/月，45G/月（年付￥57）</span><span>中：￥10/季度，120G/月（年付￥96）</span><span>不限时流量Small：￥55，永久 400G 流量</span>
+            </div>
+            
+            <a href="https://1s.bigmeok.me/user#/register?code=hrBKYct6" class="link-btn" target="_blank">访问官网</a>
+          </section><section class="card">
+            <h3><a href="https://inv02.fatcatcloud.cc/register?aff=wzxvsdIy" target="_blank" style="color:#7ed6df; text-decoration: none;">FATCAT 肥猫云机场</a> <span style="color:#f1c40f; font-weight:bold; font-size:2rem;">★★★★☆</span></h3>
+            <div class="tagline">Trojan 协议，专线稳定，团队海外</div>
+            <p>2023 年成立，IEPL 专线节点，支持多流媒体和 ChatGPT，年付套餐优惠大。</p>
+            <div class="price">
+              <span>肥猫小包：￥72/年，60G/月（爆款限时热销）</span><span>基础版：￥20/月，200G/月（3年付享6折）</span>
+            </div>
+            <p class="note"><s>🎉 51 活动至 5.14：全场 8 折，优惠码：happy51</s></p>
+            <a href="https://inv02.fatcatcloud.cc/register?aff=wzxvsdIy" class="link-btn" target="_blank">访问官网</a>
+          </section></div>
+  <div id="airport-table-container" style="overflow-x:auto; margin-bottom:2rem; max-width:100vw;"><table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>协议</th>
+              <th>月费</th>
+              <th>流量</th>
+              <th>年付折扣</th>
+              <th>访问</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>蓝帆云机场</td>
+                <td>Hysteria 2, SSR, V2ray</td>
+                <td>￥11.99/月起</td>
+                <td>50G/月起</td>
+                <td>7折</td>
+                <td><a href="https://lanfanz.cc/auth/register?code=E1I7" target="_blank">官网</a></td>
+              </tr>
+              <tr>
+                <td>Riolu 精灵学院</td>
+                <td>SS, Trojan, Hysteria 2</td>
+                <td>￥6/月起</td>
+                <td>30G/月起</td>
+                <td>95折</td>
+                <td><a href="https://jump.riolu.work/register?aff=UNlKm79n" target="_blank">官网</a></td>
+              </tr>
+              <tr>
+                <td>Bigme 大米加速</td>
+                <td>Trojan, Hysteria 2, Anytls</td>
+                <td>￥6/月起</td>
+                <td>45G/月起</td>
+                <td>8折</td>
+                <td><a href="https://1s.bigmeok.me/user#/register?code=hrBKYct6" target="_blank">官网</a></td>
+              </tr>
+          </tbody>
+        </table></div>
+  <blockquote>
+    综合来看，<strong class="highlight">若你追求极致性价比、用量适中</strong>，那 Bigme 大米加速的超小套餐无疑是“神中神”——每月仅 4.75 元，就能轻松畅享全球网络，虽流量仅 45G，但足以满足日常ChatGPT与轻量访问所需。
+  </blockquote>
 
-    .md-fences:hover {
-        animation: none;
-    }
-}
 
-@media only screen and (min-width: 1800px) {
-    #write {
-        max-width: 1200px;
-    }
-
-    hr {
-        position: relative;
-        margin: 2rem auto;
-        border: none;
-        background-color: #2f845e;
-        height: 3px;
-        opacity: 0.8;
-        border-radius: 1.5px;
-    }
-
-    .md-fences:hover {
-        animation: none;
-    }
-}
-
-html {
-    font-size: 17px;
-}</style><style>.mweb-charts{background:#fff;}
-body{ box-sizing: border-box;
-    margin: 0 auto;
-    padding: 28px}
-@media print{
-    pre, code, pre code {
-     overflow: visible !important;
-     white-space: pre-wrap !important;       /* css-3 */
-     white-space: -moz-pre-wrap !important;  /* Mozilla, since 1999 */
-     white-space: -pre-wrap !important;      /* Opera 4-6 */
-     white-space: -o-pre-wrap !important;    /* Opera 7 */
-     word-wrap: break-word !important;       /* Internet Explorer 5.5+ */
-    }
-    html,body{margin:0;padding:4px;}
-}
-
-</style><script>window.MathJax = {     tex: { tags: 'ams', inlineMath: [ ['$','$'], ['\\(','\\)'] ] },     startup: {     pageReady() {       return MathJax.startup.defaultPageReady().then(function () {          window.mweb_mathjax_ready_val = 'yes';          if(window.mweb_mathjax_ready !== undefined){ mweb_mathjax_ready(); }       });     }   }};document.addEventListener('DOMContentLoaded', function(event) {    if (typeof Prism != 'undefined') {         Prism.highlightAll();     }});window.mweb_mathjax_ready_val = '';function theMWebMathJaxRenderIsReady(key){ return window.mweb_mathjax_ready_val; }</script><script>document.addEventListener('DOMContentLoaded', function(event) {window.mweb_mathjax_ready_val = 'yes';})</script></head><body><div id='markdown_content' class='markdown-body'><h2><a id="%E6%94%AF%E6%8C%81chatgpt%E7%9A%84%E6%9C%BA%E5%9C%BA" class="anchor" aria-hidden="true"><span class="octicon octicon-link"></span></a>支持ChatGPT的机场</h2>
-<blockquote>
-<p>最近找了一些价格便宜，链接稳定，能够支持ChatGPT的机场，供大家选择参考🎁！</p>
-</blockquote>
-<ol>
-<li>
-<p>Nutbit 坚果机场<br />
-<strong>Nutbit 坚果机场</strong>是一家 2022 年开业的老牌小众机场，机场官方定位为「养老小机场」，相对佛系，早期封闭运营，2024 年下半年开放注册，全节点公网隧道中转，逐步在部署 IEPL 专线，Shadowsocks 协议支持，有多个国内接入口。解锁支持方面， Netflix、Disney+ 流媒体、TikTok 和 ChatGPT 支持度都十分不错。<br />
-机场节点：香港、日本、台湾、新加坡、美国、韩国、英国。<br />
-查看：Windows、Mac、iOS 和 安卓 全平台翻墙代理软件下载地址</p>
-<p>价格：<br />
-开心果：￥15/季度，50G流量/月。(偶尔会下架)<br />
-核桃：¥10.00/月， 100GB/月</p>
-<p><a href="https://www.nutbit.net/#/register?code=ITvJagqb">地址</a></p>
-<p>Nutbit 坚果机场优惠码<br />
-五一假期即将到来，无论您是想：<br />
-✈️ 跨国远程办公，高效无忧<br />
-🎬 追更国际剧集，海量内容随心看<br />
-🎮 畅玩全球游戏，低延迟更流畅<br />
-Nutbit为您提供高速、稳定、安全的全球网络连接，让您随时随地畅享无界体验！</p>
-<p>🎁 限时特惠：即日起至5月6日<br />
-🔥 全套餐8折优惠（开心果套餐除外）<br />
-💡 <strong>结账时输入优惠码：51</strong></p>
-</li>
-<li>
-<p>FATCAT 肥猫云机场 ★★★★★<br />
-Trojan 翻墙机场<br />
-性价比专线机场稳定加速<br />
-机场主和运营团队位于海外跑路风险低<br />
-优秀的 Netflix、Disney+、TikTok 和 ChatGPT 解锁<br />
-FATCAT 肥猫机场是一家 2023 年成立的性价比机场，IEPL 专线节点，Trojan 协议。FATCAT 肥猫机场对年付套餐优惠力度较大，年付有8折优惠，一般在节假日都会有优惠促销活动发布。肥猫机场对 Netflix、Disney+ 流媒体、TikTok 和 ChatGPT 解锁支持度也很好。</p>
-<p>价格：</p>
-<p>肥猫小包：￥72/年，60G流量/月。（¥140 - 两年付）<br />
-基础版：￥20/月，200G流量/月。（¥432 - 三年付 - 6折优惠）</p>
-<p>提早给大家上51劳动节活动了！<br />
-本次活动也是今年最有诚意的，全场享受8折优惠，领取优惠码： happy51</p>
-<p>活动时间：即日起至2025年5月14号23：59分</p>
-<p>特别说明1：肥猫小包因为已经是福利套餐，所以不参与活动<br />
-特别说明2：商店里显示的3年价格已经是6折价格，搭配本次8折优惠码，购买3年套餐最低享受48折折扣</p>
-<p><a href="https://inv01.fatcatcloud.cc/register?aff=wzxvsdIy">地址</a></p>
-</li>
-<li>
-<p>阿拉丁机场 ★★★★★<br />
-Shadowsocks 翻墙机场<br />
-性价比中转机场推荐<br />
-奈飞免登录解锁<br />
-阿拉丁机场（Aladdin Network Optimizer）是一家 2024 年开业的性价比中转机场，Shadowsocks 协议支持，公网隧道中转节点，节点包含了五大常用地区及超多冷门地区节点提供。另外，这家机场也支持发送工单进行个性化定制业务。解锁方面，除了有专门的奈飞劫持免登录节点外，其他节点对于 Netflix、Disney+ 流媒体以及ChatGPT 等 AI 工具都提供不错的支持。</p>
-<p>价格：<br />
-轻量套餐：￥30/半年，65G流量/月。<br />
-基础套餐：￥10/月，158G流量/月。<br />
-<a href="https://www.avatargpt.xyz/register?aff=9D4SamHzdl">地址</a></p>
-</li>
-<li>
-<p>Bigme 大米加速 ★★★★★<br />
-SS/Trojan/Hysteria 2 多协议支持<br />
-不错的Netflix、Disney+ 流媒体解锁<br />
-Bigme 大米加速（大米饭机场）是一家 2023 年开业的小众机场，全节点公网隧道中转，支持 Shadowsocks、Trojan 以及 Hysteria 2 协议，提供不限时长按量付费流量包，主打性价比。解锁支持方面， Netflix、Disney+ 流媒体、TikTok 和 ChatGPT 支持度都十分不错。</p>
-<p>价格：</p>
-<p>超小：￥6/季度，45G 流量/月。 （年付57）<br />
-中：￥15/季度，120G 流量/月。（年付96）</p>
-<p><a href="https://1s.bigmeok.me/user#/register?code=hrBKYct6">地址</a></p>
-</li>
-<li>
-<p>Riolu 精灵学院 ★★★★★<br />
-多协议支持<br />
-直连和中转隧道多种线路<br />
-不错的Netflix、Disney+ 流媒体解锁<br />
-定制三段支持小白新手友好<br />
-RioLU.443 精灵学院成立于 2023 年中，一家新开的小众机场，线路有直连和公网隧道中转，支持超多协议，可能是机场中独一家的存在。精灵学院支持的协议包含 Shadowsocks、Vless 和 Trojan 协议。</p>
-<p>精灵学院机场于 2024 年上线了定制机场客户端，登录账号密码使用，无需导入订阅，小白新手友好。同时精灵学院对于 Netflix、Disney+、TikTok 和 ChatGPT 都提供不错的支持。</p>
-<p>Riolu 机场有超低价格的套餐提供，性价比机场之一，同时也有不限时长按量付费流量套餐提供，新用户季付、年付可用 95 折优惠码：New2025</p>
-<p>价格：</p>
-<p>Iron：￥6/月，30G流量/月。（季付15）<br />
-Iron：￥12/月，120G流量/月。（年付125）</p>
-<p><a href="https://2o.riolu.sbs/register?aff=UNlKm79n">地址</a></p>
-</li>
-</ol>
-<blockquote>
-<p>综合来看，如果追求极致低价且流量需求极小，Bigme 大米加速的超小套餐年付最划算，每月仅 4.75 元，但其每月流量只有 45G。</p>
-</blockquote>
-</div></body></html>
+<div id="monica-content-root" class="monica-widget" style="pointer-events: auto;"></div></body></html>
