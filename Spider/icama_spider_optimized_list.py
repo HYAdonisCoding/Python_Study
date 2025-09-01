@@ -6,7 +6,7 @@ import json
 import sqlite3
 import logging
 import random
-import requests
+import requests, certifi
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
@@ -88,7 +88,7 @@ def fetch_list_page(page):
         "accOrfuzzy": "2",
     }
     try:
-        response = requests.post(url, headers=HEADERS, data=data, timeout=10)
+        response = requests.post(url, headers=HEADERS, verify=False, data=data, timeout=10)
         response.raise_for_status()
         return response.text
     except Exception as e_post:
@@ -96,7 +96,7 @@ def fetch_list_page(page):
 
         # 尝试 GET 备选方案
         try:
-            response = requests.get(url, headers=HEADERS, timeout=10)
+            response = requests.get(url, headers=HEADERS, verify=False, timeout=10)
             response.raise_for_status()
             return response.text
         except Exception as e_get:
@@ -208,7 +208,7 @@ def should_stop_by_db_count(cursor, total_expected):
 
 
 # === 主逻辑 ===
-def main(total_expected=50431, end_page=2522):
+def main(total_expected=50716, end_page=2536):
     start_page = load_progress()
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()

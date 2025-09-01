@@ -145,10 +145,10 @@ def fetch_with_retry(url, method='GET', data=None, headers=HEADERS, retries=3):
         time.sleep(random.uniform(1.5, 3.0))
     return None
 
-# === 主逻辑 ===1241-1533，2025-06-12 page2503-50060条
+# === 主逻辑 ===1241-1533，2025-06-12 page2503-50060条，2025-09-01 page2536-50716条
 def scrape():
     start_page = load_progress()
-    total_pages = 100
+    total_pages = 1000
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--disable-gpu')

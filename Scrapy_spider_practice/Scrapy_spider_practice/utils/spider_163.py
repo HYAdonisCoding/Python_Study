@@ -83,14 +83,8 @@ if __name__ == '__main__':
     # 数据数组
     data_array = [
         {
-            'url': 'https://ws6.stream.qqmusic.qq.com/C400001gmRFK1Ed8nA.m4a?guid=1960768588&vkey=FE9FA3061DAE63D2562E00974E04847B5442E0A4E6C0113E80F8316F7FE1F318B30DB9E30A99CF628A6A026DB6AD8507DC683E789BE7B337__v21530b7bd&uin=296786475&fromtag=120032&src=C400000dQXEd0hs9V3.m4a',
-            'filename': '诛仙我回来- 任贤齐'
-        },{
-            'url': 'https://ws6.stream.qqmusic.qq.com/C400002bLqDw1uCZ9Z.m4a?guid=1619225712&vkey=C4F648E2DCB909284DB68B188806790CA0E5638F1067DCF171D1E5C83284946CC86EB73931096AE7723DA73494429520ED9F38ADE9982F3C__v21ea05c14&uin=296786475&fromtag=120032',
-            'filename': '我是一只鱼- 任贤齐'
-        },{
-            'url': 'https://ws6.stream.qqmusic.qq.com/C400004aZqHh0gFPOu.m4a?guid=6278953324&vkey=F275383C977C30787ED857337F897655F88B27A1CF6B7A1086C44C5F7B1E45CE07469721D2DB414479FBFC9D88E98EF57698BD8A6A3C58F0__v21ea05c14&uin=296786475&fromtag=120032',
-            'filename': '伤心太平洋- 任贤齐'
+            'url': 'https://m704.music.126.net/20250901170305/9a517f9d605eac99cf7a4f186f6aaa25/jdyyaac/obj/w5rDlsOJwrLDjj7CmsOj/28481679190/0a4b/e310/4061/c9b18121af33ce72344e1042a533ad6c.m4a?vuutv=dGNXM7dLdsKsIwmavrlICDInARkF8We+Cqwl/kGRUd2wE/Vf3WGqzu9/Ga/9JajQKZOFG/4E+TiDlBUd2Lq+Zyirs2T5mo4+WHKCLYsTNNk=&authSecret=00000199046d24d8099e0a3084731280&cdntag=bWFyaz1vc193ZWIscXVhbGl0eV9leGhpZ2g',
+            'filename': '光年之外-G.E.M.邓紫棋'
         }
     ]
 
