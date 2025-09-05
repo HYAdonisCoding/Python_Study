@@ -1,6 +1,3 @@
-
-
-
 import os
 import json
 import random
@@ -11,8 +8,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
+
 class BaseBot:
-    
 
     def save_comment_count(self):
         lock_path = self.comment_count_path + ".lock"
@@ -34,6 +31,7 @@ class BaseBot:
 
             with open(self.comment_count_path, "w", encoding="utf-8") as f:
                 json.dump(existing_data, f, ensure_ascii=False, indent=2)
+
     def __init__(self, log_dir, comment_path, home_url):
         self.home_url = home_url
         self.class_name = self.__class__.__name__
@@ -89,7 +87,9 @@ class BaseBot:
             cookies = driver.get_cookies()
             with open(cookie_path, "w", encoding="utf-8") as f:
                 json.dump(cookies, f, ensure_ascii=False, indent=2)
-            self.logger.info(f"[{self.class_name}] 成功保存 cookies")
+            self.logger.info(
+                f"[{self.class_name}] 已保存全量 Cookie，共 {len(cookies)} 条，登录流程完成"
+            )
         except Exception as e:
             self.logger.warning(f"[{self.class_name}] 保存 cookies 失败：{e}")
 
@@ -106,10 +106,11 @@ class BaseBot:
         try:
             with open(cache_path, "w", encoding="utf-8") as f:
                 json.dump(cache_data, f, ensure_ascii=False, indent=2)
-            self.logger.info(f"[{self.class_name}] 已保存缓存，共 {len(cache_data)} 条链接")
+            self.logger.info(
+                f"[{self.class_name}] 已保存缓存，共 {len(cache_data)} 条链接"
+            )
         except Exception as e:
             self.logger.warning(f"[{self.class_name}] 保存缓存失败：{e}")
-
 
     def try_with_retry(self, func, retries=3, delay=1.5):
         for i in range(retries):
@@ -123,7 +124,9 @@ class BaseBot:
 
     def wait_for_element(self, driver, by, value, timeout=15):
         try:
-            return WebDriverWait(driver, timeout).until(EC.presence_of_element_located((by, value)))
+            return WebDriverWait(driver, timeout).until(
+                EC.presence_of_element_located((by, value))
+            )
         except TimeoutException:
             self.logger.warning(f"[{self.class_name}] 等待元素超时：{value}")
             return None
@@ -133,13 +136,13 @@ class BaseBot:
         self.logger.debug(f"[{self.class_name}] 随机休眠 {t:.2f} 秒")
         time.sleep(t)
 
-
     def is_logged_in(self, driver, check_func):
         try:
             return check_func(driver)
         except Exception as e:
             self.logger.warning(f"[{self.class_name}] 登录状态检查出错：{e}")
             return False
+
     def remove_cache(self, url):
         try:
             if os.path.exists(self.cache_path):
@@ -149,13 +152,17 @@ class BaseBot:
                     del cached[url]
                     with open(self.cache_path, "w", encoding="utf-8") as f:
                         json.dump(cached, f, ensure_ascii=False, indent=2)
-                    self.logger.info(f"[{self.class_name}] 已从缓存中移除已评论链接：{url}")
+                    self.logger.info(
+                        f"[{self.class_name}] 已从缓存中移除已评论链接：{url}"
+                    )
         except Exception as e:
             self.logger.warning(f"[{self.class_name}] 移除链接缓存失败: {e}")
+
     def exit(self, num=0):
         if self.driver:
             self.driver.quit()
         exit(num)
+
     def ensure_login(self, driver, cookie_path, check_func):
         driver.get(self.home_url)  # 加载平台首页，确保 driver 初始化
         self.load_cookies(driver, cookie_path)
@@ -167,10 +174,13 @@ class BaseBot:
             self.logger.info(f"[{self.class_name}] 未登录，请手动操作登录")
             input(f"完成登录后按回车继续：")
             self.save_cookies(driver, cookie_path)
+
     def _setup_logger(self, log_path):
         logger = logging.getLogger(self.class_name)
         logger.setLevel(logging.DEBUG)
-        formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        formatter = logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        )
 
         if not logger.handlers:
             # File handler: INFO 及以上写入文件
@@ -186,6 +196,7 @@ class BaseBot:
             logger.addHandler(sh)
 
         self.logger = logger
+
     # BaseBot 中添加
     def login(self):
         raise NotImplementedError("请在子类中实现 login() 方法")

@@ -54,7 +54,7 @@ class JuejinBot(BaseBot):
         chrome_options = Options()
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--window-size=1920,1080")
+        # chrome_options.add_argument("--window-size=1920,1080")
 
         self.driver = webdriver.Chrome(options=chrome_options)
 
@@ -481,7 +481,7 @@ class JuejinBot(BaseBot):
             self.logger.warning(f"[{self.class_name}] 提取链接失败: {e}")
         return link_dict
 
-    def get_recommended_note_links(self, max_count: int = 100, scroll_times: int = 5) -> dict:
+    def get_recommended_note_links(self, max_count: int = 300, scroll_times: int = 5) -> dict:
         self.logger.info(f"[{self.class_name}] 开始抓取推荐链接")
 
         sources = [

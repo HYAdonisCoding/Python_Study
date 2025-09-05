@@ -52,6 +52,7 @@ class XHSBot(BaseBot):
         chrome_options = Options()
         # 如需无头运行，可启用下行
         # chrome_options.add_argument('--headless')
+        chrome_options.page_load_strategy = "eager"  # 只等 DOMContentLoaded，不等所有资源
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
         # chrome_options.add_argument("--blink-settings=imagesEnabled=false")
@@ -182,9 +183,7 @@ class XHSBot(BaseBot):
                     input(f"[{self.class_name}] >>> 手动登录完成后请按下回车")
 
                     # 保存新的 Cookie
-                    cookies = self.driver.get_cookies()
                     self.save_cookies(self.driver, self.cookie_path)
-                    self.logger.info(f"[{self.class_name}] 登录已完成，Cookie 已保存")
 
                 # 滚动一点确保评论入口渲染
                 self.driver.execute_script("window.scrollBy(0, 400);")
@@ -422,9 +421,7 @@ class XHSBot(BaseBot):
         self.logger.info(f"[{self.class_name}] Cookie 无效，请手动登录...")
         input(f"[{self.class_name}] 请在当前页面完成登录后按回车继续...")
 
-        cookies = self.driver.get_cookies()
         self.save_cookies(self.driver, self.cookie_path)
-        self.logger.info(f"[{self.class_name}] Cookie 已保存，登录流程完成")
 
     def load_and_inject_cookies(self):
         if not os.path.exists(self.cookie_path):
@@ -439,15 +436,15 @@ class XHSBot(BaseBot):
             return False
 
         self.driver.get("https://www.xiaohongshu.com/")
-
+        self.driver.delete_all_cookies()
         valid_cookie_count = 0
         for cookie in cookies:
             cookie.pop("sameSite", None)
             try:
                 self.driver.add_cookie(cookie)
                 valid_cookie_count += 1
-            except Exception:
-                continue
+            except Exception as e:
+                self.logger.warning(f"注入 Cookie 失败: {cookie} -> {e}")
 
         if valid_cookie_count == 0:
             self.logger.warning(f"[{self.class_name}] 无有效 Cookie 被注入")
@@ -457,6 +454,7 @@ class XHSBot(BaseBot):
         self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
 
         # 重新加载首页或 explore 页面
+        self.logger.info(f"[{self.class_name}] 已注入 {valid_cookie_count} 条 Cookie，准备访问 explore 页面")
         self.driver.get("https://www.xiaohongshu.com/explore")
         self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
 
