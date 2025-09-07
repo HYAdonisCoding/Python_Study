@@ -23,6 +23,7 @@ class CommentDB:
             db_path = os.path.join(data_dir, "comments.db")
         self.conn = sqlite3.connect(db_path)
         self.conn = sqlite3.connect(db_path)
+        self.conn.row_factory = sqlite3.Row  # 这样 fetchall 返回的每个 row 就可以用 key 访问
         self.conn.execute(
             """
             CREATE TABLE IF NOT EXISTS comments (

@@ -4,8 +4,9 @@ import time
 import json
 import urllib.parse
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import WebDriverException
@@ -26,14 +27,14 @@ class BilibiliBot(BaseBot):
         if not os.path.exists(data_dir):
             os.makedirs(data_dir)  # 确保data目录存在
         comment_path = os.path.join(data_dir, "comments.json")
-        
+
         os.makedirs(data_dir, exist_ok=True)
         os.makedirs(log_dir, exist_ok=True)
 
         super().__init__(
             log_dir=log_dir,
             comment_path=comment_path,
-            home_url="https://www.bilibili.com"
+            home_url="https://www.bilibili.com",
         )
 
         self.comment_db = CommentDB()
@@ -58,14 +59,16 @@ class BilibiliBot(BaseBot):
         return text
 
     def setup_browser(self):
-        chrome_options = Options()
-        chrome_options.add_argument("--disable-gpu")
+        chrome_options = webdriver.ChromeOptions()
+        # chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--window-size=1920,1080")
         # 反检测设置
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option("useAutomationExtension", False)
-        self.driver = webdriver.Chrome(options=chrome_options)
+        self.driver = webdriver.Chrome(
+            service=Service(ChromeDriverManager().install()), options=chrome_options
+        )
         # 隐藏 webdriver 标识
         self.driver.execute_cdp_cmd(
             "Page.addScriptToEvaluateOnNewDocument",
@@ -122,8 +125,8 @@ class BilibiliBot(BaseBot):
             json.dump(cookies, f, ensure_ascii=False, indent=2)
         self.driver.quit()
 
-        headless_options = Options()
-        headless_options.add_argument("--disable-gpu")
+        headless_options = webdriver.ChromeOptions()
+        # headless_options.add_argument("--disable-gpu")
         headless_options.add_argument("--no-sandbox")
         headless_options.add_argument("--window-size=1920,1080")
         # 反检测设置
@@ -132,8 +135,11 @@ class BilibiliBot(BaseBot):
         )
         headless_options.add_experimental_option("useAutomationExtension", False)
         # headless_options.add_argument("--headless=new")  # 注释掉无头参数
+        # 下载与当前 Chrome 版本对应的 ChromeDriver
+        service = Service(ChromeDriverManager(version=self.chrome_version()).install())
 
-        self.driver = webdriver.Chrome(options=headless_options)
+        self.driver = webdriver.Chrome(service=service, options=headless_options)
+
         # 隐藏 webdriver 标识
         self.driver.execute_cdp_cmd(
             "Page.addScriptToEvaluateOnNewDocument",
@@ -348,7 +354,7 @@ class BilibiliBot(BaseBot):
     def exit(self, num=0):
         if self.driver:
             self.driver.quit()
-        # exit(num)
+        exit(num)
 
     def get_recommended_video_links(self, scroll_times: int = 5):
         """
@@ -451,103 +457,240 @@ class BilibiliBot(BaseBot):
         )
         return None
 
-
     # 新增独立函数
     def comment_on_note(self, driver, comment_text, logger=None):
-        
-
+        """
+        在 B 站视频页面评论框写入内容并发布，增强稳定性，确保获取 Shadow DOM 元素。
+        """
         def log(msg):
             if logger:
                 logger.info(msg)
             else:
                 print(msg)
 
-        def get_nested_shadow_element(driver, selectors):
-            element = driver.execute_script(
-                f"return document.querySelector('{selectors[0]}')"
-            )
-            for selector in selectors[1:]:
-                if element is None:
-                    return None
-                element = driver.execute_script(
-                    "return arguments[0].shadowRoot?.querySelector(arguments[1])",
-                    element,
-                    selector,
-                )
-            return element
+        log("🔍 开始评论流程...")
 
-        try:
-            log("🔍 正在查找评论输入框...")
-            input_box = get_nested_shadow_element(
-                driver,
-                [
-                    "bili-comments",
-                    "bili-comment-box",
-                    "bili-comment-rich-textarea",
-                    'div[contenteditable="true"]',
-                ],
-            )
-            if not input_box:
-                log("❌ 未找到评论输入框，跳过")
-                return False
+        # 滚动到底部触发评论区加载
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
 
-            log("✅ 找到评论输入框，输入内容中...")
-            driver.execute_script("arguments[0].scrollIntoView(true);", input_box)
-            self.sleep_random(base=1.0, jitter=2.0)
-
+        # 使用 JS 获取 Shadow DOM 内部元素
+        input_box = None
+        for _ in range(15):  # 最大尝试 15 次
             try:
-                input_box.click()
+                input_box = driver.execute_script("""
+                const rich = document.querySelector('bili-comment-rich-textarea');
+                if (!rich || !rich.shadowRoot) return null;
+                const editable = rich.shadowRoot.querySelector('[contenteditable="true"]');
+                return editable || null;
+                """)
+                if input_box:
+                    break
             except Exception:
-                if logger:
-                    logger.debug("fallback to JS focus")
-                else:
-                    print("fallback to JS focus")
-                driver.execute_script("arguments[0].focus();", input_box)
+                pass
+            time.sleep(0.5)
 
+        if not input_box:
+            log("❌ 未找到评论输入框")
+            return False
+
+        log("✅ 找到评论输入框，写入内容...")
+        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", input_box)
+        time.sleep(random.uniform(0.5, 1.0))
+
+        # 写入评论并触发事件
+        driver.execute_script("""
+        const el = arguments[0];
+        const text = arguments[1];
+        el.focus();
+        el.innerText = text;
+        el.dispatchEvent(new InputEvent('input', {bubbles:true, cancelable:true, data:text}));
+        el.dispatchEvent(new KeyboardEvent('keydown', {bubbles:true, cancelable:true, key:'a'}));
+        el.dispatchEvent(new KeyboardEvent('keyup', {bubbles:true, cancelable:true, key:'a'}));
+        el.blur();
+        """, input_box, comment_text)
+
+        log("✅ 评论内容已写入，尝试点击发布按钮...")
+
+        # 获取并点击发布按钮
+        btn = None
+        for _ in range(10):  # 最大重试 10 次
             try:
-                input_box.send_keys(comment_text)
-            except Exception:
-                if logger:
-                    logger.debug("fallback to JS set innerText")
-                else:
-                    print("fallback to JS set innerText")
-                driver.execute_script(
-                    "arguments[0].innerText = arguments[1];", input_box, comment_text
-                )
-
-            log("🔍 正在查找发布按钮...")
-            self.sleep_random(base=1.0, jitter=2.0)  # 等待 footer 激活
-            footer = get_nested_shadow_element(
-                driver, ["bili-comments", "bili-comment-box", "#footer"]
-            )
-            if not footer:
-                log("❌ 未找到 footer")
-                return False
-
-            buttons = driver.execute_script(
-                "return arguments[0].querySelectorAll('button.active')", footer
-            )
-            for btn in buttons:
-                if (
-                    driver.execute_script("return arguments[0].textContent", btn).strip()
-                    == "发布"
-                ):
-                    log("✅ 点击发布按钮")
-                    btn.click()
-                    self.sleep_random(base=1.0, jitter=1.0)
+                btn = driver.execute_script("""
+                const box = document.querySelector('bili-comments-bottom-fixed-wrapper')
+                            ?.querySelector('bili-comment-box');
+                if (!box) return null;
+                const b = Array.from(box.querySelectorAll('button.active'))
+                            .find(btn => btn.textContent.includes('发布'));
+                return b || null;
+                """)
+                if btn:
+                    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", btn)
+                    time.sleep(0.3)
+                    driver.execute_script("arguments[0].click();", btn)
                     log("✅ 评论发布成功")
                     return True
+            except Exception:
+                pass
+            time.sleep(0.5)
 
-            log("❌ 未找到发布按钮")
+        log("❌ 未找到发布按钮或点击失败")
+        return False
+
+    def get_bilibili_comment_input(self, driver, timeout=10):
+        """
+        返回 B 站评论区的 contenteditable 输入框（shadow DOM 内部）。
+        会自动：
+        1. 滚动评论区，触发懒加载
+        2. 等待元素挂载
+        3. 处理 Shadow DOM
+        """
+        # 滚动页面到评论区域
+        driver.execute_script("document.querySelector('#body').scrollIntoView(true);")
+        time.sleep(0.5)  # 等待渲染
+
+        textarea = None
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            # 尝试获取外层 <bili-comment-rich-textarea>
+            rich = driver.execute_script(
+                "return document.querySelector('bili-comment-rich-textarea')"
+            )
+            if rich:
+                # 点击一次，触发内部 shadow DOM 挂载
+                driver.execute_script("arguments[0].click();", rich)
+                time.sleep(0.5)
+
+                # 尝试获取 shadowRoot 内部 contenteditable
+                textarea = driver.execute_script(
+                    """
+                    let rich = document.querySelector('bili-comment-rich-textarea');
+                    if (!rich || !rich.shadowRoot) return null;
+                    return rich.shadowRoot.querySelector('[contenteditable="true"]');
+                """
+                )
+                if textarea:
+                    break
+
+            time.sleep(0.5)
+
+        return textarea  # 找不到返回 None
+
+    def set_bilibili_comment_text(self, driver, comment_text, logger=None):
+        """
+        在 B 站评论框写入内容，并触发 input 事件，让发布按钮点亮
+        """
+        input_box = self.get_bilibili_comment_input(driver)
+        if not input_box:
+            if logger:
+                logger.info("❌ 找不到评论输入框内部的 contenteditable")
+            else:
+                print("❌ 找不到评论输入框内部的 contenteditable")
             return False
 
-        except WebDriverException as e:
-            log(f"❌ 异常中断: {e}")
+        # 用 JS 写入内容 + 触发 input 事件
+        driver.execute_script(
+            """
+            const el = arguments[0];
+            const text = arguments[1];
+            el.innerText = text;
+            el.dispatchEvent(new InputEvent('input', {
+                bubbles: true,
+                cancelable: true,
+                inputType: 'insertText',
+                data: text
+            }));
+        """,
+            input_box,
+            comment_text,
+        )
+
+        if logger:
+            logger.info("✅ 评论内容已写入")
+        else:
+            print("✅ 评论内容已写入")
+
+        return True
+
+    def get_nested_shadow_element(
+        self, driver, selectors, timeout=10, sleep_interval=0.3
+    ):
+        """
+        通用 Shadow DOM 查找函数
+        selectors: 列表，例如 ["bili-comments", "bili-comment-box", "bili-comment-rich-textarea", '[contenteditable="true"]']
+        """
+        import time
+
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            try:
+                el = driver.execute_script(
+                    "return document.querySelector(arguments[0])", selectors[0]
+                )
+                for sel in selectors[1:]:
+                    if not el:
+                        break
+                    el = driver.execute_script(
+                        "return arguments[0].shadowRoot?.querySelector(arguments[1])",
+                        el,
+                        sel,
+                    )
+                if el:
+                    return el
+            except Exception:
+                pass
+            time.sleep(sleep_interval)
+        return None
+
+    def click_bilibili_publish_button(self, driver, logger=None):
+        """
+        尝试在 B 站评论区点击“发布”按钮
+        """
+        try:
+            # 跨越 Shadow DOM 直接查找按钮
+            btn = driver.execute_script(
+                """
+                let comments = document.querySelector("bili-comments");
+                if (!comments) return null;
+                let box = comments.shadowRoot.querySelector("bili-comment-box");
+                if (!box) return null;
+                return box.shadowRoot.querySelector("button.active");
+            """
+            )
+
+            if not btn:
+                if logger:
+                    logger.debug("❌ 未找到发布按钮 (button.active)")
+                else:
+                    print("❌ 未找到发布按钮 (button.active)")
+                return False
+
+            # 确认按钮文本，避免误点其他按钮
+            text = driver.execute_script("return arguments[0].innerText.trim()", btn)
+            if text != "发布":
+                if logger:
+                    logger.debug(f"❌ 找到按钮但文本不是 '发布'，而是: {text}")
+                else:
+                    print(f"❌ 找到按钮但文本不是 '发布'，而是: {text}")
+                return False
+
+            # 使用 JS click，绕过 shadow dom 的点击问题
+            driver.execute_script("arguments[0].click();", btn)
+
+            if logger:
+                logger.info("✅ 评论发布成功")
+            else:
+                print("✅ 评论发布成功")
+            return True
+
+        except Exception as e:
+            if logger:
+                logger.error(f"点击发布按钮时异常: {e}")
+            else:
+                print(f"点击发布按钮时异常: {e}")
             return False
 
 
-
-        
 if __name__ == "__main__":
     print("[BilibiliBot] started...")
     bot = None

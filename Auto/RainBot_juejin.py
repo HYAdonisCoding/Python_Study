@@ -6,6 +6,8 @@ import urllib.parse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
@@ -55,8 +57,12 @@ class JuejinBot(BaseBot):
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
         # chrome_options.add_argument("--window-size=1920,1080")
+        # 下载与当前 Chrome 版本对应的 ChromeDriver
+        chrome_version = self.get_chrome_version()
+        print(f"Detected Chrome version: {chrome_version}")
+        service = Service(ChromeDriverManager(driver_version=chrome_version).install())
 
-        self.driver = webdriver.Chrome(options=chrome_options)
+        self.driver = webdriver.Chrome(service=service, options=chrome_options)
 
         # 启用 CDP 进行图片/视频拦截
         try:

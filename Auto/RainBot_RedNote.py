@@ -7,6 +7,8 @@ import urllib.parse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
@@ -57,7 +59,12 @@ class XHSBot(BaseBot):
         chrome_options.add_argument("--no-sandbox")
         # chrome_options.add_argument("--blink-settings=imagesEnabled=false")
 
-        self.driver = webdriver.Chrome(options=chrome_options)
+        # 下载与当前 Chrome 版本对应的 ChromeDriver
+        chrome_version = self.get_chrome_version()
+        print(f"Detected Chrome version: {chrome_version}")
+        service = Service(ChromeDriverManager(driver_version=chrome_version).install())
+
+        self.driver = webdriver.Chrome(service=service, options=chrome_options)
         self.driver.execute_cdp_cmd("Network.enable", {})
         self.driver.execute_cdp_cmd(
             "Network.setBlockedURLs",
@@ -440,6 +447,7 @@ class XHSBot(BaseBot):
         valid_cookie_count = 0
         for cookie in cookies:
             cookie.pop("sameSite", None)
+            cookie["domain"] = ".xiaohongshu.com"  # 保证 domain 一致
             try:
                 self.driver.add_cookie(cookie)
                 valid_cookie_count += 1
@@ -459,19 +467,26 @@ class XHSBot(BaseBot):
         self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
 
         # 检查是否仍显示“登录”按钮，或登录弹窗存在
+         # 检查是否仍显示登录元素
         try:
-            self.driver.find_element(By.CSS_SELECTOR, "button#login-btn.login-btn")
-            self.logger.warning(f"[{self.class_name}] 页面包含登录按钮，说明未登录")
+            WebDriverWait(self.driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "button#login-btn.login-btn"))
+            )
+            self.logger(f"[{self.class_name}] 页面仍包含登录按钮，说明未登录")
             return False
-        except Exception:
+        except:
             pass
 
         try:
-            self.driver.find_element(By.CSS_SELECTOR, "div.login-container")
-            self.logger.warning(f"[{self.class_name}] 页面包含登录弹窗，说明未登录")
+            WebDriverWait(self.driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div.login-container"))
+            )
+            self.logger(f"[{self.class_name}] 页面仍包含登录弹窗，说明未登录")
             return False
-        except Exception:
+        except:
             pass
+
+        
 
         self.logger.info(f"[{self.class_name}] 成功复用 Cookie 登录")
         return True
@@ -479,9 +494,9 @@ class XHSBot(BaseBot):
     def exit(self, num=0):
         if self.driver:
             self.driver.quit()
-        # exit(num)
+        exit(num)
 
-    def get_recommended_note_links(self, scroll_times: int = 5, use_cache: bool = True):
+    def get_recommended_note_links(self, scroll_times: int = 15, use_cache: bool = True):
         """
         Collect note links from the recommend feed. Returns a dict: {url: title}
         """
@@ -600,5 +615,6 @@ if __name__ == "__main__":
                     print("[XHSBot] comment_db 连接已关闭")
             except Exception as e:
                 print(f"[XHSBot] 关闭 comment_db 失败: {e}")
+            # os.system("sudo shutdown -h now")  # 立即关机
 
         print("[XHSBot] ended...")

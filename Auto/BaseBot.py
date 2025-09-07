@@ -7,9 +7,22 @@ from filelock import FileLock
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-
+import subprocess
 
 class BaseBot:
+    def get_chrome_version(self):
+        """自动获取 Chrome 的版本号"""
+        try:
+            # 获取当前 Chrome 版本
+            version_output = subprocess.check_output(
+                ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "--version"]
+            )
+            version = version_output.decode("utf-8").strip()
+            # 例如：Google Chrome 139.0.7258.157 -> 139.0.7258.157
+            return version.split(" ")[2]
+        except Exception as e:
+            print(f"无法获取 Chrome 版本号: {e}")
+            return None
 
     def save_comment_count(self):
         lock_path = self.comment_count_path + ".lock"
