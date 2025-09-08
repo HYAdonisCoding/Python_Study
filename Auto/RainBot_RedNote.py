@@ -115,7 +115,9 @@ class XHSBot(BaseBot):
                 self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
                 continue
 
-            self.comment_on_note_links(hrefs)
+            should_continue = self.comment_on_note_links(hrefs)
+            if should_continue is False:
+                break
             if self.failed_comment_count >= 3:
                 self.logger.info(f"[{self.class_name}] 已累计失败超过 3 次，主循环退出")
                 print(f"[{self.class_name}] 已累计失败超过 3 次，主循环退出")
@@ -223,7 +225,7 @@ class XHSBot(BaseBot):
                         self.logger.info(
                             f"[{self.class_name}] 连续未找到评论入口 3 次，程序退出"
                         )
-                        return
+                        return False
                     continue
 
                 # 确保在视口中
@@ -266,7 +268,7 @@ class XHSBot(BaseBot):
                         self.logger.info(
                             f"[{self.class_name}] 连续未找到评论输入框 3 次，程序退出"
                         )
-                        return
+                        return False
                     continue
 
                 # 激活输入框（有些前端需要点击 innerEditable 子节点）
@@ -309,7 +311,7 @@ class XHSBot(BaseBot):
                         self.logger.info(
                             f"[{self.class_name}] 连续无法输入评论 3 次，程序退出"
                         )
-                        return
+                        return False
                     continue
 
                 # 发送评论按钮（多个 fallback）
@@ -335,7 +337,7 @@ class XHSBot(BaseBot):
                         self.logger.info(
                             f"[{self.class_name}] 连续找不到发送按钮 3 次，程序退出"
                         )
-                        return
+                        return False
                     continue
 
                 try:
@@ -367,7 +369,7 @@ class XHSBot(BaseBot):
                     self.failed_comment_count += 1
                     if self.failed_comment_count >= 3:
                         self.logger.info(f"[{self.class_name}] 连续失败 3 次，程序退出")
-                        return
+                        return False
                     continue  # 下一条
 
                 # 成功
@@ -406,7 +408,7 @@ class XHSBot(BaseBot):
                     self.logger.info(
                         f"[{self.class_name}] 今日评论已达 {limitation} 条，程序退出"
                     )
-                    return
+                    return False
 
                 self.sleep_random(base=self.delay_profile["base"], jitter=self.delay_profile["jitter"])
 
@@ -415,7 +417,8 @@ class XHSBot(BaseBot):
                 self.failed_comment_count += 1
                 if self.failed_comment_count >= 3:
                     self.logger.info(f"[{self.class_name}] 连续失败 3 次，程序退出")
-                    return
+                    return False
+        return True
 
     def login(self):
         self.logger.info(f"[{self.class_name}] 打开小红书首页以加载 Cookie...")

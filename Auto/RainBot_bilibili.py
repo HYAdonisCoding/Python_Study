@@ -19,7 +19,33 @@ limitation = 100
 
 # 模拟自动评论的主类
 class BilibiliBot(BaseBot):
-
+    def safe_get(self, url, retries=3, timeout=30):
+        """
+        安全加载页面，延迟 window.stop()，等待 JS 完成。
+        """
+        self.driver.set_page_load_timeout(timeout)
+        for attempt in range(1, retries + 1):
+            try:
+                self.driver.get(url)
+                # 等待 body 元素加载完成
+                WebDriverWait(self.driver, timeout).until(
+                    lambda d: d.execute_script("return document.readyState") in ("interactive", "complete")
+                )
+                # 延迟再阻止大资源
+                time.sleep(2)
+                try:
+                    self.driver.execute_script("window.stop();")
+                except Exception:
+                    pass
+                # 再给评论区 JS 多一点时间
+                time.sleep(2)
+                return True
+            except Exception as e:
+                self.logger.warning(
+                    f"[BilibiliBot] 加载 {url} 失败（第{attempt}次），重试中... 错误: {e}"
+                )
+                time.sleep(2)
+        return False
     def __init__(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
         log_dir = os.path.join(base_dir, "log")
@@ -58,17 +84,17 @@ class BilibiliBot(BaseBot):
         # return "".join(c for c in text if ord(c) <= 0xFFFF)
         return text
 
-    def setup_browser(self):
+    def setup_browser(self, headless=False):
         chrome_options = webdriver.ChromeOptions()
-        # chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--window-size=1920,1080")
-        # 反检测设置
+        if headless:
+            chrome_options.add_argument("--headless=new")
+        # 反检测
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option("useAutomationExtension", False)
-        self.driver = webdriver.Chrome(
-            service=Service(ChromeDriverManager().install()), options=chrome_options
-        )
+
+        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+
         # 隐藏 webdriver 标识
         self.driver.execute_cdp_cmd(
             "Page.addScriptToEvaluateOnNewDocument",
@@ -76,24 +102,19 @@ class BilibiliBot(BaseBot):
                 "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
             },
         )
+
+        # 阻塞大资源，保留 JS 执行
         self.driver.execute_cdp_cmd("Network.enable", {})
         self.driver.execute_cdp_cmd(
             "Network.setBlockedURLs",
             {
                 "urls": [
-                    "*.jpg",
-                    "*.jpeg",
-                    "*.png",
-                    "*.webp",
-                    "*.gif",
-                    "*.mp4",
-                    "*.m4s",
-                    "*.flv",
-                    "*.woff",
-                    "*.ttf",
+                    "*.jpg", "*.jpeg", "*.png", "*.webp", "*.gif",
+                    "*.mp4", "*.m4s", "*.flv", "*.m3u8", "*.ts", "*.svg"
                 ]
             },
         )
+
 
     def login_bilibili(self):
         self.logger.info("[BilibiliBot] 打开B站登录页...")
@@ -128,7 +149,7 @@ class BilibiliBot(BaseBot):
         headless_options = webdriver.ChromeOptions()
         # headless_options.add_argument("--disable-gpu")
         headless_options.add_argument("--no-sandbox")
-        headless_options.add_argument("--window-size=1920,1080")
+        # headless_options.add_argument("--window-size=1920,1080")
         # 反检测设置
         headless_options.add_experimental_option(
             "excludeSwitches", ["enable-automation"]
@@ -248,109 +269,59 @@ class BilibiliBot(BaseBot):
         return el
 
     def comment_on_note_links(self, note_links):
-        """
-        Visit each note URL, open the comment box, type a random comment, and send.
-        Uses unified comment_on_note function for commenting.
-        """
-        base = "https://www.zhihu.com"
+        base = "https://www.bilibili.com"
         for idx, (orig_url, title) in enumerate(
-            tqdm(note_links.items(), desc=f"[{self.class_name}]评论进度", unit="条"), 1
+            tqdm(note_links.items(), desc=f"[{self.class_name}]评论进度", unit="条", leave=False), 1
         ):
-            self.logger.info(
-                f"[BilibiliBot] 正在评论第 {idx}/{len(note_links)} 条（标题：{title}）..."
-            )
-            # Normalize URL (some feeds return relative URLs)
-            url = orig_url
-            if url and url.startswith("/"):
-                url = urllib.parse.urljoin(base, url)
-            try:
-                self.logger.info(f"[BilibiliBot] 打开笔记：{url}")
-                self.driver.get(url)
-                url = self.driver.current_url
-                # 等待页面加载
-                WebDriverWait(self.driver, 15).until(
-                    EC.presence_of_element_located((By.TAG_NAME, "body"))
-                )
-                WebDriverWait(self.driver, 15).until(
-                    lambda d: d.execute_script("return document.readyState")
-                    == "complete"
-                )
-                # 检测是否被踢回登录页
-                cur = self.driver.current_url
-                if "login" in cur or "account" in cur:
-                    self.logger.error(
-                        f"[BilibiliBot] 页面跳到登录「{cur}」，跳过：{url}"
-                    )
-                    # 移除cookie
-                    self.driver.delete_all_cookies()
-                    self.save_cookies([])
-                    # 清除浏览器缓存
-                    self.driver.execute_cdp_cmd("Network.clearBrowserCache", {})
-                    self.logger.info("[BilibiliBot] 清除浏览器缓存")
+            self.logger.info(f"[BilibiliBot] 正在评论第 {idx}/{len(note_links)} 条（标题：{title}）...")
+            url = orig_url if not orig_url.startswith("/") else urllib.parse.urljoin(base, orig_url)
+            if not self.safe_get(url):
+                continue
 
-                    # 尝试重新登录
-                    self.login_bilibili()
-                self.sleep_random(base=1.0, jitter=2.0)
-                # 滚动页面确保评论区加载
-                self.driver.execute_script("window.scrollBy(0, window.innerHeight);")
-                self.sleep_random(base=1.0, jitter=2.0)
-                self.driver.execute_script(
-                    "window.scrollTo(0, document.body.scrollHeight);"
-                )
-                self.sleep_random(base=1.0, jitter=2.0)
+            # 等待 body 元素加载
+            WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
 
-                comment = self.remove_non_bmp(self.get_random_comment())
-                success = self.comment_on_note(self.driver, comment, logger=self.logger)
-                if not success:
-                    self.logger.info(f"[BilibiliBot] 评论失败，跳过：{url}")
-                    self.failed_comment_count += 1
-                    if self.failed_comment_count >= 3:
-                        self.logger.info("[BilibiliBot] 连续失败 3 次，程序退出")
-                        self.exit(1)
-                        return
-                    continue
-                self.logger.info(f"[BilibiliBot] 已评论 {comment}   链接：{url}")
-                self.comment_db.record_comment(
-                    platform=Platform.BILIBILI,
-                    url=orig_url,
-                    title=title,
-                    comment=comment,
-                    status="success",
-                )
-                self.comment_count += 1
-                self.failed_comment_count = 0
-                self.save_comment_count()
-                self.logger.info(
-                    f"[JuejinBot] {self.today} 累计评论：{self.comment_count}"
-                )
-                if self.comment_count >= limitation:
-                    self.logger.info(
-                        f"[BilibiliBot] 今日评论已达 {limitation} 条，程序退出"
-                    )
-                    self.exit(0)
-                    return
-                self.sleep_random(base=1.0, jitter=2.0)
-                # 移除已评论链接并写回缓存
-                if os.path.exists(self.cache_path):
-                    try:
-                        with open(self.cache_path, "r", encoding="utf-8") as f:
-                            current_cache = json.load(f)
-                        if url in current_cache:
-                            del current_cache[url]
-                        if orig_url in current_cache:
-                            del current_cache[orig_url]
-                        with open(self.cache_path, "w", encoding="utf-8") as f:
-                            json.dump(current_cache, f, ensure_ascii=False, indent=2)
-                    except Exception as e:
-                        self.logger.warning(f"[BilibiliBot] 更新缓存文件失败：{e}")
-            except Exception as e:
-                self.logger.info(f"[BilibiliBot] 评论链接失败: {url}，错误：{e}")
+            # 滚动页面触发评论区懒加载
+            for scroll in [0.5, 0.7, 1.0]:
+                self.driver.execute_script(f"window.scrollTo(0, document.body.scrollHeight * {scroll});")
+                time.sleep(1)
+
+            # 获取评论区 Shadow DOM 元素
+            comment_box = self.find_shadow_element([
+                "bili-comments",
+                "bili-comment-box",
+                "bili-comment-rich-textarea",
+                '.brt-editor[contenteditable="true"]'
+            ], timeout=20)
+            if not comment_box:
+                self.logger.warning(f"[BilibiliBot] 未找到评论区，跳过：{url}")
+                continue
+
+            comment = self.remove_non_bmp(self.get_random_comment())
+            success = self.comment_on_note(self.driver, comment, logger=self.logger)
+            if not success:
                 self.failed_comment_count += 1
                 if self.failed_comment_count >= 3:
                     self.logger.info("[BilibiliBot] 连续失败 3 次，程序退出")
                     self.exit(1)
-                    return
+                continue
 
+            self.logger.info(f"[BilibiliBot] 评论成功：{comment} 链接：{url}")
+            self.comment_db.record_comment(
+                platform=Platform.BILIBILI,
+                url=orig_url,
+                title=title,
+                comment=comment,
+                status="success",
+            )
+            self.comment_count += 1
+            self.failed_comment_count = 0
+            self.save_comment_count()
+
+            if self.comment_count >= limitation:
+                self.logger.info(f"[BilibiliBot] 今日评论已达 {limitation} 条，程序退出")
+                self.exit(0)
+                return
     def exit(self, num=0):
         if self.driver:
             self.driver.quit()
@@ -457,85 +428,145 @@ class BilibiliBot(BaseBot):
         )
         return None
 
-    # 新增独立函数
+    def find_shadow_element(self, selectors, timeout=10, sleep_interval=0.3):
+        """
+        递归穿透 Shadow DOM，selectors 为 CSS 选择器列表（每级一个）。
+        返回最深层的元素或 None。
+        """
+        import time
+
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            try:
+                el = self.driver.execute_script(
+                    "return document.querySelector(arguments[0])", selectors[0]
+                )
+                for sel in selectors[1:]:
+                    if not el:
+                        break
+                    el = self.driver.execute_script(
+                        "return arguments[0].shadowRoot ? arguments[0].shadowRoot.querySelector(arguments[1]) : null;",
+                        el,
+                        sel,
+                    )
+                if el:
+                    return el
+            except Exception as e:
+                if hasattr(self, "logger"):
+                    self.logger.debug(f"[find_shadow_element] 查找失败: {e}")
+            time.sleep(sleep_interval)
+        if hasattr(self, "logger"):
+            self.logger.warning(f"[find_shadow_element] Timeout: {selectors}")
+        return None
+
+    # 新实现，优化评论流程，使用 find_shadow_element
     def comment_on_note(self, driver, comment_text, logger=None):
         """
         在 B 站视频页面评论框写入内容并发布，增强稳定性，确保获取 Shadow DOM 元素。
+        使用 find_shadow_element 获取输入框与发布按钮。
         """
+        import time
+        import random
+
         def log(msg):
             if logger:
                 logger.info(msg)
             else:
                 print(msg)
 
-        log("🔍 开始评论流程...")
+        log("🔍 [BilibiliBot] 开始评论流程...")
 
-        # 滚动到底部触发评论区加载
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
+        # 1. 页面延迟后 window.stop() 避免阻断评论区初始化脚本
+        try:
+            time.sleep(3)
+            driver.execute_script("window.stop();")
+            log("🛑 [BilibiliBot] 已调用 window.stop() 阻止大资源加载")
+        except Exception as e:
+            log(f"[BilibiliBot] window.stop() 失败: {e}")
 
-        # 使用 JS 获取 Shadow DOM 内部元素
-        input_box = None
-        for _ in range(15):  # 最大尝试 15 次
-            try:
-                input_box = driver.execute_script("""
-                const rich = document.querySelector('bili-comment-rich-textarea');
-                if (!rich || !rich.shadowRoot) return null;
-                const editable = rich.shadowRoot.querySelector('[contenteditable="true"]');
-                return editable || null;
-                """)
-                if input_box:
-                    break
-            except Exception:
-                pass
+        # 2. 滚动页面多次触发评论区懒加载：scrollBy → scrollTo(0, body*0.7) → scrollTo(0, body)
+        try:
+            driver.execute_script("window.scrollBy(0, window.innerHeight);")
             time.sleep(0.5)
+            driver.execute_script(
+                "window.scrollTo(0, document.body.scrollHeight * 0.7);"
+            )
+            time.sleep(0.7)
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(0.7)
+        except Exception as e:
+            log(f"[BilibiliBot] 滚动页面异常: {e}")
 
+        # 3. 使用 find_shadow_element 获取输入框，超时25秒
+        input_selectors = [
+            "bili-comments",
+            "bili-comment-box",
+            "bili-comment-rich-textarea",
+            '.brt-editor[contenteditable="true"]',
+        ]
+        input_box = self.find_shadow_element(input_selectors, timeout=25)
         if not input_box:
-            log("❌ 未找到评论输入框")
+            log(
+                '❌ [BilibiliBot] 未找到评论输入框 .brt-editor[contenteditable="true"]，放弃本次评论'
+            )
             return False
 
-        log("✅ 找到评论输入框，写入内容...")
-        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", input_box)
-        time.sleep(random.uniform(0.5, 1.0))
+        # 4. 写入评论文本并触发 input 事件
+        try:
+            driver.execute_script(
+                "arguments[0].scrollIntoView({block:'center'});", input_box
+            )
+            time.sleep(random.uniform(0.2, 0.5))
+            driver.execute_script(
+                """
+                const el = arguments[0];
+                const text = arguments[1];
+                el.focus();
+                el.innerText = text;
+                el.dispatchEvent(new InputEvent('input', {bubbles:true, cancelable:true, data:text}));
+                el.dispatchEvent(new KeyboardEvent('keydown', {bubbles:true, cancelable:true, key:'a'}));
+                el.dispatchEvent(new KeyboardEvent('keyup', {bubbles:true, cancelable:true, key:'a'}));
+                el.blur();
+            """,
+                input_box,
+                comment_text,
+            )
+            log(f"✅ [BilibiliBot] 评论内容已写入: {comment_text}")
+        except Exception as e:
+            log(f"❌ [BilibiliBot] 写入评论内容失败: {e}")
+            return False
 
-        # 写入评论并触发事件
-        driver.execute_script("""
-        const el = arguments[0];
-        const text = arguments[1];
-        el.focus();
-        el.innerText = text;
-        el.dispatchEvent(new InputEvent('input', {bubbles:true, cancelable:true, data:text}));
-        el.dispatchEvent(new KeyboardEvent('keydown', {bubbles:true, cancelable:true, key:'a'}));
-        el.dispatchEvent(new KeyboardEvent('keyup', {bubbles:true, cancelable:true, key:'a'}));
-        el.blur();
-        """, input_box, comment_text)
-
-        log("✅ 评论内容已写入，尝试点击发布按钮...")
-
-        # 获取并点击发布按钮
-        btn = None
-        for _ in range(10):  # 最大重试 10 次
-            try:
-                btn = driver.execute_script("""
-                const box = document.querySelector('bili-comments-bottom-fixed-wrapper')
-                            ?.querySelector('bili-comment-box');
-                if (!box) return null;
-                const b = Array.from(box.querySelectorAll('button.active'))
-                            .find(btn => btn.textContent.includes('发布'));
-                return b || null;
-                """)
-                if btn:
-                    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", btn)
-                    time.sleep(0.3)
-                    driver.execute_script("arguments[0].click();", btn)
-                    log("✅ 评论发布成功")
-                    return True
-            except Exception:
-                pass
-            time.sleep(0.5)
-
-        log("❌ 未找到发布按钮或点击失败")
-        return False
+        # 5. 使用 find_shadow_element 获取发布按钮
+        btn_selectors = [
+            "bili-comments",
+            "bili-comment-box",
+            "#footer #pub > button.active",
+        ]
+        btn = self.find_shadow_element(btn_selectors, timeout=10)
+        if not btn:
+            log("❌ [BilibiliBot] 未找到发布按钮 #footer #pub > button.active")
+            return False
+        # 检查按钮文本
+        try:
+            btn_text = driver.execute_script(
+                "return arguments[0].innerText.trim()", btn
+            )
+            if "发布" not in btn_text:
+                log(f"❌ [BilibiliBot] 找到按钮但文本不是 '发布'，而是: {btn_text}")
+                return False
+        except Exception as e:
+            log(f"❌ [BilibiliBot] 获取发布按钮文本异常: {e}")
+            return False
+        # 点击发布按钮
+        try:
+            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", btn)
+            time.sleep(0.15)
+            driver.execute_script("arguments[0].click();", btn)
+            log("✅ [BilibiliBot] 评论发布成功")
+            return True
+        except Exception as e:
+            log(f"❌ [BilibiliBot] 点击发布按钮异常: {e}")
+            return False
 
     def get_bilibili_comment_input(self, driver, timeout=10):
         """
