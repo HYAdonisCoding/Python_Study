@@ -597,27 +597,29 @@ class XHSBot(BaseBot):
 
 if __name__ == "__main__":
     print("[XHSBot] started...")
-    bot = None
-    try:
-        bot = XHSBot()
-        bot.run()
-    except KeyboardInterrupt:
-        print("\n[XHSBot] 收到中断信号，正在退出...")
-    finally:
-        if bot:
-            try:
-                if bot.driver:
-                    bot.driver.quit()
-                    print("[XHSBot] 浏览器已关闭")
-            except Exception as e:
-                print(f"[XHSBot] 浏览器关闭失败: {e}")
+    for _ in range(3):
+        bot = None
+        try:
+            bot = XHSBot()
+            bot.run()
+        except KeyboardInterrupt:
+            print("\n[XHSBot] 收到中断信号，正在退出...")
+        finally:
+            if bot:
+                try:
+                    if bot.driver:
+                        bot.driver.quit()
+                        print("[XHSBot] 浏览器已关闭")
+                except Exception as e:
+                    print(f"[XHSBot] 浏览器关闭失败: {e}")
 
-            try:
-                if bot.comment_db:
-                    bot.comment_db.close()
-                    print("[XHSBot] comment_db 连接已关闭")
-            except Exception as e:
-                print(f"[XHSBot] 关闭 comment_db 失败: {e}")
-            # os.system("sudo shutdown -h now")  # 立即关机
+                try:
+                    if bot.comment_db:
+                        bot.comment_db.close()
+                        print("[XHSBot] comment_db 连接已关闭")
+                except Exception as e:
+                    print(f"[XHSBot] 关闭 comment_db 失败: {e}")
+    
 
-        print("[XHSBot] ended...")
+    print("[XHSBot] ended...")
+    os.system("sudo shutdown -h now")  # 立即关机

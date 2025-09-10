@@ -157,7 +157,7 @@ class BilibiliBot(BaseBot):
         headless_options.add_experimental_option("useAutomationExtension", False)
         # headless_options.add_argument("--headless=new")  # 注释掉无头参数
         # 下载与当前 Chrome 版本对应的 ChromeDriver
-        service = Service(ChromeDriverManager(version=self.chrome_version()).install())
+        service = Service(ChromeDriverManager(version=self.get_chrome_version()).install())
 
         self.driver = webdriver.Chrome(service=service, options=headless_options)
 
@@ -477,12 +477,12 @@ class BilibiliBot(BaseBot):
         log("🔍 [BilibiliBot] 开始评论流程...")
 
         # 1. 页面延迟后 window.stop() 避免阻断评论区初始化脚本
-        try:
-            time.sleep(3)
-            driver.execute_script("window.stop();")
-            log("🛑 [BilibiliBot] 已调用 window.stop() 阻止大资源加载")
-        except Exception as e:
-            log(f"[BilibiliBot] window.stop() 失败: {e}")
+        # try:
+        #     time.sleep(3)
+        #     driver.execute_script("window.stop();")
+        #     log("🛑 [BilibiliBot] 已调用 window.stop() 阻止大资源加载")
+        # except Exception as e:
+        #     log(f"[BilibiliBot] window.stop() 失败: {e}")
 
         # 2. 滚动页面多次触发评论区懒加载：scrollBy → scrollTo(0, body*0.7) → scrollTo(0, body)
         try:
