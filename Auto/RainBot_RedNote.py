@@ -604,6 +604,8 @@ if __name__ == "__main__":
             bot.run()
         except KeyboardInterrupt:
             print("\n[XHSBot] 收到中断信号，正在退出...")
+        except Exception as e:
+            print(f"[XHSBot] 程序发生异常: {e}")
         finally:
             if bot:
                 try:
@@ -622,4 +624,4 @@ if __name__ == "__main__":
     
 
     print("[XHSBot] ended...")
-    os.system("sudo shutdown -h now")  # 立即关机
+    

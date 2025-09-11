@@ -482,6 +482,7 @@ class JianshuBot(BaseBot):
 
 if __name__ == "__main__":
     print("[JianshuBot] started...")
-    bot = JianshuBot()
-    bot.run()
+    for _ in range(3):
+        bot = JianshuBot()
+        bot.run()
     print("[JianshuBot] ended...")
