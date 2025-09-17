@@ -15,7 +15,7 @@ from tqdm import tqdm
 from comment_db import CommentDB, Platform
 from BaseBot import BaseBot
 
-limitation = 100
+limitation = 50
 
 
 # 模拟自动评论的主类

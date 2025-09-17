@@ -39,4 +39,4 @@ if __name__ == "__main__":
         t.join()
 
     print("所有任务完成，准备关机...")
-    os.system("sudo shutdown -h now")
+    # os.system("sudo shutdown -h now")

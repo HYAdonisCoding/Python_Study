@@ -9,13 +9,17 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 import subprocess
 
+
 class BaseBot:
     def get_chrome_version(self):
         """自动获取 Chrome 的版本号"""
         try:
             # 获取当前 Chrome 版本
             version_output = subprocess.check_output(
-                ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "--version"]
+                [
+                    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                    "--version",
+                ]
             )
             version = version_output.decode("utf-8").strip()
             # 例如：Google Chrome 139.0.7258.157 -> 139.0.7258.157
@@ -83,17 +87,42 @@ class BaseBot:
             json.dump(self.comment_count_data, f, ensure_ascii=False, indent=2)
 
     def load_cookies(self, driver, cookie_path):
+        """
+        从文件加载并注入 cookies。
+        返回 True 表示成功注入至少 1 条；否则返回 False。
+        """
         if os.path.exists(cookie_path):
             try:
                 with open(cookie_path, "r", encoding="utf-8") as f:
                     cookies = json.load(f)
+                    if not cookies:
+                        self.logger.warning(f"[{self.class_name}] Cookie 文件为空")
+                        return False
+                    injected = 0
                     for cookie in cookies:
-                        driver.add_cookie(cookie)
-                self.logger.info(f"[{self.class_name}] 成功加载 cookies")
+                        try:
+                            driver.add_cookie(cookie)
+                            injected += 1
+                        except Exception as e:
+                            self.logger.warning(
+                                f"[{self.class_name}] 注入单条 cookie 失败：{e}"
+                            )
+                    if injected > 0:
+                        self.logger.info(
+                            f"[{self.class_name}] 成功注入 {injected} 条 cookies"
+                        )
+                        return True
+                    else:
+                        self.logger.warning(
+                            f"[{self.class_name}] 未成功注入任何 cookie"
+                        )
+                        return False
             except Exception as e:
                 self.logger.warning(f"[{self.class_name}] 加载 cookies 失败：{e}")
+                return False
         else:
             self.logger.info(f"[{self.class_name}] 未找到 cookie 文件，跳过加载")
+            return False
 
     def save_cookies(self, driver, cookie_path):
         try:
@@ -178,14 +207,20 @@ class BaseBot:
 
     def ensure_login(self, driver, cookie_path, check_func):
         driver.get(self.home_url)  # 加载平台首页，确保 driver 初始化
-        self.load_cookies(driver, cookie_path)
+        loaded = self.load_cookies(driver, cookie_path)
+        if not loaded:
+            self.logger.info(f"[{self.class_name}] Cookie 加载失败或无效，进入登录流程")
+            input(f"[{self.class_name}] 请在当前页面完成登录后按回车继续...")
+            self.save_cookies(driver, cookie_path)
+            return
+
         driver.refresh()
         self.sleep_random()
         if self.is_logged_in(driver, check_func):
             self.logger.info(f"[{self.class_name}] 已登录")
         else:
-            self.logger.info(f"[{self.class_name}] 未登录，请手动操作登录")
-            input(f"完成登录后按回车继续：")
+            self.logger.info(f"[{self.class_name}] Cookie 登录未生效，请手动操作登录")
+            input(f"[{self.class_name}] 完成登录后按回车继续...")
             self.save_cookies(driver, cookie_path)
 
     def _setup_logger(self, log_path):

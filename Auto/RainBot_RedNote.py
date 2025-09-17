@@ -15,7 +15,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from comment_db import CommentDB, Platform
 from tqdm import tqdm
 
-limitation = 100
+limitation = 50
 
 
 # 模拟自动评论的主类
