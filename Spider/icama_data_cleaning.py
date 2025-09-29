@@ -107,6 +107,7 @@ def extract_all_info_with_selenium(url, retries=MAX_RETRIES):
 
             html = driver.page_source
             soup = BeautifulSoup(html, "html.parser")
+            logging.info(f"成功获取并解析页面: {url}")
             return parse_detail_page(soup)
 
         except Exception as e:
@@ -128,6 +129,7 @@ def process_record(record):
     detail_info = extract_all_info_with_selenium(url)
 
     if detail_info and detail_info["有效成分信息"]:
+        logging.info(f"数据提取成功，准备写入数据库: {djzh}")
         try:
             conn = sqlite3.connect(DB_FILE)
             cursor = conn.cursor()
@@ -152,6 +154,7 @@ def process_record(record):
         except Exception as e:
             logging.error(f"❌ DB update failed for {djzh}: {e}")
     else:
+        logging.info(f"跳过 {djzh}，未提取到有效成分信息")
         logging.warning(f"⚠️ No valid info found for {djzh} (URL: {url})")
 
 

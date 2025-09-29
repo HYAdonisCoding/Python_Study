@@ -208,7 +208,7 @@ def should_stop_by_db_count(cursor, total_expected):
 
 
 # === 主逻辑 ===
-def main(total_expected=50716, end_page=2536):
+def main(total_expected=55220, end_page=2561):
     start_page = load_progress()
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -288,7 +288,7 @@ def main(total_expected=50716, end_page=2536):
 def test1():
 
     url = "https://www.icama.cn/BasicdataSystem/pesticideRegistration/queryselect.do"
-    response = requests.get(url, headers=HEADERS)
+    response = requests.get(url, headers=HEADERS, verify=False)
 
     pages, records = extract_total_pages_and_records(response.text)
     print("-" * 10)
