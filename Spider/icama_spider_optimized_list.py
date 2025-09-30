@@ -9,7 +9,8 @@ import random
 import requests, certifi
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # === 配置区 ===
 DATA_DIR = "data"
 DB_FILE = os.path.join(DATA_DIR, "pesticide_data.db")
@@ -208,7 +209,7 @@ def should_stop_by_db_count(cursor, total_expected):
 
 
 # === 主逻辑 ===
-def main(total_expected=55220, end_page=2561):
+def main(total_expected=55220, end_page=2562):
     start_page = load_progress()
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
