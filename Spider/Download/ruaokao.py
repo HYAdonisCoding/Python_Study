@@ -1,6 +1,9 @@
 import subprocess
 import os
 import threading
+import time
+
+speter = '-'*10
 
 # 获取当前脚本所在目录（绝对路径）
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -26,8 +29,10 @@ USE_COOKIES = os.path.exists(COOKIES_FILE)
 lock = threading.Lock()
 
 
-def download_video(title, url):
-    """调用 yt-dlp 下载单个视频"""
+def download_video(title, url, max_retries=2, retry_interval=5):
+    """调用 yt-dlp 下载单个视频，失败时自动重试"""
+    
+
     cmd = ["yt-dlp"] + COMMON_HEADERS
     if USE_COOKIES:
         cmd += ["--cookies", COOKIES_FILE]
@@ -35,14 +40,31 @@ def download_video(title, url):
     output_path = os.path.join(SAVE_DIR, f"{title}.%(ext)s")
     cmd += ["-o", output_path, url]
 
-    print(f"🚀 正在下载：{title}")
-    try:
-        subprocess.run(cmd, check=True)  # 直接让 yt-dlp 输出到终端
-        print(f"✅ 下载成功：{title}")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"❌ 下载失败：{title}\n错误信息：{e.stderr.strip()}")
-        return False
+    for attempt in range(1, max_retries + 1):
+        print(f"🚀 正在下载：{title}（尝试 {attempt}/{max_retries}）")
+        try:
+            result = subprocess.run(cmd, check=True, text=True, capture_output=True)
+            print(f"✅ 下载成功：{title}")
+            return True
+        except subprocess.CalledProcessError as e:
+            err_msg = e.stderr if e.stderr else (e.output if e.output else str(e))
+            err_msg = err_msg.strip() if err_msg else "未知错误"
+            print(f"❌ 下载失败：{title}\n错误信息：{err_msg}")
+            if attempt < max_retries:
+                print(f"⏳ {retry_interval}秒后重试...")
+                time.sleep(retry_interval)
+            else:
+                print(f"❌ 已重试{max_retries}次仍失败：{title}")
+    # 自动清理残留碎片文件
+    for filename in os.listdir(SAVE_DIR):
+        if ".part-Frag" in filename:
+            try:
+                os.remove(os.path.join(SAVE_DIR, filename))
+            except Exception:
+                pass
+    print("🧹 已清理下载残留碎片")
+    return False
+
 
 
 def update_status(lines, index, new_status):
@@ -65,7 +87,6 @@ def main():
     with open(VIDEOS_FILE, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
-    threads = []
     for i, line in enumerate(lines):
         if not line.strip() or "|" not in line:
             continue
@@ -84,12 +105,7 @@ def main():
             print(f"❌ 无效URL：{url}")
             continue
 
-        t = threading.Thread(target=worker, args=(title, url, i, lines))
-        threads.append(t)
-        t.start()
-
-    for t in threads:
-        t.join()
+        worker(title, url, i, lines)
 
     # 写回更新后的文件
     with open(VIDEOS_FILE, "w", encoding="utf-8") as f:
@@ -97,4 +113,19 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    
+    print(f"{speter*2}Finished{speter*2}")
+    try:
+        main()
+    except KeyboardInterrupt:
+        print(f"{speter*2}手动退出程序{speter*2}")
+        # 清理残留碎片
+        for filename in os.listdir(SAVE_DIR):
+            if ".part-Frag" in filename:
+                try:
+                    os.remove(os.path.join(SAVE_DIR, filename))
+                except Exception:
+                    pass
+        print("🧹 已清理下载残留碎片")
+    finally:
+        print(f"{speter*2}Finished{speter*2}")
