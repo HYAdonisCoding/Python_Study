@@ -3,7 +3,7 @@ import os
 import threading
 import time
 
-speter = '-'*10
+speter = "-" * 10
 
 # 获取当前脚本所在目录（绝对路径）
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -31,7 +31,6 @@ lock = threading.Lock()
 
 def download_video(title, url, max_retries=2, retry_interval=5):
     """调用 yt-dlp 下载单个视频，失败时自动重试"""
-    
 
     cmd = ["yt-dlp"] + COMMON_HEADERS
     if USE_COOKIES:
@@ -66,7 +65,6 @@ def download_video(title, url, max_retries=2, retry_interval=5):
     return False
 
 
-
 def update_status(lines, index, new_status):
     """更新指定行的状态为 new_status，线程安全"""
     with lock:
@@ -98,7 +96,7 @@ def main():
         status = parts[2].strip() if len(parts) >= 3 else ""
 
         if status.lower() == "done":
-            print(f"⏭ 跳过已完成：{title}")
+            print(f"🪂 跳过已完成：{title}")
             continue
 
         if not url.startswith("http"):
@@ -113,8 +111,8 @@ def main():
 
 
 if __name__ == "__main__":
-    
-    print(f"{speter*2}Finished{speter*2}")
+
+    print(f"{speter*2}Starting{speter*2}")
     try:
         main()
     except KeyboardInterrupt:
