@@ -532,7 +532,19 @@ speter = "-" * 10
 # 	•	NameNode: 9870（web）
 # 	•	ResourceManager: 8088（web）
 
+# 释放空间方法
+# 	1.	停止 Hadoop 并清理 HDFS 数据：
 
+# stop-all.sh   # 或分别 stop-dfs.sh stop-yarn.sh
+# rm -rf /usr/local/hadoop_tmp
+
+# 	2.	清理 Homebrew 缓存：
+
+# brew cleanup
+
+# 注意：删除 /usr/local/hadoop_tmp 会清掉 HDFS 所有数据，如果有作业结果需要备份。
+
+# /opt/homebrew/Cellar/hadoop/3.4.2/libexec/etc/hadoop
 # 启动脚本在：~/.local/bin/start-hadoop-mac.sh
 # 启动命令：start-hadoop-mac.sh
 # 可以访问：
@@ -544,6 +556,7 @@ speter = "-" * 10
 # 关闭服务
 # stop-yarn.sh
 # stop-dfs.sh
+
 
 def test():
     pass
