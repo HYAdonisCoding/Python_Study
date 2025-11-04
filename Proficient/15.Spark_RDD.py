@@ -35,6 +35,7 @@ speter = "-" * 10
 # export PYSPARK_DRIVER_PYTHON=/Users/adam/envs/py_arm64/bin/python
 
 # $SPARK_HOME/bin/pyspark
+# $HADOOP_HOME/sbin/start-dfs.sh
 
 
 def f1(item):

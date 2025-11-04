@@ -121,3 +121,7 @@ BilibiliBot_cookies.json
 JuejinBot_cookies.json
 XHSBot_cookies.json
 JianshuBot_cookies.json
+metastore_db
+metastore_db/
+derby.log
+spark-warehouse/
