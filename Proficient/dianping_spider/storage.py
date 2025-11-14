@@ -36,6 +36,8 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 
+from parser import BASE_DIR
+
 DB_PATH = os.path.join(os.path.dirname(__file__), "db", "dianping.db")
 
 # Ensure the database directory exists
@@ -213,7 +215,41 @@ class SpiderDB:
         beijing = dt_utc.astimezone(timezone(timedelta(hours=8)))
         return beijing.isoformat(timespec='seconds')
 
+    # 把数据导出为txt
+    def export_shops_to_txt(self, file_path="shops_export.txt"):
+        """
+        Export all shop records to a TXT file, comma-separated.
 
+        Args:
+            file_path (str): Path to the output TXT file.
+        """
+        cur = self.conn.cursor()
+        cur.execute("SELECT * FROM shops")
+        rows = cur.fetchall()
+        # 获取字段名
+        columns = [desc[0] for desc in cur.description]
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            # 写表头（可选）
+            f.write(",".join(columns) + "\n")
+            for row in rows:
+                row_str = []
+                for col in row:
+                    if col is None:
+                        row_str.append("")  # 空值处理
+                        continue
+                    
+                    col_str = str(col)
+                    # 如果包含逗号或换行符，替换成顿号
+                    if ',' in col_str or '\n' in col_str or '\r' in col_str:
+                        col_str = col_str.replace(',', '、').replace('\n', ' ').replace('\r', ' ')
+                    
+                    row_str.append(col_str)
+                
+                # 用顿号分隔每个字段写入文件
+                f.write(", ".join(row_str) + "\n")
+
+        print(f"Exported {len(rows)} shops to {file_path}")
 
 def test_db_operations():
     """Test database insertions and progress tracking."""
@@ -230,5 +266,8 @@ def test_db_operations():
 
 if __name__ == '__main__':
     print("Start testing DB schema and save logic")
-    test_db_operations()
+    # test_db_operations()
+    db = SpiderDB()
+    db.export_shops_to_txt(file_path=os.path.join(BASE_DIR, "shops.txt"))
+    db.close()
     print("Finished")
