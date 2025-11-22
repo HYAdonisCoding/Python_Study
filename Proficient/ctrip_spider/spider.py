@@ -66,32 +66,48 @@ class DianpingSpider:
         if match:
             return match.group(1)
         return None
-    def human_scroll(self, min_step=30, max_step=80, base_delay=0.015, random_extra_delay=0.03):
+
+    def human_scroll(self, min_step=30, max_step=80, base_delay=0.015, random_extra_delay=0.03, max_scroll_height=500):
         """
         丝滑连续的人类滚动方式（更接近真实用户鼠标滚轮）
+        
+        :param max_scroll_height: 最大滚动高度限制，滚动到此高度时停止
         """
         try:
             current_y = 0
             total_height = self.driver.execute_script("return document.body.scrollHeight")
-
-            while current_y < total_height:
+            
+            # 如果没有设置最大滚动高度，默认滚动到底部
+            if max_scroll_height is None:
+                max_scroll_height = total_height
+            
+            while current_y < max_scroll_height:
                 # 每次滚动的像素（模拟鼠标滚轮：30~80 px）
                 step = random.randint(min_step, max_step)
                 current_y += step
-
+                
+                # 确保当前滚动位置不超过最大滚动限制
+                if current_y > max_scroll_height:
+                    current_y = max_scroll_height
+                
                 self.driver.execute_script(f"window.scrollTo(0, {current_y});")
-
+                
                 # 模拟微小的人类延迟：基础 + 随机
                 time.sleep(base_delay + random.random() * random_extra_delay)
-
-                # 动态更新高度（页面懒加载时高度会增加）
+                
+                # 动态更新页面高度（页面懒加载时，页面可能会增加高度）
                 total_height = self.driver.execute_script("return document.body.scrollHeight")
+                
+                # 如果总高度超过最大滚动高度，停止滚动
+                if total_height > max_scroll_height:
+                    break
 
-            # 最后位置校准到底部
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            # 校准滚动位置，避免出现卡顿
+            self.driver.execute_script(f"window.scrollTo(0, {current_y});")
 
         except Exception as e:
-            print(f"Smooth scroll error: {e}")
+            print(f"Error during human scroll: {e}")
+
         
     def fetch_html(self, url, retries=2, wait_selector=None, wait_timeout=15):
         self.driver.execute_cdp_cmd("Network.setExtraHTTPHeaders", {
