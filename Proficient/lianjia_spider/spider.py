@@ -195,7 +195,7 @@ class HouseSpider:
         except Exception as e:
             print(f"Error during human scroll: {e}")
 
-    def fetch_html(self, url, retries=2, wait_selector=None, wait_timeout=15):
+    def fetch_html(self, url, retries=2, wait_selector=None, wait_timeout=30):
         self.driver.execute_cdp_cmd(
             "Network.setExtraHTTPHeaders",
             {
@@ -292,7 +292,7 @@ def get_list_data(type=1):
     if start_page < 1:
         start_page = 1
 
-    end_page = 11
+    end_page = 33
     for page in range(start_page, end_page + 1):
         print(f"Crawling page {page}...")
         try:
@@ -325,6 +325,8 @@ def fetch_missing_details():
             FROM houses h
             LEFT JOIN house_details d ON h.house_id = d.house_id
             WHERE d.house_id IS NULL
+            OR d.listing_date IS NULL  -- 关键字段
+            ORDER BY h.house_id
             LIMIT {BATCH_SIZE};
         """).fetchall()
 
@@ -348,7 +350,7 @@ def fetch_missing_details():
                 try:
                     html = spider.fetch_html(detail_url, wait_selector=".introContent", retries=2)
                     # 若 fetch_html 返回页面但被重定向到登录/错误页，进行短延时再试
-                    if not html or "指定的服务未被授权" in html or "clogin.lianjia.com" in html:
+                    if not html or "指定的服务未被授权" in html:
                         print(f"Attempt {attempt+1}: invalid page or login redirect for {house_id}")
                         time.sleep(random.uniform(2, 5))
                         continue
@@ -401,6 +403,6 @@ def fetch_missing_details():
 if __name__ == "__main__":
     print("Start testing DB schema and save logic")
     # 6 7 8 10 34 ->
-    # get_list_data(type=-1)
+    # get_list_data(type=-1)÷
     fetch_missing_details()
     print("Crawling finished.")
