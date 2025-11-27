@@ -167,7 +167,62 @@ def export_db_to_csv(db_path, csv_path):
     conn.close()
     print(f"✅ 数据已成功导出至 {csv_path}")
 
+def export_db_to_csv_pro(db_path, csv_path):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # 获取所有数据
+    cursor.execute("SELECT * FROM pesticide_data")
+    rows = cursor.fetchall()
+
+    # 获取列名
+    column_names = [description[0] for description in cursor.description]
+
+    # 先找出最大有效成分数量
+    max_components = 0
+    comp_lists = []
+    for row in rows:
+        val = row[column_names.index("有效成分信息")]
+        try:
+            comps = json.loads(val) if val else []
+            if not isinstance(comps, list):
+                comps = []
+        except:
+            comps = []
+        comp_lists.append(comps)
+        max_components = max(max_components, len(comps))
+
+    # 生成新的列名，追加有效成分列
+    expanded_column_names = column_names.copy()
+    for i in range(1, max_components + 1):
+        expanded_column_names.extend([
+            f"有效成分{i}",
+            f"有效成分{i}英文",
+            f"有效成分{i}含量"
+        ])
+
+    # 写入 CSV
+    with open(csv_path, 'w', encoding='utf-8-sig', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(expanded_column_names)
+
+        for row, comps in zip(rows, comp_lists):
+            processed_row = list(row)  # 复制原始数据
+            # 追加每个有效成分的值
+            for comp in comps:
+                processed_row.append(comp.get("有效成分", ""))
+                processed_row.append(comp.get("有效成分英文名", ""))
+                processed_row.append(comp.get("有效成分含量", ""))
+            # 如果这一行有效成分少于 max_components，补空列
+            empty_cols = (max_components - len(comps)) * 3
+            processed_row.extend([""] * empty_cols)
+
+            writer.writerow(processed_row)
+
+    conn.close()
+    print(f"✅ 数据已成功导出至 {csv_path}")
+
 # 执行导出
 if __name__ == '__main__':
     # data_todb()
-    export_db_to_csv(DB_FILE, CSV_FILE)
+    export_db_to_csv_pro(DB_FILE, CSV_FILE)
