@@ -27,6 +27,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
+logging.getLogger("WDM").setLevel(logging.WARNING)
 
 def build_url(pd_id):
     r_value = round(random.random(), 16)
@@ -86,6 +87,8 @@ def extract_all_info_with_selenium(url, retries=MAX_RETRIES):
     for attempt in range(1, retries + 1):
         try:
             options = webdriver.ChromeOptions()
+            # DOM Ready 就返回，不等所有 JS / 图片 / iframe
+            options.page_load_strategy = "eager"
             options.add_argument("--headless")
             options.add_argument("--disable-gpu")
             options.add_argument("--no-sandbox")
@@ -95,7 +98,7 @@ def extract_all_info_with_selenium(url, retries=MAX_RETRIES):
             driver = webdriver.Chrome(
                 service=Service(ChromeDriverManager().install()), options=options
             )
-
+            driver.set_page_load_timeout(60)
             driver.get(url)
 
             # 等待表格加载
@@ -126,6 +129,7 @@ def extract_all_info_with_selenium(url, retries=MAX_RETRIES):
 def process_record(record):
     djzh, pd_id = record
     url = build_url(pd_id)
+    logging.info(f"🌐 开始加载页面数据: {djzh}")
     detail_info = extract_all_info_with_selenium(url)
 
     if detail_info and detail_info["有效成分信息"]:
@@ -136,7 +140,7 @@ def process_record(record):
             cursor.execute(
                 """
                 UPDATE pesticide_data
-                SET 登记证信息 = ?, 有效成分信息 = ?, 制剂用药量信息 = ?
+                SET 登记证信息 = ?, 有效成分信息 = ?, 制剂用药量信息 = ?,更新时间 = DATETIME('now', 'localtime')
                 WHERE 登记证号 = ?
             """,
                 (
@@ -159,22 +163,53 @@ def process_record(record):
 
 
 def main():
+    logging.info("爬虫启动")
+
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT 登记证号, pd_id FROM pesticide_data WHERE 有效成分信息 IS NULL OR 有效成分信息 = '[]'"
+        """
+        SELECT 登记证号, pd_id
+        FROM pesticide_data
+        WHERE 有效成分信息 IS NULL OR 有效成分信息 = '[]'
+        """
     )
     records = cursor.fetchall()
     conn.close()
 
-    logging.info(f"Total records to update: {len(records)}")
+    total = len(records)
+    completed = 0
+    logging.info(f"Total records to update: {total}")
 
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+
+    try:
         futures = [executor.submit(process_record, rec) for rec in records]
-        for _ in tqdm(as_completed(futures), total=len(futures), desc="补全中"):
-            pass
 
-    logging.info("✅ 所有补全任务完成。")
+        for _ in tqdm(
+            as_completed(futures),
+            total=total,
+            desc="补全中",
+            dynamic_ncols=True,
+        ):
+            completed += 1
+
+    except KeyboardInterrupt:
+        logging.warning(f"⛔ 已完成 {completed}/{total}，任务被用户中断")
+        executor.shutdown(wait=False, cancel_futures=True)
+        os._exit(130)
+    except Exception as e:
+        logging.exception(f"❌ 主流程异常: {e}")
+        executor.shutdown(wait=False, cancel_futures=True)
+        raise
+
+    else:
+        logging.info("✅ 所有补全任务完成。")
+
+    finally:
+        # 兜底，确保资源释放
+        executor.shutdown(wait=False)
+
 
 
 if __name__ == "__main__":

@@ -399,4 +399,5 @@ def statistical_information_effective_components(db_path=DB_FILE, top=10):
 # 执行导出
 if __name__ == '__main__':
     # data_todb()
-    statistical_information_effective_components(DB_FILE)
+    # statistical_information_effective_components(DB_FILE)
+    export_db_to_csv_pro_max(DB_FILE, CSV_FILE)

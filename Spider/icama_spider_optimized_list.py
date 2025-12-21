@@ -10,7 +10,9 @@ import requests, certifi
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 import urllib3
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# ! 智能循环爬取列表页
 # === 配置区 ===
 DATA_DIR = "data"
 DB_FILE = os.path.join(DATA_DIR, "pesticide_data.db")
@@ -89,7 +91,9 @@ def fetch_list_page(page):
         "accOrfuzzy": "2",
     }
     try:
-        response = requests.post(url, headers=HEADERS, verify=False, data=data, timeout=10)
+        response = requests.post(
+            url, headers=HEADERS, verify=False, data=data, timeout=10
+        )
         response.raise_for_status()
         return response.text
     except Exception as e_post:
@@ -150,44 +154,72 @@ def extract_total_pages_and_records(html):
 
 def upsert_to_db(record, cursor):
     djzh = record.get("登记证号")
-    cursor.execute("SELECT 1 FROM pesticide_data WHERE 登记证号 = ?", (djzh,))
-    exists = cursor.fetchone() is not None
+    if not djzh:
+        return False
 
-    try:
-        cursor.execute(
-            """
-            INSERT INTO pesticide_data (
-                登记证号, 农药名称, 农药类别, 剂型, 总含量, 有效期至, 登记证持有人, pd_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(登记证号) DO UPDATE SET
-                农药名称=excluded.农药名称,
-                农药类别=excluded.农药类别,
-                剂型=excluded.剂型,
-                总含量=excluded.总含量,
-                有效期至=excluded.有效期至,
-                登记证持有人=excluded.登记证持有人,
-                pd_id=excluded.pd_id
+    # 1️⃣ 查旧记录
+    cursor.execute(
+        """
+        SELECT 农药名称, 农药类别, 剂型, 总含量, 有效期至, 登记证持有人, pd_id
+        FROM pesticide_data
+        WHERE 登记证号 = ?
         """,
-            (
-                djzh,
-                record.get("农药名称"),
-                record.get("农药类别"),
-                record.get("剂型"),
-                record.get("总有效成分含量") or record.get("总含量"),
-                record.get("有效期至"),
-                record.get("登记证持有人"),
-                record.get("pd_id"),
-            ),
-        )
+        (djzh,),
+    )
+    old = cursor.fetchone()
 
-        if exists:
-            # logging.info(f"更新登记证号：{djzh}")
-            pass
-        else:
-            logging.info(f"新增登记证号：{djzh}")
+    # 2️⃣ 规范化新值（非常重要，避免“假变化”）
+    new = (
+        record.get("农药名称"),
+        record.get("农药类别"),
+        record.get("剂型"),
+        record.get("总有效成分含量") or record.get("总含量"),
+        record.get("有效期至"),
+        record.get("登记证持有人"),
+        record.get("pd_id"),
+    )
+
+    new_norm = tuple(norm(x) for x in new)
+    old_norm = tuple(norm(x) for x in old) if old else None
+
+    is_new = old_norm is None
+    is_changed = old_norm is not None and new_norm != old_norm
+
+    # 3️⃣ 真正 upsert
+    try:
+        if is_new:
+            cursor.execute(
+                """
+                INSERT INTO pesticide_data (
+                    登记证号, 农药名称, 农药类别, 剂型, 总含量, 有效期至, 登记证持有人, pd_id, 更新时间
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, DATETIME('now', 'localtime'))
+                """,
+                (djzh, *new),
+            )
+            logging.info(f"🆕 新增登记证号：{djzh}")
+
+        elif is_changed:
+            cursor.execute(
+                """
+                UPDATE pesticide_data SET
+                    农药名称=?, 农药类别=?, 剂型=?, 总含量=?, 有效期至=?, 登记证持有人=?, pd_id=?, 更新时间=DATETIME('now', 'localtime')
+                WHERE 登记证号=?
+                """,
+                (*new, djzh),
+            )
+            logging.info(f"♻️ 更新登记证号：{djzh}")
+
+        # else: 什么都不做
+
+        return is_new or is_changed
 
     except Exception as e:
         logging.error(f"❌ DB insert/update error for {djzh}: {e}")
+        return False
+
+
+def norm(v):
+    return v.strip() if isinstance(v, str) else v
 
 
 def update_total_expected_from_page(html, total_expected):
@@ -209,7 +241,8 @@ def should_stop_by_db_count(cursor, total_expected):
 
 
 # === 主逻辑 ===
-def main(total_expected=55220, end_page=2562):
+def main(total_expected=52582, end_page=2630):
+    logging.info("爬虫启动")
     start_page = load_progress()
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -219,7 +252,8 @@ def main(total_expected=55220, end_page=2562):
     )
     pbar = tqdm(total=end_page - start_page + 1, desc="获取列表数据中", ncols=100)
     page = start_page
-
+    empty_page_streak = 0
+    MAX_EMPTY_PAGES = 15  # 建议 5~20，视站点稳定性
     try:
         while page <= end_page:
             html = fetch_list_page(page)
@@ -234,6 +268,7 @@ def main(total_expected=55220, end_page=2562):
             if new_total and new_total > total_expected:
                 total_expected = new_total
                 logging.info(f"📈 动态更新 total_expected = {total_expected}")
+            page_has_change = False
 
             if pages and 1 < pages < end_page:
                 delta = end_page - pages
@@ -242,11 +277,15 @@ def main(total_expected=55220, end_page=2562):
                 pbar.refresh()
                 logging.info(f"📉 动态调整总页数为 {end_page}")
 
+            page_has_change = False
+
             try:
                 records = parse_list(html)
                 for record in records:
                     if "登记证号" in record and record["登记证号"]:
-                        upsert_to_db(record, cursor)
+                        changed = upsert_to_db(record, cursor)
+                        if changed:
+                            page_has_change = True
             except Exception as e:
                 logging.error(f"❌ 第 {page} 页解析/入库失败: {e}")
 
@@ -256,14 +295,17 @@ def main(total_expected=55220, end_page=2562):
             page += 1
             pbar.update(1)
 
-            # 每 5 页检查一次是否达到目标数据量
-            if page % 5 == 0:
-                cursor.execute("SELECT COUNT(*) FROM pesticide_data")
-                current_total = cursor.fetchone()[0]
-                logging.info(f"📊 当前已同步数据总数: {current_total}")
-                if current_total >= total_expected:
-                    logging.info(f"✅ 数据已达 {total_expected}，提前结束爬虫任务")
-                    break
+            if page_has_change:
+                empty_page_streak = 0
+            else:
+                empty_page_streak += 1
+                logging.info(
+                    f"⚠️ 第 {page} 页无新增/更新，连续空页 {empty_page_streak}/{MAX_EMPTY_PAGES}"
+                )
+
+            if empty_page_streak >= MAX_EMPTY_PAGES:
+                logging.info("🛑 连续空页达到阈值，判定已到数据末尾，安全退出")
+                break
 
             # 保活（防止数据库连接超时）
             if page % 20 == 0:
