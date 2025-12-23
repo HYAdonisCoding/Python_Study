@@ -26,7 +26,7 @@ country VARCHAR(20),
 continent VARCHAR(10));
 
 # 往表中插数据
-LOAD DATA INFILE 'E:/tourism_orders.csv' 
+LOAD DATA INFILE '/Users/adam/mysql_output/tourism_orders.csv' 
 INTO TABLE tourism_orders 
 FIELDS TERMINATED BY ',' 
 LINES TERMINATED BY '\n'
@@ -62,13 +62,13 @@ F TINYINT,
 M DECIMAL(10,2));
 
 # 批量导入数据
-LOAD DATA INFILE 'E:/user_regit_RFM/regit_info.csv' 
+LOAD DATA INFILE '/Users/adam/mysql_output/regit_info.csv' 
 INTO TABLE regit_info 
 FIELDS TERMINATED BY ',' 
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
 
-LOAD DATA INFILE 'E:/user_regit_RFM/RFM.csv' 
+LOAD DATA INFILE '/Users/adam/mysql_output/RFM.csv' 
 INTO TABLE RFM 
 FIELDS TERMINATED BY ',' 
 LINES TERMINATED BY '\n'
