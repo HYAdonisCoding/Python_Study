@@ -9,35 +9,92 @@ from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 import re
 from collections import Counter
+from openpyxl.utils import get_column_letter
+
 
 # ========= 参数 =========
-input_file = "Processing/查重.xlsx"
-output_file = "Processing/output.xlsx"
-sheet_name = 0  # 或具体 sheet 名
-col_a = "有效成分英文名"
-col_b = "英文"
 case_sensitive = False  # 是否区分大小写
 
 
-# =======================
-def test():
+
+def process_excel_data_with_keywords(input_file_name, col_a, col_b, dir="/Users/adam/Desktop/Processing/", type="xlsx", sheet_name = 0):
+    """
+    处理 Excel 文件中的数据，基于指定列的关键词进行匹配，并输出结果至新的 Excel 文件。
+
+    本方法将对输入的 Excel 文件执行以下操作：
+    1. 根据提供的文件名和类型（`type` 参数），读取位于指定目录（`dir`）的 Excel 文件。
+    2. 从指定的两列（`col_a` 和 `col_b`）中提取数据。
+    3. 根据第二列的关键词与第一列的数据进行匹配，找到包含关键词的行，并记录匹配信息。
+    4. 输出处理结果到指定目录，并在文件名中加入 `_output` 后缀。
+    5. 支持不同格式的文件类型（如 `.xlsx`）。
+
+    参数:
+    ----------
+    input_file_name : str
+        输入的 Excel 文件名（不包含扩展名），将根据此文件名从指定目录读取文件。
+    
+    col_a : str
+        第一个需要匹配数据的列名。该列中的数据将与第二列中的关键词进行匹配。
+    
+    col_b : str
+        第二个包含关键词的列名。方法将从此列提取所有关键词，并在第一列中进行匹配。
+
+    dir : str, optional
+        输入和输出文件的目录路径，默认为 "/Users/adam/Desktop/Processing/"。
+    
+    type : str, optional
+        文件类型（扩展名），默认为 "xlsx"。支持其他文件类型（如 "csv"）时，只需修改此参数。
+    
+    sheet_name : int or str, optional
+        Excel 表单的名称或索引，默认为 0，表示第一个工作表。如果是多个工作表的情况，可以提供表单名或索引。
+
+    返回:
+    -------
+    None
+        此方法无返回值。处理后的数据会被写入到新的 Excel 文件，文件名会在原文件名基础上加上 "_output" 后缀。
+
+    异常:
+    -------
+    FileNotFoundError
+        如果输入文件路径无效或文件不存在，将抛出此异常。
+    
+    ValueError
+        如果列名无效或列不存在，将抛出此异常。
+
+    示例:
+    -------
+    process_excel_data_with_keywords(
+        input_file_name="欧盟查重",
+        col_a="英文名称",
+        col_b="Active substance",
+        dir="/path/to/files/",
+        type="xlsx",
+        sheet_name=0
+    )
+    """
+    input_file = f"{dir}{input_file_name}.{type}"
+    output_file = f"{dir}{input_file_name}_output.{type}"
+    
     # 1. 读取 Excel
     df = pd.read_excel(input_file, sheet_name=sheet_name)
-
+    # 获取 col_b 列的列索引（使用 df.columns 获取所有列名的位置）
+    col_b_idx = df.columns.get_loc(col_b)
+    # 将列索引转换为字母表示（如 0 -> A, 1 -> B, 2 -> C 等）
+    col_b_letter = get_column_letter(col_b_idx + 1)  # openpyxl 是从 1 开始计算列号的
+    # print(col_b_idx, col_b_letter, "idx")
+    
     # 2. 文本预处理（统一小写 + 去空 + 处理 NaN）
     a_series = (
         df[col_a]
         .fillna("")
         .astype(str)
-        .str.lower()
-        .str.strip()
+        .str.lower() if not case_sensitive else df[col_a].str.strip()
     )
     b_series = (
         df[col_b]
         .fillna("")
         .astype(str)
-        .str.lower()
-        .str.strip()
+        .str.lower() if not case_sensitive else df[col_b].str.strip()
     )
 
     # 3. 判断“包含关系”（列对列：A 列 对 全部 B 列）
@@ -57,7 +114,8 @@ def test():
             k = k.strip()
             if not k:
                 continue
-            keyword_map.setdefault(k, []).append(f"B{idx}")
+            # 使用传入的 col_b 来动态构建单元格（比如 col_b="Active substance" 时，记录 B2、B15）
+            keyword_map.setdefault(k, []).append(f"{col_b_letter}{idx}")
 
     match_list = []
     hit_word_list = []
@@ -72,7 +130,7 @@ def test():
 
         hit_items = []
         for k, cells in keyword_map.items():
-            pattern = rf"\b{re.escape(k)}\b"
+            pattern = rf"\b{re.escape(k)}\b"  # 正则词边界
             if re.search(pattern, a):
                 for c in cells:
                     hit_items.append(f"{k}({c})")
@@ -95,6 +153,7 @@ def test():
     print(f"总行数: {total_rows}")
     print(f"命中数: {hit_count}")
     print(f"空行数: {empty_row_count}")
+    print(f"结果存储：{output_file}")
     print("=================")
 
     # 4. 写回 Excel
@@ -112,11 +171,10 @@ def test():
 
     wb.save(output_file)
 
-
 if __name__ == "__main__":
     print(f"{speter*2}Starting{speter*2}")
     try:
-        test()
+        process_excel_data_with_keywords(input_file_name="欧盟查重", col_a="英文名称", col_b="Active substance")
     except KeyboardInterrupt:
         print(f"{speter*2}手动退出程序{speter*2}")
     finally:
