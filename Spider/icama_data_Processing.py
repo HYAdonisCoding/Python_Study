@@ -10,10 +10,13 @@ from openpyxl.styles import PatternFill
 import re
 from collections import Counter
 from openpyxl.utils import get_column_letter
+import math
 
 
 # ========= 参数 =========
+
 case_sensitive = False  # 是否区分大小写
+numeric_decimal_places = 2  # 数值型 col_a 参与匹配时，保留的小数位数
 
 
 
@@ -84,18 +87,51 @@ def process_excel_data_with_keywords(input_file_name, col_a, col_b, dir="/Users/
     # print(col_b_idx, col_b_letter, "idx")
     
     # 2. 文本预处理（统一小写 + 去空 + 处理 NaN）
-    a_series = (
-        df[col_a]
-        .fillna("")
-        .astype(str)
-        .str.lower() if not case_sensitive else df[col_a].str.strip()
-    )
+    # 2.1 处理 col_a：逐行判断“是否为数值”
+    # 设计说明：
+    # - col_a 可能是“文本 + 数值”的混合列（真实业务常见）
+    # - 每一行单独判断是否可转为数值
+    #   - 能转：按 numeric_decimal_places 统一精度，用于数值匹配
+    #   - 不能转：按文本处理，用于正则匹配
+    def normalize_a_value(val):
+        if pd.isna(val):
+            return ""
+
+        # 尝试作为数值处理
+        try:
+            num = float(val)
+            # 数值型：采用“向下截断”而非四舍五入
+            # 业务原因：
+            # - 登记/成分/法规数据以“有效精度下限”为准
+            # - 避免因进位导致本应等价的数据被判为不一致
+            factor = 10 ** numeric_decimal_places
+            truncated = math.floor(num * factor) / factor
+            return f"{truncated:.{numeric_decimal_places}f}"
+        except (ValueError, TypeError):
+            # 非数值，按文本处理
+            s = str(val).strip()
+            return s.lower() if not case_sensitive else s
+
+    a_series = df[col_a].apply(normalize_a_value)
     b_series = (
         df[col_b]
         .fillna("")
         .astype(str)
         .str.lower() if not case_sensitive else df[col_b].str.strip()
     )
+
+    # 2.2 处理 col_b 的数值精度（向下截断）
+    # 说明：
+    # - 与 col_a 采用完全一致的截断规则
+    # - 确保“同一精度语义下”的数值可比性
+    def truncate_numeric(val):
+        if pd.isna(val):
+            return ""
+        factor = 10 ** numeric_decimal_places
+        truncated = math.floor(val * factor) / factor
+        return f"{truncated:.{numeric_decimal_places}f}"
+
+    b_numeric_series = pd.to_numeric(df[col_b], errors="coerce").apply(truncate_numeric)
 
     # 3. 判断“包含关系”（列对列：A 列 对 全部 B 列）
     # 说明：
@@ -121,7 +157,7 @@ def process_excel_data_with_keywords(input_file_name, col_a, col_b, dir="/Users/
     hit_word_list = []
     empty_row_count = 0
 
-    for a in a_series:
+    for row_idx, a in enumerate(a_series):
         if not a:
             match_list.append(False)
             hit_word_list.append("")
@@ -129,15 +165,29 @@ def process_excel_data_with_keywords(input_file_name, col_a, col_b, dir="/Users/
             continue
 
         hit_items = []
+
         for k, cells in keyword_map.items():
-            pattern = rf"\b{re.escape(k)}\b"  # 正则词边界
+            # —— 数值精度匹配（基于小数位数）——
+            # 规则：
+            # - a 与 b 都已按 numeric_decimal_places 统一格式
+            # - 字符串完全一致，视为“数值等价”
+            if a:
+                for c in cells:
+                    b_row = int(c[1:]) - 2
+                    b_val = b_numeric_series.iloc[b_row]
+
+                    if b_val and a == b_val:
+                        hit_items.append(f"{a}({c})")
+
+            # —— 原有文本正则匹配（兜底）——
+            pattern = rf"\b{re.escape(k)}\b"
             if re.search(pattern, a):
                 for c in cells:
                     hit_items.append(f"{k}({c})")
 
         if hit_items:
             match_list.append(True)
-            hit_word_list.append("; ".join(sorted(hit_items)))
+            hit_word_list.append("; ".join(sorted(set(hit_items))))
         else:
             match_list.append(False)
             hit_word_list.append("")
