@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # filepath: /Users/adam/Documents/Developer/MyGithub/Python_Study/Proficient/recursion.py
 # coding: utf-8
-speter = "-" * 10
+from base_class import speter, BASE_DIR
 
 # 第四篇
 # massage......
