@@ -44,8 +44,14 @@ class FileExtension(Enum):
 # 定义下载函数
 def download_file(url, filename, default_extension=FileExtension.MP3):
     try:
-        # 清理文件名：去除非法字符
-        sanitized_filename = re.sub(r'[\\/*?:"<>|]', '', filename).replace(' ', '')
+
+        # 1. 首先去除系统非法字符
+        sanitized_filename = re.sub(r'[\\/*?:"<>|]', '', filename)
+
+        # 2. 判断是否包含中文字符
+        # 如果包含中文，则执行去除空格的操作
+        if re.search(r'[\u4e00-\u9fa5]', sanitized_filename):
+            sanitized_filename = sanitized_filename.replace(' ', '')
         
         # 检查并自动添加扩展名
         ext = os.path.splitext(sanitized_filename)[1].lower()  # 提取扩展名
@@ -83,9 +89,29 @@ if __name__ == '__main__':
     # 数据数组
     data_array = [
         {
-            'url': 'https://m704.music.126.net/20250901170305/9a517f9d605eac99cf7a4f186f6aaa25/jdyyaac/obj/w5rDlsOJwrLDjj7CmsOj/28481679190/0a4b/e310/4061/c9b18121af33ce72344e1042a533ad6c.m4a?vuutv=dGNXM7dLdsKsIwmavrlICDInARkF8We+Cqwl/kGRUd2wE/Vf3WGqzu9/Ga/9JajQKZOFG/4E+TiDlBUd2Lq+Zyirs2T5mo4+WHKCLYsTNNk=&authSecret=00000199046d24d8099e0a3084731280&cdntag=bWFyaz1vc193ZWIscXVhbGl0eV9leGhpZ2g',
-            'filename': '光年之外-G.E.M.邓紫棋'
-        }
+            'url': 'https://m804.music.126.net/20260131214520/ba9cf3ea1ca596796bf51a7a88c17eef/jdyyaac/obj/w5rDlsOJwrLDjj7CmsOj/29344086099/fcf2/19aa/952e/b72653f2be7a36570f3cf424e7b83097.m4a?vuutv=i2n4TpD6maBp4U1dNUYTGvSNGXzag3npqC2ugrEu1Yd1kZhwUJJvqD0i3JP8bZPTotqLjAbKabftl98i/zd/lsqky3V0AhHKa+SDpRAGV/c=&authSecret=0000019c14362d271d9f0a3b18170d64&cdntag=bWFyaz1vc193ZWIscXVhbGl0eV9leGhpZ2g',
+            'filename': 'Yesterday Once More'
+        },
+        {
+            'url': 'https://m804.music.126.net/20260131214838/127cab2b78bb40913cdf505a05008d98/jdyyaac/obj/w5rDlsOJwrLDjj7CmsOj/18712801509/518a/4407/9fbc/555f890bacbb9a179dc0d5d785ab6520.m4a?vuutv=GGi2knBFt2/seqggDuo2tZKhznq/D3Hv9wupaR3hzzIxKe9kj2JqWxlIrgyitTT0nYR5NgCdfR5TCX+fnPEE9Dwc9C4glEi8GDaT85m29sU=&authSecret=0000019c14392fbd073f0aaf79b40006&cdntag=bWFyaz1vc193ZWIscXVhbGl0eV9leGhpZ2g',
+            'filename': 'The Day You Went Away'
+        },
+        {
+            'url': 'https://m804.music.126.net/20260131215114/05865da483c56f341b407c85c5ee7593/jdyyaac/obj/w5rDlsOJwrLDjj7CmsOj/22259852866/2e6d/a20d/6ad6/cfab44cef6e266202668709544527487.m4a?vuutv=RaQdBY8MzudV72vlYN/n28L9u1fpiuLpJBDdFrSWz4gExSKW+DQvTYygRPjQbdMqN+T1TLRQ8ubijC1Ex+3tXwMg4fucHNjsuwhmNz+08lI=&authSecret=0000019c143b91151b660a3b22fd23b7&cdntag=bWFyaz1vc193ZWIscXVhbGl0eV9leGhpZ2g',
+            'filename': 'Because of You'
+        },
+        {
+            'url': 'https://m704.music.126.net/20260131215300/7a77eb5b5d70e8f062d15d27fdbb17a5/jdyyaac/obj/w5rDlsOJwrLDjj7CmsOj/24757137791/e634/235d/587d/7fce3d0a36652bc98d292f5b61ac0a32.m4a?vuutv=wwcmmt6gvIwyKw11sNreEUyaeiaQtVy7g0oOB09MOuaJrRKO+CecDUSOFXI/Fw4rbbAAss79UnWUncvKVU3tkJcywkC9mu/Qz+f58db+Yu0=&authSecret=0000019c143d32591d700a3b21321dab&cdntag=bWFyaz1vc193ZWIscXVhbGl0eV9leGhpZ2g',
+            'filename': 'My Stupid Heart (Kids Version)'
+        },
+        {
+            'url': 'https://m704.music.126.net/20260131215539/f530caf34ef0bc730457b71b354cf4a2/jdyyaac/obj/w5rDlsOJwrLDjj7CmsOj/25981403000/ab63/ba51/dc2d/a767429c84d3854f0dc5edf32a20f9ac.m4a?vuutv=7xCJT3UbnAe0vFa/4hVUh6rCdBhANF+lDxw3Zb+QgiZpKmOVGnnHunZgzjKpeBqupa0mmXNC3tuzSZW7siQ98yf2EMKb4YaDwLaIEp2UDiA=&authSecret=0000019c143f9d0c1bfa0a3b1be403c9&cdntag=bWFyaz1vc193ZWIscXVhbGl0eV9leGhpZ2g',
+            'filename': 'Take Me to Your Heart'
+        },
+        {
+            'url': 'https://m704.music.126.net/20260131215650/1dea6ed6d44a418993d4113c5bb1ac47/jdyyaac/obj/w5rDlsOJwrLDjj7CmsOj/16717793379/2774/0015/bb1a/90f6d0e070661fa4f5f3e3af2be83fae.m4a?vuutv=M/+7+aVxkHjVvGmUPDqyMY+GB8PggzYPcqJ+DYoPpCorNl1DlYA3Gpeu28K0uHVecAkORUudXGEdqYusXlHjNVxSY2SOTzW9I6wY5z6IEOs=&authSecret=0000019c1440b31315d00a3b23f401b5&cdntag=bWFyaz1vc193ZWIscXVhbGl0eV9leGhpZ2g',
+            'filename': '我爱祖国的蓝天'
+        },
     ]
 
     # 遍历数组并下载文件
