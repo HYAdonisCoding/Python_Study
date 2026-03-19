@@ -125,3 +125,4 @@ metastore_db
 metastore_db/
 derby.log
 spark-warehouse/
+*.m4a

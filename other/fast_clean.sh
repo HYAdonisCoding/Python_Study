@@ -1,59 +1,43 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# ==========================================================
+# fast_clean.sh - 开发者日常快速清理工具
+# ==========================================================
 
-# 移除 set -e，改用更灵活的执行方式
 echo "------------------------------------------"
-echo "🚀 开始深度清理 Mac 开发环境..."
-date
-echo "------------------------------------------"
+echo "🚀 快速清理模式启动..."
 
-# 获取清理前的空间
+# 统计开始空间
 BEFORE=$(df -m /System/Volumes/Data | awk 'NR==2 {print $4}')
 
-# 定义清理函数
-clean_dir() {
-    if [ -d "$1" ]; then
-        # 统计文件夹大小
-        SIZE=$(du -sh "$1" 2>/dev/null | awk '{print $1}')
-        echo "🧹 正在清理 ($SIZE): $1"
-        # 使用 -f 强制删除，避免因找不到文件而报错
-        rm -rf "$1"/* 2>/dev/null
-    else
-        echo "[跳过] 目录不存在: $1"
-    fi
-}
-
-# 1. Xcode 相关
-clean_dir "$HOME/Library/Developer/Xcode/DerivedData"
-clean_dir "$HOME/Library/Developer/Xcode/Archives"
-clean_dir "$HOME/Library/Developer/Xcode/iOS DeviceSupport"
-echo "🔧 正在移除不可用的模拟器数据..."
+# 1. Xcode & 模拟器 (核心回血区)
+echo "🧹 清理 Xcode 派生数据与缓存..."
+rm -rf ~/Library/Developer/Xcode/DerivedData/*
+rm -rf ~/Library/Developer/Xcode/Archives/*
+rm -rf ~/Library/Developer/Xcode/iOS\ DeviceSupport/*
 xcrun simctl delete unavailable 2>/dev/null
 
-# 2. 软件残余
-clean_dir "$HOME/Library/Application Support/Claude"
-clean_dir "$HOME/Library/Application Support/yuque-desktop"
-if [ -d "$HOME/Library/Application Support/JetBrains" ]; then
-    echo "🧹 正在彻底移除 JetBrains 残余..."
-    rm -rf "$HOME/Library/Application Support/JetBrains" 2>/dev/null
-    rm -rf "$HOME/Library/Caches/JetBrains" 2>/dev/null
-fi
+# 2. 开发者工具缓存
+echo "🧹 清理 CocoaPods & Homebrew 缓存..."
+pod cache clean --all >/dev/null 2>&1 || true
+brew cleanup -s >/dev/null 2>&1 || true
 
-# 3. 包管理器 (静默执行)
-echo "📦 正在清理 CocoaPods 与 Homebrew 缓存..."
-pod cache clean --all >/dev/null 2>&1 || echo "⚠️ Pods 清理跳过"
-brew cleanup -s >/dev/null 2>&1 || echo "⚠️ Brew 清理跳过"
+# 3. 异常占用应用 (根据你的扫描结果定制)
+echo "🧹 清理应用缓存 (Claude/微信资源)..."
+# Claude 缓存
+rm -rf ~/Library/Application\ Support/Claude/* 2>/dev/null
+# 微信资源文件 (安全清理，不删数据库)
+find ~/Library/Containers/com.tencent.xinWeChat/Data/Library/Application\ Support/com.tencent.xinWeChat -name "MessageTemp" -type d -exec rm -rf {} + 2>/dev/null
 
-# 4. 终极一击：清空垃圾桶
-echo "🗑️ 正在清空系统垃圾桶..."
+# 4. 强制清空垃圾桶 (释放占位)
+echo "🗑️  清空垃圾桶..."
 rm -rf ~/.Trash/* 2>/dev/null
 
-# 统计战果
+# 统计结束空间
 AFTER=$(df -m /System/Volumes/Data | awk 'NR==2 {print $4}')
 DIFF=$((AFTER - BEFORE))
 
 echo "------------------------------------------"
 echo "✅ 清理完成！"
-echo "📈 本次为您腾出空间: ${DIFF} MB"
-echo "📊 当前可用空间："
-df -h /System/Volumes/Data | grep /dev/disk
+echo "📈 本次为您释放空间: ${DIFF} MB"
+echo "📊 当前可用空间: $(df -h /System/Volumes/Data | awk 'NR==2 {print $4}')"
 echo "------------------------------------------"
