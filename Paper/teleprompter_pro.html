@@ -171,27 +171,95 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
 let sentences = [];
 
 function formatSentence(s) {
-    if (s.length > 24) {
-        return s.replace(/(.{20})/g, '$1<br>');
-    }
+    // 去掉 ** 标记
+    s = s.replace(/\*\*/g, '');
+
+    // 自动断句后，每句不再强制切断，只保留原样
     return s;
 }
 
 function loadText(raw) {
-    sentences = raw.split(/(?<=[，。！？])/);
+    // 统一换行
+    raw = raw.replace(/\r\n?/g, '\n').replace(/\*\*/g, '');
 
-    container.innerHTML = sentences.map(s => `<div class="sentence">${formatSentence(s)}</div>`).join('');
+    // 先按段落分（保留结构）
+    const paragraphs = raw.split('\n');
 
+    sentences = [];
+
+    paragraphs.forEach(line => {
+        if (line.trim() === '') {
+            // 空行保留
+            sentences.push('');
+            return;
+        }
+
+        // 标题直接保留，不拆
+        if (/^\s*#/.test(line)) {
+            sentences.push(line);
+            return;
+        }
+
+        // 🔥 更智能的自动断句
+        let parts = line
+            .replace(/([，。！？；])/g, '$1|')
+            .split('|')
+            .map(s => s.trim())
+            .filter(Boolean);
+
+        // 二次优化：过长句子再切一刀（更像人说话）
+        let refined = [];
+        parts.forEach(p => {
+            if (p.length > 20) {
+                refined.push(...p.split(/(?<=，)/));
+            } else {
+                refined.push(p);
+            }
+        });
+        parts = refined;
+
+        parts.forEach(p => {
+            const t = p.trim();
+            if (t) sentences.push(t);
+        });
+    });
+
+    // 渲染
+    container.innerHTML = sentences.map(s => {
+        if (s === '') {
+            return `<div class="sentence" style="height:40px;"></div>`;
+        }
+        if (/^\s*#/.test(s)) {
+            return `<div class="sentence" style="font-size:56px;font-weight:bold;line-height:1.4;">${s.replace(/^\s*#+\s*/, '')}</div>`;
+        }
+        return `<div class="sentence">${formatSentence(s)}</div>`;
+    }).join('');
+
+    // 重新计算
     sentenceNodes = document.querySelectorAll('.sentence');
-    computePositions();
 
-    currentIndex = 0;
-    offsetY = 0;
-    container.style.transform = `translate3d(-50%, ${offsetY}px, 0)`;
+    requestAnimationFrame(() => {
+        computePositions();
+        currentIndex = 0;
+        offsetY = 0;
+        container.style.transform = `translate3d(-50%, ${offsetY}px, 0)`;
+        // 先定位到第一句（不要用 scrollToSentence，避免暂停）
+        let first = sentenceNodes[0];
+        if (first) {
+            let rect = first.getBoundingClientRect();
+            let center = window.innerHeight / 2;
+            offsetY += center - (rect.top + rect.height / 2);
+            container.style.transform = `translate3d(-50%, ${offsetY}px, 0)`;
+        }
 
-    setTimeout(() => {
-        scrollToSentence(0);
-    }, 0);
+        // 启动滚动
+        paused = false;
+        window.currentVelocity = speed;
+        lastTime = performance.now();
+    });
+    // ✅ 关键修复：加载后恢复播放状态
+    paused = false;
+    window.currentVelocity = speed;
 }
 
 let offsetY = 0;
@@ -227,8 +295,9 @@ function updateHighlight() {
         node.classList.remove('focus');
 
         // ⭐ 判断是否在两条线之间
-        if (center >= focusTop && center <= focusBottom) {
+        if (Math.abs(center - (window.innerHeight / 2)) < 60) {
             node.classList.add('focus');
+            currentIndex = idx; // ✅ 修复当前句索引
         }
     });
 }
@@ -259,28 +328,44 @@ let frameCount = 0;
 let lastTime = performance.now();
 
 function scrollText(now) {
-    let deltaTime = (now - lastTime) / 16; // 标准化到60fps
+    let deltaTime = (now - lastTime) / 16;
     lastTime = now;
 
     if (!paused) {
+        // ✅ 修复：必须每帧都保证 velocity 有值
+        if (typeof window.currentVelocity !== 'number' || window.currentVelocity === 0) {
+            window.currentVelocity = speed;
+        }
+
         if (pauseTimer > 0) {
             pauseTimer -= 16 * deltaTime;
-            // 暂停时完全停止（避免抖动）
             window.currentVelocity = 0;
         } else {
-            // ✅ 简化为稳定连续滚动（核心修复）
-            if (!window.currentVelocity) window.currentVelocity = speed;
-            // 轻微加速到目标速度（不会抖）
+            // 平滑逼近速度
             window.currentVelocity += (speed - window.currentVelocity) * 0.08 * deltaTime;
             offsetY -= window.currentVelocity * deltaTime;
+
+            // ⭐ 真正稳定的“最后一句停止”
+            const lastNode = sentenceNodes[sentenceNodes.length - 1];
+            if (lastNode) {
+                const rect = lastNode.getBoundingClientRect();
+                const center = window.innerHeight / 2;
+                const lastCenter = rect.top + rect.height / 2;
+
+                // 只要最后一句进入中心区域，就直接停
+                if (lastCenter <= center) {
+                    paused = true;
+                    window.currentVelocity = 0;
+                    document.getElementById('pauseBtn').innerText = '继续';
+                }
+            }
         }
+
         container.style.transform = `translate3d(-50%, ${offsetY}px, 0)`;
     }
 
     frameCount++;
-    if (frameCount % 6 === 0) {
-        updateHighlight();
-    }
+    updateHighlight(); // ✅ 每帧更新，保证索引准确
 
     requestAnimationFrame(scrollText);
 }
@@ -316,13 +401,26 @@ function animateTo(targetOffset, duration = 300) {
 function scrollToSentence(index) {
     if (index < 0 || index >= sentenceNodes.length) return;
 
+    currentIndex = index;
+
+    // 👉 关键：跳转时先暂停自动滚动（否则会打架）
+    paused = true;
+
     let target = sentenceNodes[index];
     let rect = target.getBoundingClientRect();
     let center = window.innerHeight / 2;
     let delta = center - (rect.top + rect.height / 2);
 
     let targetOffset = offsetY + delta;
-    animateTo(targetOffset);
+
+    animateTo(targetOffset, 250);
+
+    // 👉 动画结束后恢复滚动（确保一定恢复）
+    setTimeout(() => {
+        paused = false;
+        window.currentVelocity = speed || 0.8;
+        lastTime = performance.now();
+    }, 260);
 }
 
 function resetScroll() {
