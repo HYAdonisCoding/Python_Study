@@ -1,4 +1,12 @@
-ignore:
-  - dependency-name: "*"
-    update-types:
-      - "version-update:semver-patch"
+version: 2
+
+updates:
+  - package-ecosystem: "pip"
+    directory: "/other"
+    schedule:
+      interval: "weekly"
+
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-patch"
