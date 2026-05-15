@@ -100,7 +100,7 @@ pure_eval==0.2.3
 py4j==0.10.9.9
 pycparser==2.23
 Pygments==2.20.0
-pyinstaller==6.16.0
+pyinstaller==6.20.0
 pyinstaller-hooks-contrib==2025.9
 PyMySQL==1.1.2
 pypandoc==1.16.2
