@@ -103,7 +103,7 @@ Pygments==2.20.0
 pyinstaller==6.16.0
 pyinstaller-hooks-contrib==2025.9
 PyMySQL==1.1.2
-pypandoc==1.16.2
+pypandoc==1.17
 pyparsing==3.2.5
 PyPDF2==3.0.1
 PySide6==6.10.0
