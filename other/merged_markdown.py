@@ -15,11 +15,17 @@ files = [f for f in os.listdir(folder_path)
 # 提取前缀和数字，用于排序
 def sort_key(filename):
     match = re.match(r'([A-Da-d])(\d+)_', filename)
+
     if match:
         prefix, number = match.groups()
-        return (prefix.upper(), int(number))
-    else:
-        return ('Z', 0)  # 不匹配的放后面
+
+        return (
+            prefix.upper(),      # A/B/C/D 分组
+            int(number),         # 数字排序
+            prefix.isupper()     # 小写 False 在前，大写 True 在后
+        )
+
+    return ('Z', 999, True)
 
 # 按前缀和数字排序
 files.sort(key=sort_key)

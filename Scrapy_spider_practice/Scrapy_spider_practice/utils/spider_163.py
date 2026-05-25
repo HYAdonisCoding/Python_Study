@@ -41,9 +41,6 @@ def download_mp3():
 
 
 # 函数：下载文件
-import os
-import re
-import requests
 from enum import Enum
 
 
@@ -151,6 +148,14 @@ def download_file_range_continue(url, filename, save_dir=".", default_extension=
         print(f"⚠️ 下载中断: {e}")
         print(f"👉 已保存进度: {downloaded} 字节")
 
+        # 自动递归续传
+        return download_file_range_continue(
+            url,
+            filename,
+            save_dir,
+            default_extension
+        )
+
 
 def download_mp4():
     url = "https://vodkgeyttp8.vod.126.net/cloudmusic/NTA5MTI0OTQ=/a7a08ad10ff1fb471e1deaf0c39d1c6f/a687d1e8d5b8666442e3a838aae044a8.mp4?wsSecret=07339ea812d0917da488ee99f8c8f854&wsTime=1719971177"
@@ -222,7 +227,6 @@ text = """
 
 9:52:50  -- 腾飞五千年之两晋南北朝第31集 杨坚代周自立
 """
-import re
 import subprocess
 
 
@@ -347,6 +351,88 @@ def file_slicing(input_file, output_dir):
                 print(f"❌ 最终仍失败: {title}")
 
 
+
+import time
+from tqdm import tqdm
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+
+
+def get_session(proxy_url="http://127.0.0.1:7897"):
+    """
+    专业的 Session 管理：
+    1. 配置代理隧道
+    2. 设置底层重试策略（自动处理网络抖动）
+    """
+    session = requests.Session()
+    session.proxies = {'http': proxy_url, 'https': proxy_url}
+    
+    # 定义重试策略：针对网络类异常自动退避重试
+    retry_strategy = Retry(
+        total=5,
+        backoff_factor=2,  # 指数退避：2s, 4s, 8s...
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+def download_file_robust(url, filename, save_dir=".", default_extension=FileExtension.MP3):
+    """
+    具备断点续传、进度监控与自动重试的健壮下载方法
+    """
+    # 1. 路径与后缀标准化
+    filename = re.sub(r'[\\/*?:"<>|]', '', filename)
+    if not os.path.splitext(filename)[1]:
+        filename += default_extension.value
+    file_path = os.path.join(save_dir, filename)
+    temp_file = file_path + ".part"
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # 2. 生存循环：确保链路故障后可以重置连接上下文
+    while True:
+        try:
+            downloaded = os.path.getsize(temp_file) if os.path.exists(temp_file) else 0
+            headers = {"Range": f"bytes={downloaded}-"}
+            
+            session = get_session()
+            
+            with session.get(url, headers=headers, stream=True, timeout=(15, 60)) as r:
+                r.raise_for_status()
+                
+                # 读取总大小，用于进度条计算
+                content_length = int(r.headers.get("content-length", 0))
+                total_size = content_length + downloaded
+                
+                # 使用 tqdm 监控进度
+                with tqdm(total=total_size, initial=downloaded, unit='B', unit_scale=True, desc=f"📦 {filename[:20]}...") as pbar:
+                    mode = "ab" if downloaded > 0 else "wb"
+                    with open(temp_file, mode) as f:
+                        for chunk in r.iter_content(chunk_size=1024 * 16):
+                            if chunk:
+                                f.write(chunk)
+                                pbar.update(len(chunk))
+            
+            # 原子重命名，确保文件完整性
+            os.rename(temp_file, file_path)
+            print(f"\n✅ 下载完成: {file_path}")
+            return True
+            
+        except (requests.exceptions.SSLError, requests.exceptions.ProxyError, 
+                requests.exceptions.ConnectionError) as e:
+            # 这里的异常捕获专门针对代理链路中断，5秒后自动重置Session循环重试
+            print(f"\n⚠️ 代理链路中断 ({e})，正在重置连接并续传...")
+            time.sleep(5) 
+            continue
+        except Exception as e:
+            print(f"\n❌ 遇到无法自动恢复的错误: {e}")
+            break
+            
+    return False
+        
 if __name__ == "__main__":
     # download_mp3()
     # headers = get_headers()
@@ -357,20 +443,20 @@ if __name__ == "__main__":
     # QQ音乐
     # 数据数组
     data_array = [
+        # {
+        #     "url": "https://audio.listennotes.com/e/p/15cc9a28c2c24c7aa841ac0a004146d2/",
+        #     "filename": "《腾飞五千年》之成吉思汗 1~29集",
+        # },
         {
-            "url": "https://m704.music.126.net/20260322154950/06883e102cdb02f7d4888d2429126632/jdyyaac/0f08/5559/0353/8b47c6883fb31070a47949d0e3a9ed6f.m4a?vuutv=o8HjH1MpbNLo1KPTOzzBytvLRh7CYYeQgC/cLNBQzd080Coe5BF3EeS3Xj+bD3t+lIRFdaXnClMqonyqDv7FDB3VtX/gKrYQ9MphcRyAaG8=&authSecret=0000019d146ead1c11840a3b22c012bc&cdntag=bWFyaz1vc193ZWIscXVhbGl0eV9leGhpZ2g",
-            "filename": "风居住的街道",
-        },
-        {
-            "url": "https://m804.music.126.net/20260322155154/7c0f14b2bcf45aba32ad2d0e3690d6a9/jdyyaac/obj/w5rDlsOJwrLDjj7CmsOj/14096443535/a3f0/1d0e/1023/609a9e39e0af8634dc72b1ef4d12e37e.m4a?vuutv=7A3T8ZDZfgf4HPQC6ow3h2DP1k5WoLMOEMjY9ijVaqY0AZryuYkHCVu6xnvEXpyePOOtCxOdgC8MQhYy6wY0QfdwVQNJ/U+6+ds9daDAAWQ=&authSecret=0000019d1470904015dd0a3b1bab050a&cdntag=bWFyaz1vc193ZWIscXVhbGl0eV9leGhpZ2g",
-            "filename": "平凡之路",
-        },
+            'url': "https://d3ctxlq1ktw2nl.cloudfront.net/staging/2021-09-10/a9397b500c74daf98042b37fc7458ecc.m4a",
+            "filename": "《腾飞五千年》之成吉思汗 1~29集",
+        }
     ]
 
     # 遍历数组并下载文件
     for item in data_array:
-        download_file_range_continue(
-            item["url"], item["filename"], save_dir="/Users/adam/Music", default_extension=FileExtension.MP3
+        download_file_robust(
+            item["url"], item["filename"], save_dir="/Users/adam/Downloads", default_extension=FileExtension.M4A
         )
     # for item in data_array:
     #     download_file_range_continue(
