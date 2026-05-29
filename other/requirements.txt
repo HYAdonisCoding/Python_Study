@@ -145,7 +145,7 @@ tinycss2==1.5.1
 tornado==6.5.5
 tqdm==4.67.1
 traitlets==5.14.3
-trio==0.32.0
+trio==0.33.0
 trio-websocket==0.12.2
 typing_extensions==4.15.0
 tzdata==2025.2
