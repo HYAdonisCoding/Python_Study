@@ -3,11 +3,15 @@
 # coding: utf-8
 speter = "-" * 10
 
-# 第四篇
-# massage......
+# 利用Python进行数据分析
+# Python for Data Analysis: Data Wrangling with Pandas, NumPy, and IPython
 
+# 第X章 。。。
+from pathlib import Path
+base_dir = Path(__file__).parent
 def test():
-    pass
+    print(f"{speter*2}test{speter*2}")
+    path = f'{base_dir}/examples/segismundo.txt'
 if __name__ == "__main__":
     print(f"{speter*2}Starting{speter*2}")
     try:
