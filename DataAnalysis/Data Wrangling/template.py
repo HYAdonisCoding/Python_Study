@@ -9,6 +9,10 @@ speter = "-" * 10
 # 第X章 。。。
 from pathlib import Path
 base_dir = Path(__file__).parent
+def p_info(**kwargs):
+    for name, value in kwargs.items():
+        print(f'{name}: {value}')
+    print("")
 def test():
     print(f"{speter*2}test{speter*2}")
     path = f'{base_dir}/examples/segismundo.txt'
