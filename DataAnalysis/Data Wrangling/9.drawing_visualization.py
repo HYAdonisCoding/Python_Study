@@ -10,12 +10,28 @@ speter = "-" * 10
 # 第9章 绘图与可视化
 # ================================
 from pathlib import Path
+
 base_dir = Path(__file__).parent
+
+
+def p_info(**kwargs):
+    for name, value in kwargs.items():
+        print(f"{name}:")
+        print(value)
+    print()
+
+
+import numpy as np
+import pandas as pd
+from pandas import Series, DataFrame
+import matplotlib.pyplot as plt
+
+np.set_printoptions(linewidth=200)
+
+
 def test():
     print(f"{speter*2}test{speter*2}")
-    path = f'{base_dir}/examples/segismundo.txt'
-
-
+    path = f"{base_dir}/examples/segismundo.txt"
 
 
 # 9.1 简明 matplotlib API 入门
@@ -106,7 +122,8 @@ def other_python_visualization_tools():
 def chapter_9_summary():
     print(f"{speter*2}chapter_9_summary{speter*2}")
     print(f"{speter*2}本章小结{speter*2}")
-    
+
+
 if __name__ == "__main__":
     print(f"{speter*2}Starting{speter*2}")
     try:
@@ -116,5 +133,3 @@ if __name__ == "__main__":
     finally:
 
         print(f"{speter*2}Finished{speter*2}")
-
-

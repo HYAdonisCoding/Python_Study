@@ -10,11 +10,28 @@ speter = "-" * 10
 # 第10章 数据聚合与分组操作
 # ================================
 from pathlib import Path
+
 base_dir = Path(__file__).parent
+
+
+def p_info(**kwargs):
+    for name, value in kwargs.items():
+        print(f"{name}:")
+        print(value)
+    print()
+
+
+import numpy as np
+import pandas as pd
+from pandas import Series, DataFrame
+import matplotlib.pyplot as plt
+
+np.set_printoptions(linewidth=200)
+
+
 def test():
     print(f"{speter*2}test{speter*2}")
-    path = f'{base_dir}/examples/segismundo.txt'
-
+    path = f"{base_dir}/examples/segismundo.txt"
 
 
 # 10.1 GroupBy 机制
@@ -125,7 +142,6 @@ def cross_tabulation_crosstab():
     print(f"{speter*2}交叉表：crosstab{speter*2}")
 
 
-
 if __name__ == "__main__":
     print(f"{speter*2}Starting{speter*2}")
     try:
@@ -135,5 +151,3 @@ if __name__ == "__main__":
     finally:
 
         print(f"{speter*2}Finished{speter*2}")
-
-

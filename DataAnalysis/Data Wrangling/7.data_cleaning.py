@@ -11,9 +11,23 @@ speter = "-" * 10
 # ================================
 
 from pathlib import Path
+
 base_dir = Path(__file__).parent
 
 
+def p_info(**kwargs):
+    for name, value in kwargs.items():
+        print(f"{name}:")
+        print(value)
+    print()
+
+
+import numpy as np
+import pandas as pd
+from pandas import Series, DataFrame
+import matplotlib.pyplot as plt
+
+np.set_printoptions(linewidth=200)
 
 
 # 7.1 处理缺失值
@@ -32,7 +46,6 @@ def filtering_missing_data():
 def filling_missing_data():
     print(f"{speter*2}filling_missing_data{speter*2}")
     print(f"{speter*2}补全缺失值{speter*2}")
-
 
 
 # 7.2 数据转换
@@ -89,7 +102,6 @@ def computing_indicators_dummy_variables():
     print(f"{speter*2}计算指标/虚拟变量{speter*2}")
 
 
-
 # 7.3 字符串操作
 def string_operations():
     print(f"{speter*2}string_operations{speter*2}")
@@ -111,8 +123,9 @@ def regular_expressions():
 # 7.3.3 pandas 中的向量化字符串函数
 def pandas_vectorized_string_functions():
     print(f"{speter*2}pandas_vectorized_string_functions{speter*2}")
-    print(f"{speter*2}pandas 中的向量化字符串函数{speter*2}")    
-    
+    print(f"{speter*2}pandas 中的向量化字符串函数{speter*2}")
+
+
 if __name__ == "__main__":
     print(f"{speter*2}Starting{speter*2}")
     try:
@@ -122,5 +135,3 @@ if __name__ == "__main__":
     finally:
 
         print(f"{speter*2}Finished{speter*2}")
-
-

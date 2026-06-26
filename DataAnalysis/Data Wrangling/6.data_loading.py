@@ -8,7 +8,23 @@ speter = "-" * 10
 
 # 第6章 数据载入、存储及文件格式
 from pathlib import Path
+
 base_dir = Path(__file__).parent
+
+
+def p_info(**kwargs):
+    for name, value in kwargs.items():
+        print(f"{name}:")
+        print(value)
+    print()
+
+
+import numpy as np
+import pandas as pd
+from pandas import Series, DataFrame
+import matplotlib.pyplot as plt
+
+np.set_printoptions(linewidth=200)
 
 
 # 6.1 文本格式数据的读写
@@ -45,7 +61,8 @@ def json_data():
 def xml_html_web_scraping():
     print(f"{speter*2}xml_html_web_scraping{speter*2}")
     print(f"{speter*2}XML 和 HTML：网络抓取{speter*2}")
-    
+
+
 # 6.1.5 XML 和 HTML：网络抓取
 def xml_html_web_scraping():
     print(f"{speter*2}xml_html_web_scraping{speter*2}")
@@ -88,7 +105,6 @@ def chapter_6_summary():
     print(f"{speter*2}本章小结{speter*2}")
 
 
-
 if __name__ == "__main__":
     print(f"{speter*2}Starting{speter*2}")
     try:
@@ -98,5 +114,3 @@ if __name__ == "__main__":
     finally:
 
         print(f"{speter*2}Finished{speter*2}")
-
-

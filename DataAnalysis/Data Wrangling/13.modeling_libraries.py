@@ -10,11 +10,28 @@ speter = "-" * 10
 # 第13章 Python 建模库介绍
 # ================================
 from pathlib import Path
+
 base_dir = Path(__file__).parent
+
+
+def p_info(**kwargs):
+    for name, value in kwargs.items():
+        print(f"{name}:")
+        print(value)
+    print()
+
+
+import numpy as np
+import pandas as pd
+from pandas import Series, DataFrame
+import matplotlib.pyplot as plt
+
+np.set_printoptions(linewidth=200)
+
+
 def test():
     print(f"{speter*2}test{speter*2}")
-    path = f'{base_dir}/examples/segismundo.txt'
-
+    path = f"{base_dir}/examples/segismundo.txt"
 
 
 # 13.1 pandas 与建模代码的结合
@@ -71,8 +88,6 @@ def continue_your_education():
     print(f"{speter*2}继续你的教育{speter*2}")
 
 
-
-
 if __name__ == "__main__":
     print(f"{speter*2}Starting{speter*2}")
     try:
@@ -82,5 +97,3 @@ if __name__ == "__main__":
     finally:
 
         print(f"{speter*2}Finished{speter*2}")
-
-
