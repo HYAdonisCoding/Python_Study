@@ -1,3 +1,11 @@
 {
-    "window.autoDetectColorScheme": true
+    "window.autoDetectColorScheme": true,
+    "python.analysis.extraPaths": [
+
+            "${workspaceFolder}"
+
+    ],
+    "terminal.integrated.defaultProfile.osx": "zsh",
+
+    "python-envs.terminal.autoActivationType": "command",
 }
