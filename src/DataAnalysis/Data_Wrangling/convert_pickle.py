@@ -11,14 +11,7 @@ from pathlib import Path
 
 base_dir = Path(__file__).parent
 
-
-def p_info(**kwargs):
-    for name, value in kwargs.items():
-        print(f"{name}:")
-        print(value)
-    print()
-
-
+from debug import p_info
 import numpy as np
 import pandas as pd
 from pandas import Series, DataFrame

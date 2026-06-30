@@ -15,7 +15,7 @@ from pathlib import Path
 base_dir = Path(__file__).parent
 
 
-from src.DataAnalysis.Data_Wrangling.debug import p_info
+from debug import p_info
 
 
 import numpy as np
