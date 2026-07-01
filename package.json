@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "echarts": "^5.4.3"
+    "echarts": "^6.1.0"
   }
 }
