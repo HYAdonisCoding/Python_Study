@@ -283,3 +283,200 @@ Wes McKinney 著
 
 附录A高阶 NumPy  
 附录 B 更多 IPython 系统相关内容  
+
+整理成一张统一思维框架（核心版），你以后看到任何 reshape 操作都能直接定位。
+
+⸻
+
+🧠 Pandas 数据结构变换总地图（核心版）
+
+🟦 一、三种基础形态
+
+① 宽表 Wide
+   一行 = 一个对象
+   多列 = 多个变量
+② 长表 Long（tidy）
+   一行 = 一个观测值
+   三列：key + variable + value
+③ MultiIndex 表
+   用 index 表达层级结构
+
+⸻
+
+🔷 二、核心变换关系图（重点）
+
+                 melt
+        ┌────────────────────┐
+        │                    ↓
+    宽表 Wide  ─────────→  长表 Long
+        ↑                    │
+        │                    │ pivot
+        │                    ↓
+        └───────────────  宽表 Wide
+        stack / unstack（另一条路线）
+    宽表 + MultiIndex
+        │
+        │ stack
+        ↓
+    长形式 Series
+        │
+        │ unstack
+        ↓
+    宽表 DataFrame
+
+⸻
+
+🔷 三、四个核心操作（你必须彻底吃透）
+
+1️⃣ melt（宽 → 长）
+
+记忆：
+
+把“列名”变成“值”
+
+A  B  C
+↓  ↓  ↓
+variable + value
+
+结构变化：
+
+(宽)
+key  A  B  C
+(长)
+key variable value
+
+⸻
+
+2️⃣ pivot（长 → 宽）
+
+记忆：
+
+把 variable 再变回列
+
+variable → columns
+value    → cell
+
+必备三参数：
+
+pivot(index=行, columns=列, values=值)
+
+⸻
+
+3️⃣ stack（列 → 行）
+
+记忆：
+
+把“列压进 index”
+
+columns → index
+
+⸻
+
+4️⃣ unstack（行 → 列）
+
+记忆：
+
+把“index展开成列”
+
+index → columns
+
+⸻
+
+5️⃣ reset_index（救命操作）
+
+记忆：
+
+把 index 变回普通列
+
+index → column
+
+⸻
+
+🔷 四、用你的例子串一遍（最重要）
+
+原始宽表
+
+key   A  B  C
+foo   1  4  7
+bar   2  5  8
+baz   3  6  9
+
+⸻
+
+👉 melt（宽 → 长）
+
+key variable value
+foo   A       1
+foo   B       4
+foo   C       7
+...
+
+⸻
+
+👉 pivot（长 → 宽）
+
+        A  B  C
+foo     1  4  7
+bar     2  5  8
+baz     3  6  9
+
+⸻
+
+👉 reset_index（还原结构）
+
+key   A  B  C
+foo   1  4  7
+bar   2  5  8
+baz   3  6  9
+
+⸻
+
+🔷 五、最关键的“本质理解”
+
+这一章所有操作，本质不是数据变化，而是：
+
+🔥 同一份数据，不同“结构视角”的重排
+
+⸻
+
+🔷 六、考试/面试级总结（非常重要）
+
+你只要记住这 3 句话：
+
+1️⃣ melt
+
+列变“变量标签”
+
+⸻
+
+2️⃣ pivot
+
+变量标签变列
+
+⸻
+
+3️⃣ stack/unstack
+
+index 和 columns 的对调
+
+⸻
+
+🔷 七、终极心智模型（建议背这个）
+
+           ┌──────────────┐
+           │   Wide表     │
+           └──────┬───────┘
+                  │ melt
+                  ↓
+           ┌──────────────┐
+           │   Long表     │
+           └──────┬───────┘
+                  │ pivot
+                  ↓
+           ┌──────────────┐
+           │   Wide表     │
+           └──────────────┘
+stack/unstack = Wide内部结构翻转
+reset_index = 把索引“拉平”
+
+⸻
