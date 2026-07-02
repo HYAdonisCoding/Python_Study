@@ -8,4 +8,11 @@
     "terminal.integrated.defaultProfile.osx": "zsh",
 
     "python-envs.terminal.autoActivationType": "command",
+    "python.terminal.activateEnvironment": true,
+    "python-envs.globalSearchPaths": [
+
+        "/Users/adam/envs",
+
+    ],
+    "python.defaultInterpreterPath": "/Users/adam/envs/py_arm64/bin/python"
 }
