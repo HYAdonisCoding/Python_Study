@@ -64,3 +64,6 @@ https://startbootstrap.com/themes/sb-admin-2/
 #### Path
 
 Python_Study/Scrapy_spider_practice/Scrapy_spider_practice/utils/spider_163.py
+
+> 注：/Users/adam/envs/py_arm64/bin/python -m pip install xxx 按照这种格式安装包
+> 或者先激活环境 source activate py_arm64

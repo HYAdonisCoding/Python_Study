@@ -239,6 +239,119 @@ Wes McKinney 著
 11.7.3 用户自定义的移动窗口函数  
 11.8 本章小结  
 
+
+第10章 数据聚合与分组操作（小结）
+
+一、本章核心思想（★★★★★）
+
+一句话：
+
+Split → Apply → Combine（拆分 → 应用 → 合并）
+
+即：
+
+DataFrame
+    │
+groupby()
+    │
+每个组分别统计
+    │
+得到新的 Series/DataFrame
+
+几乎所有数据分析都遵循这个流程。
+
+⸻
+
+二、必须掌握的 API（★★★★★）
+
+API	作用
+groupby()	分组
+agg()	聚合统计
+apply()	自定义分组处理
+transform()	分组后返回与原数据等长（后续章节重点）
+pivot_table()	数据透视表
+crosstab()	交叉统计
+
+⸻
+
+三、常用统计函数
+
+count()
+size()
+sum()
+mean()
+median()
+std()
+min()
+max()
+describe()
+quantile()
+
+重点掌握：
+
+* mean()：平均值
+* sum()：求和
+* count()：非空数量
+* size()：总数量
+* describe()：快速统计
+
+⸻
+
+四、数据分析的一般流程
+
+读取数据
+    ↓
+查看数据（head/info/describe）
+    ↓
+数据清洗
+    ↓
+groupby 分组
+    ↓
+agg/apply 聚合统计
+    ↓
+pivot_table 汇总
+    ↓
+可视化
+    ↓
+得出结论
+
+⸻
+
+五、本章重点掌握程度
+
+⭐⭐⭐⭐⭐ 必会
+
+* groupby
+* agg
+* apply
+* pivot_table
+
+⭐⭐⭐⭐ 熟悉
+
+* crosstab
+* cut
+* qcut
+
+⭐⭐⭐ 了解
+
+* 分组回归
+* 加权平均
+* 多级索引分组
+
+⸻
+
+一句话总结
+
+第10章就是学习如何把数据按某种规则分组，并对每组进行统计分析，是 Pandas 数据分析中最核心、最常用的内容。
+
+⸻
+
+建议记忆口诀：
+
+分组（GroupBy）→ 聚合（Agg）→ 透视（Pivot）→ 分析（EDA）
+
+把这四步掌握了，你就已经具备了日常数据分析最核心的 Pandas 能力。
+
 ## 第12章 高阶 pandas
 
 12.1 分类数据  
