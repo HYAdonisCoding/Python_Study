@@ -678,6 +678,404 @@ Pandas 时间序列的核心能力，就是围绕 时间索引（DatetimeIndex /
 12.3.1 pipe 方法  
 12.4 本章小结  
 
+
+
+本章主要学习 Pandas 在真实数据分析场景中的高级应用，包括分类数据处理、高级 GroupBy 操作、时间序列聚合以及 DataFrame 方法链编程。  
+
+通过本章学习，可以使用 Pandas 更高效地处理复杂业务数据，提高数据清洗、转换、统计分析的能力。
+
+---
+
+## 12.1 Categorical 分类数据
+
+### 1. 为什么需要 Category 类型？
+
+在实际数据分析中，大量字段属于**低基数分类数据（Low Cardinality Data）**：
+例如：
+
+- 用户等级：普通会员、VIP、SVIP
+- 商品类别：手机、电脑、家电
+- 地区：北京、上海、深圳
+- 性别：男、女
+这些字段虽然字符串重复很多，但 Pandas 默认使用 object 存储，会占用较多内存。
+Categorical 类型通过：
+
+categories（类别字典）
++
+codes（整数编码）
+
+方式存储，提高内存利用率和计算效率。
+
+---
+
+### 2. 创建 Category 数据
+
+常用方式：
+```python
+# Series 转换
+s = pd.Series(["apple", "orange", "apple"])
+s = s.astype("category")
+# 创建 Categorical 对象
+cat = pd.Categorical(
+    ["foo", "bar", "foo"]
+)
+# 根据编码创建分类
+pd.Categorical.from_codes(
+    codes=[0,1,0],
+    categories=["apple","orange"]
+)
+
+⸻
+
+3. Category 常用操作
+
+查看编码：
+
+s.cat.codes
+
+获取分类：
+
+s.cat.categories
+
+修改分类名称：
+
+s.cat.rename_categories()
+
+增加或设置分类：
+
+s.cat.set_categories()
+
+删除无效分类：
+
+s.cat.remove_unused_categories()
+
+⸻
+
+4. Ordered Category 有序分类
+
+适用于具有业务等级关系的数据。
+
+例如：
+
+普通 < VIP < SVIP
+
+创建：
+
+pd.Categorical(
+    data,
+    categories=[
+        "普通",
+        "VIP",
+        "SVIP"
+    ],
+    ordered=True
+)
+
+应用场景：
+
+* 用户等级排序
+* 商品评级
+* 客户价值分层
+* 问卷满意度分析
+
+⸻
+
+实际应用
+
+Categorical 常用于：
+
+* 大规模数据内存优化
+* 特征工程
+* 报表分类排序
+* 数据清洗统一字段
+
+例如百万级用户数据：
+
+df["city"] = df["city"].astype("category")
+
+可以明显降低内存占用。
+
+⸻
+
+12.2 高阶 GroupBy 应用
+
+GroupBy 是 Pandas 数据分析中的核心能力。
+
+典型流程：
+
+Split
+  ↓
+Apply
+  ↓
+Combine
+
+即：
+
+分组 → 计算 → 合并结果。
+
+⸻
+
+1. 基础聚合
+
+常用：
+
+df.groupby("key").sum()
+df.groupby("key").mean()
+df.groupby("key").count()
+
+⸻
+
+2. 多指标聚合 agg()
+
+实际分析中经常需要同时计算多个指标：
+
+df.groupby("category").agg(
+    {
+        "sales":"sum",
+        "price":"mean",
+        "id":"count"
+    }
+)
+
+例如：
+
+电商分析：
+
+指标	含义
+sales sum	销售总额
+price mean	平均价格
+id count	订单数量
+
+⸻
+
+12.2.1 transform 与 apply
+
+transform()
+
+特点：
+
+* 返回结果长度和原数据一致
+* 可以直接回填 DataFrame
+
+例如：
+
+计算用户消费金额相对于用户平均消费的偏差：
+
+df["avg"] = (
+    df.groupby("user")
+    ["amount"]
+    .transform("mean")
+)
+
+常见用途：
+
+* 标准化
+* 缺失值填充
+* 组内排名
+* 计算相对指标
+
+⸻
+
+apply()
+
+特点：
+
+* 灵活
+* 可以返回任意结构
+
+适用于复杂业务逻辑：
+
+df.groupby("group").apply(func)
+
+常见用途：
+
+* 自定义统计规则
+* 复杂数据转换
+* 分组后生成新结构
+
+⸻
+
+transform 和 apply 区别
+
+方法	返回	适用场景
+transform	与原数据同长度	生成新字段
+apply	任意结构	复杂业务逻辑
+
+⸻
+
+12.2.2 分组时间重新采样
+
+实际业务经常需要：
+
+* 每小时交易量
+* 每日访问量
+* 每月销售额
+
+使用：
+
+pd.Grouper()
+
+例如：
+
+df.groupby(
+    [
+        "category",
+        pd.Grouper(
+            key="time",
+            freq="M"
+        )
+    ]
+).sum()
+
+应用：
+
+* 用户行为分析
+* 股票行情分析
+* 日志分析
+* 订单趋势分析
+
+⸻
+
+12.3 方法链 Method Chaining
+
+方法链是一种更加工程化的数据处理方式。
+
+传统写法：
+
+df1 = df[df.price>100]
+df2 = df1.groupby("type").sum()
+
+方法链：
+
+(
+    df
+    [lambda x:x.price>100]
+    .groupby("type")
+    .sum()
+)
+
+优点：
+
+* 减少中间变量
+* 提高代码可读性
+* 方便构建 ETL 流程
+
+⸻
+
+12.3.1 assign()
+
+用于创建新字段。
+
+例如：
+
+计算利润：
+
+df.assign(
+    profit=df.sales-df.cost
+)
+
+常用于：
+
+* 指标计算
+* 特征生成
+* 数据转换
+
+⸻
+
+12.3.2 lambda
+
+匿名函数。
+
+常配合：
+
+* apply
+* assign
+* filter
+
+使用。
+
+例如：
+
+df[
+    lambda x:x.score>80
+]
+
+⸻
+
+12.3.3 pipe()
+
+用于构建复杂数据处理流程。
+
+例如：
+
+(
+    df
+    .pipe(clean_data)
+    .pipe(feature_engineering)
+    .pipe(model_prepare)
+)
+
+适合：
+
+* 数据清洗 Pipeline
+* 机器学习特征处理
+* 企业级数据分析流程
+
+⸻
+
+本章总结
+
+通过本章学习，掌握 Pandas 高级数据处理能力：
+
+分类数据
+
+掌握：
+
+* Category
+* Codes
+* Categories
+* Ordered Category
+
+解决：
+
+* 分类字段管理
+* 内存优化
+* 数据排序问题
+
+高级 GroupBy
+
+掌握：
+
+* groupby
+* agg
+* transform
+* apply
+* Grouper
+
+解决：
+
+* 分组统计
+* 用户分析
+* 时间趋势分析
+
+方法链
+
+掌握：
+
+* assign
+* lambda
+* pipe
+
+提升：
+
+* 数据处理代码可读性
+* ETL 流程设计能力
+* 生产级数据分析能力
+
+本章内容是 Pandas 从基础操作进入实际数据分析工程的重要阶段，为后续数据建模、机器学习特征工程和商业数据分析提供基础能力。
+
+
+
 ## 第13章 Python 建模库介绍
 
 13.1 pandas 与建模代码的结合  
