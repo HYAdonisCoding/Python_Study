@@ -1088,6 +1088,68 @@ df[
 13.4 scikit-learn 介绍  
 13.5 继续你的教育  
 
+
+### 本章重点
+
+1. pandas 与建模流程结合
+   - DataFrame 是数据分析和机器学习之间的桥梁
+   - 从 DataFrame 中选择特征列，并转换为 NumPy 数组供模型使用
+   - 分类变量需要进行编码处理（如 One-Hot Encoding）
+
+2. Patsy 模型公式
+   - 使用公式语法描述统计模型：
+     - `y ~ x0 + x1`
+     - 分类变量自动转换为哑变量
+     - 支持数据转换、标准化、中心化等操作
+   - 通过 design matrix 将数据转换为模型可使用的矩阵
+
+3. statsmodels 统计建模
+   - 使用 OLS 进行线性回归分析
+   - 查看模型参数、统计显著性、预测结果
+   - 支持时间序列模型（如 AutoReg）
+
+4. scikit-learn 机器学习流程
+   - 数据预处理：
+     - 缺失值填充
+     - 特征工程
+     - 分类变量编码
+   - 模型训练：
+     - Logistic Regression
+     - LogisticRegressionCV
+   - 模型评估：
+     - Cross Validation（交叉验证）
+
+---
+
+### 数据分析建模通用流程
+
+原始数据
+|
+↓
+pandas 数据清洗
+|
+↓
+特征选择 / 特征工程
+|
+↓
+NumPy 数组转换
+|
+↓
+统计模型 / 机器学习模型
+|
+↓
+模型评估与预测
+
+---
+
+### 核心掌握
+
+- 熟练使用 pandas 构造模型输入数据
+- 理解 DataFrame、NumPy Array、模型之间的数据转换
+- 掌握分类变量编码方法
+- 理解训练集、测试集、交叉验证流程
+- 能使用 statsmodels / sklearn 完成基础建模任务
+
 ## 第14章数据分析示例
 
 14.1 从 Bitly 获取 1.USA.gov 数据  
