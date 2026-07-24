@@ -12,14 +12,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Sync
+      - name: Sync GitHub to Gitee
         run: |
-          git clone https://github.com/${{ github.repository }}.git repo
+          git clone --mirror https://github.com/${{ github.repository }}.git repo.git
 
-          cd repo
+          cd repo.git
 
           git remote add gitee https://${{ secrets.GITEE_USERNAME }}:${{ secrets.GITEE_TOKEN }}@gitee.com/${{ secrets.GITEE_USERNAME }}/${{ github.event.repository.name }}.git
 
-          git push gitee --all
+          git for-each-ref --format='delete %(refname)' refs/pull | git update-ref --stdin || true
 
-          git push gitee --tags
+          git push gitee --mirror
