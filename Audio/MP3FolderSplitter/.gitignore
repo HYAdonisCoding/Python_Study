@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.DS_Store
+.Python
+
+# 运行时日志（保留目录占位）
+logs/*
+!logs/.gitkeep
