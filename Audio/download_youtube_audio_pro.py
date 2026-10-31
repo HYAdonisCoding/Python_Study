@@ -13,7 +13,7 @@ from yt_dlp.utils import sanitize_filename
 # 基础配置
 # ============================================================
 
-BASE_OUTPUT_DIR = Path.home() / "Downloads" / "youtube_audio"
+BASE_OUTPUT_DIR = Path("/Volumes/WorkSSD/03_Media/Audio")
 BASE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # 已知、确认过的播放列表或单视频 URL。
@@ -36,7 +36,7 @@ DOWNLOAD_URLS = [
 SERIES_KEYWORDS = [
     # "王立群读《史记》系列",
     # "王立群读史记 秦始皇",
-    "资治通鉴",
+    # "资治通鉴",
     # "女皇武则天",
     # "老梁故事汇 历史合集",
     # "老梁观世界 历史 战争",

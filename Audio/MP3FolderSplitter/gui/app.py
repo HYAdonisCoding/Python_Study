@@ -24,7 +24,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 import config
-from config import DEFAULT_MAX_MB, DEFAULT_TARGET_MB, LOG_DIR, format_size, mb_to_bytes
+from config import DEFAULT_MAX_MB, DEFAULT_TARGET_MB, LOG_DIR, SKIP_UNDER_MB, format_size, mb_to_bytes
 from core import grouper, scanner, validator
 from core.organizer import Organizer, dest_folder, new_session
 
@@ -78,40 +78,53 @@ class App:
 
         self.target_var = tk.StringVar(value=str(DEFAULT_TARGET_MB))
         self.max_var = tk.StringVar(value=str(DEFAULT_MAX_MB))
+        self.skip_var = tk.BooleanVar(value=True)
+        self.skip_mb_var = tk.StringVar(value=str(SKIP_UNDER_MB))
         self.binary_var = tk.BooleanVar(value=config.USE_BINARY_UNITS)
         self.overflow_var = tk.BooleanVar(value=False)
         self.companion_var = tk.BooleanVar(value=True)
         self.artwork_var = tk.BooleanVar(value=False)
+        self.sort_var = tk.StringVar(value="size")
 
         rows = [
             ("目标容量 (MB)", ttk.Entry(right, textvariable=self.target_var, width=12)),
             ("硬上限 (MB)", ttk.Entry(right, textvariable=self.max_var, width=12)),
+            ("跳过阈值 (MB)", ttk.Entry(right, textvariable=self.skip_mb_var, width=12)),
         ]
         for r, (label, widget) in enumerate(rows):
             ttk.Label(right, text=label).grid(row=r, column=0, sticky="w", padx=8, pady=4)
             widget.grid(row=r, column=1, sticky="w", padx=8, pady=4)
 
-        ttk.Checkbutton(right, text="二进制口径 (MiB)", variable=self.binary_var).grid(
-            row=2, column=0, columnspan=2, sticky="w", padx=8, pady=2)
-        ttk.Checkbutton(right, text="允许填到硬上限", variable=self.overflow_var).grid(
+        ttk.Checkbutton(right, text="内容小于阈值时跳过", variable=self.skip_var).grid(
             row=3, column=0, columnspan=2, sticky="w", padx=8, pady=2)
-        ttk.Checkbutton(right, text="搬同名伴生文件", variable=self.companion_var).grid(
+        ttk.Checkbutton(right, text="二进制口径 (MiB)", variable=self.binary_var).grid(
             row=4, column=0, columnspan=2, sticky="w", padx=8, pady=2)
-        ttk.Checkbutton(right, text="复制共享封面", variable=self.artwork_var).grid(
+        ttk.Checkbutton(right, text="允许填到硬上限", variable=self.overflow_var).grid(
             row=5, column=0, columnspan=2, sticky="w", padx=8, pady=2)
+        ttk.Checkbutton(right, text="搬同名伴生文件", variable=self.companion_var).grid(
+            row=6, column=0, columnspan=2, sticky="w", padx=8, pady=2)
+        ttk.Checkbutton(right, text="复制共享封面", variable=self.artwork_var).grid(
+            row=7, column=0, columnspan=2, sticky="w", padx=8, pady=2)
+
+        ttk.Label(right, text="装箱排序").grid(
+            row=8, column=0, sticky="w", padx=8, pady=(6, 0))
+        sort_frame = ttk.Frame(right)
+        sort_frame.grid(row=8, column=1, sticky="w", padx=8, pady=(6, 0))
+        ttk.Radiobutton(sort_frame, text="体积", variable=self.sort_var, value="size").pack(side="left")
+        ttk.Radiobutton(sort_frame, text="文件名", variable=self.sort_var, value="name").pack(side="left", padx=6)
 
         ttk.Separator(right, orient="horizontal").grid(
-            row=6, column=0, columnspan=2, sticky="ew", padx=8, pady=8)
+            row=9, column=0, columnspan=2, sticky="ew", padx=8, pady=8)
 
         self.preview_btn = ttk.Button(right, text="① 预览分组", command=self.preview)
-        self.preview_btn.grid(row=7, column=0, columnspan=2, sticky="ew", padx=8, pady=4)
+        self.preview_btn.grid(row=10, column=0, columnspan=2, sticky="ew", padx=8, pady=4)
         self.start_btn = ttk.Button(right, text="② 执行整理", command=self.start,
                                     state="disabled")
-        self.start_btn.grid(row=8, column=0, columnspan=2, sticky="ew", padx=8, pady=4)
+        self.start_btn.grid(row=11, column=0, columnspan=2, sticky="ew", padx=8, pady=4)
 
         self.stat_var = tk.StringVar(value="就绪")
         ttk.Label(right, textvariable=self.stat_var, foreground="#666").grid(
-            row=9, column=0, columnspan=2, sticky="w", padx=8, pady=(12, 4))
+            row=12, column=0, columnspan=2, sticky="w", padx=8, pady=(12, 4))
 
         # --- 预览表
         mid = ttk.LabelFrame(self.root, text="分组预览")
@@ -180,10 +193,11 @@ class App:
         self.stat_var.set("就绪")
 
     # ------------------------------------------------------------------ 预览
-    def _params(self) -> tuple[int, int] | None:
+    def _params(self) -> tuple[int, int, int] | None:
         try:
             target = float(self.target_var.get())
             max_mb = float(self.max_var.get())
+            skip_mb = float(self.skip_mb_var.get())
         except ValueError:
             messagebox.showerror("参数错误", "容量必须是数字")
             return None
@@ -193,7 +207,18 @@ class App:
         if target > max_mb:
             messagebox.showerror("参数错误", "目标容量不能大于硬上限")
             return None
-        return mb_to_bytes(target, self.binary_var.get()), mb_to_bytes(max_mb, self.binary_var.get())
+        if skip_mb < 0:
+            messagebox.showerror("参数错误", "跳过阈值不能小于 0")
+            return None
+        skip_bytes = (
+            mb_to_bytes(skip_mb, self.binary_var.get())
+            if (self.skip_var.get() and skip_mb > 0) else 0
+        )
+        return (
+            mb_to_bytes(target, self.binary_var.get()),
+            mb_to_bytes(max_mb, self.binary_var.get()),
+            skip_bytes,
+        )
 
     def preview(self) -> None:
         if not self.folders:
@@ -202,7 +227,7 @@ class App:
         params = self._params()
         if not params:
             return
-        target, max_bytes = params
+        target, max_bytes, skip_under = params
 
         self.tree.delete(*self.tree.get_children())
         self.plans = []
@@ -210,8 +235,20 @@ class App:
 
         for folder in self.folders:
             scan = scanner.scan_folder(folder, with_companions=self.companion_var.get())
+
+            if skip_under and scan.total_size < skip_under:
+                self.plans.append((scan, grouper.GroupingResult(), [], validator.Report()))
+                self._row(
+                    folder.name,
+                    format_size(scan.total_size, self.binary_var.get()),
+                    "",
+                    "跳过（不足阈值）",
+                )
+                continue
+
             grouped = grouper.group(scan.items, target, max_bytes,
-                                    overflow=self.overflow_var.get())
+                                    overflow=self.overflow_var.get(),
+                                    sort=self.sort_var.get())
             dests = [dest_folder(folder, scan.next_index + i) for i in range(len(grouped.bins))]
             report = validator.validate_plan(
                 scan, grouped, target, max_bytes, dests,
@@ -252,7 +289,7 @@ class App:
         params = self._params()
         if not params:
             return
-        target, max_bytes = params
+        target, max_bytes, _skip_under = params
 
         if not messagebox.askyesno(
             "确认整理",
@@ -286,6 +323,10 @@ class App:
                     artwork = find_shared_artwork(scan.folder)
                 ops.extend(org.build_ops(scan.folder, grouped.bins, scan.next_index,
                                          artwork=artwork))
+
+            # 跨文件夹重新编号，保证 index 全局唯一（修复 undo/resume 的序号冲突）
+            for seq, op in enumerate(ops, start=1):
+                op.index = seq
 
             org.write_plan(ops, meta={"target_mb": target, "max_mb": max_bytes,
                                       "source": "gui"})

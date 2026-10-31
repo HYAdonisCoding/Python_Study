@@ -147,7 +147,7 @@ def case_resume(tmp: Path) -> None:
         mk(src / f"r{i:02d}.mp3", 10)
 
     log = tmp / "logs"
-    r = run(str(src), "--yes", "--log-dir", str(log))
+    r = run(str(src), "--yes", "--skip-under", "0", "--log-dir", str(log))
     check("D1 首次执行成功", r.returncode == 0, r.stderr[-300:])
 
     session = sorted(d for d in log.iterdir() if (d / "state.jsonl").exists())[-1]
@@ -179,7 +179,7 @@ def case_undo(tmp: Path) -> None:
         mk(src / f"u{i:02d}.lrc", 0.003)
 
     log = tmp / "logs"
-    run(str(src), "--yes", "--log-dir", str(log))
+    run(str(src), "--yes", "--skip-under", "0", "--log-dir", str(log))
     session = sorted(d for d in log.iterdir() if (d / "summary.json").exists())[-1]
 
     moved_out = count_audio(src)
@@ -220,7 +220,7 @@ def case_over_target(tmp: Path) -> None:
     mk(src / "big.mp3", 580)     # target(550) < 580 < max(600)
     mk(src / "small.mp3", 10)
 
-    r = run(str(src), "--dry-run", "--log-dir", str(tmp / "logs"))
+    r = run(str(src), "--dry-run", "--skip-under", "0", "--log-dir", str(tmp / "logs"))
     out = r.stdout + r.stderr
     check("F2a 单文件超目标被识别", "BIN_OVER_TARGET" in out, out[:400])
     check("F2b 独立成箱（2 箱）", "预计 2 个子文件夹" in out, out[:400])
@@ -234,7 +234,7 @@ def case_json(tmp: Path) -> None:
     for i in range(5):
         mk(src / f"j{i}.mp3", 100)
 
-    r = run(str(src), "--dry-run", "--json", "--log-dir", str(tmp / "logs"))
+    r = run(str(src), "--dry-run", "--json", "--skip-under", "0", "--log-dir", str(tmp / "logs"))
     try:
         data = json.loads(r.stdout)
         ok = data.get("dry_run") is True and data["folders"][0]["bins"]
@@ -251,13 +251,72 @@ def case_readonly(tmp: Path) -> None:
     mk(src / "ro.mp3", 10)
     os.chmod(src, 0o500)
     try:
-        r = run(str(src), "--yes", "--log-dir", str(tmp / "logs"))
+        r = run(str(src), "--yes", "--skip-under", "0", "--log-dir", str(tmp / "logs"))
         out = r.stdout + r.stderr
         check("H1 只读目录被拦截", r.returncode == 2, f"exit={r.returncode}")
         check("H2 无 traceback", "Traceback" not in out, out[-300:])
         check("H3 文件未被移动", (src / "ro.mp3").exists())
     finally:
         os.chmod(src, 0o755)
+
+
+# --------------------------------------------------------------------------- I
+def case_skip_under(tmp: Path) -> None:
+    """内容小于 600 MB 时默认跳过；--skip-under 0 关闭跳过。"""
+    src = tmp / "小目录"
+    src.mkdir()
+    for i in range(3):
+        mk(src / f"s{i}.mp3", 100)   # 300 MB < 600 MB
+
+    log = tmp / "logs"
+    r = run(str(src), "--dry-run", "--log-dir", str(log))
+    out = r.stdout + r.stderr
+    check("I1 小于阈值默认跳过", r.returncode == 0 and "无需分箱" in out, out[:300])
+    subs = [d for d in src.iterdir() if d.is_dir()]
+    check("I2 跳过时不生成子目录", not subs, str(subs))
+
+    r2 = run(str(src), "--dry-run", "--skip-under", "0", "--log-dir", str(log))
+    check("I3 --skip-under 0 关闭跳过", "预计 1 个子文件夹" in r2.stdout, r2.stdout[:300])
+
+
+# --------------------------------------------------------------------------- J
+def case_sort_name(tmp: Path) -> None:
+    """--sort name 按文件名自然排序、顺序装箱。"""
+    src = tmp / "排序"
+    src.mkdir()
+    # 名字自然序 1 < 2 < 10 < 11；体积故意乱序，避免“按大小排”碰巧一致
+    for name, mb in {"1.mp3": 4, "2.mp3": 1, "10.mp3": 3, "11.mp3": 2}.items():
+        mk(src / name, mb)
+
+    log = tmp / "logs"
+    r = run(str(src), "--yes", "--skip-under", "0", "--target", "5", "--max", "5",
+            "--sort", "name", "--log-dir", str(log))
+    check("J1 --sort name 退出码 0", r.returncode == 0, r.stdout[-300:] + r.stderr[-300:])
+
+    b1, b2 = src / "排序1", src / "排序2"
+    n1 = sorted(p.name for p in b1.iterdir()) if b1.is_dir() else []
+    n2 = sorted(p.name for p in b2.iterdir()) if b2.is_dir() else []
+    check("J2 第1箱是 1/2", n1 == ["1.mp3", "2.mp3"], str(n1))
+    check("J3 第2箱是 10/11", n2 == ["10.mp3", "11.mp3"], str(n2))
+
+
+# --------------------------------------------------------------------------- K
+def case_multi_index(tmp: Path) -> None:
+    """多文件夹批量整理时，操作序号必须全局唯一（否则 undo/resume 序号冲突）。"""
+    a = tmp / "甲"; b = tmp / "乙"
+    a.mkdir(); b.mkdir()
+    for d in (a, b):
+        for i in range(3):
+            mk(d / f"{i:02d}.mp3", 300)   # 每目录 900 MB > 跳过阈值
+
+    log = tmp / "logs"
+    r = run(str(a), str(b), "--yes", "--log-dir", str(log))
+    check("K1 多目录执行成功", r.returncode == 0, r.stdout[-300:] + r.stderr[-300:])
+
+    session = sorted(d for d in log.iterdir() if (d / "plan.json").exists())[-1]
+    plan = json.loads((session / "plan.json").read_text(encoding="utf-8"))
+    idxs = [o["index"] for o in plan["ops"]]
+    check("K2 操作序号全局唯一", len(idxs) == len(set(idxs)), f"{len(idxs)} vs {len(set(idxs))}")
 
 
 # --------------------------------------------------------------------------- main
@@ -275,6 +334,9 @@ def main() -> int:
             ("超目标单文件", case_over_target),
             ("JSON", case_json),
             ("只读目录", case_readonly),
+            ("小于阈值跳过", case_skip_under),
+            ("按文件名排序", case_sort_name),
+            ("多目录序号唯一", case_multi_index),
         ]:
             work = tmp / name
             work.mkdir()

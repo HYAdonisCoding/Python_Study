@@ -22,6 +22,10 @@ APP_VERSION = "2.0.0"
 DEFAULT_TARGET_MB = 550
 DEFAULT_MAX_MB = 600
 
+# 跳过阈值：目录内音频总容量（含伴生文件）小于该值时直接跳过，不进行分箱。
+# 默认与硬上限一致——内容连一个箱子都装不满，无需拆分。0 表示不跳过。
+SKIP_UNDER_MB = 600
+
 DECIMAL_MB = 1_000_000          # 1 MB = 1000 * 1000
 BINARY_MB = 1024 * 1024         # 1 MiB
 USE_BINARY_UNITS = False        # 默认十进制

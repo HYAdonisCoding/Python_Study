@@ -34,6 +34,7 @@ v1（`mp3_splitter.py`，保留在仓库里作参考）是一份能跑的单文�
 |---|---|
 | 目标容量 | 550 MB（软上限，单箱不会超过） |
 | 硬性上限 | 600 MB（判定超大单文件 / `--overflow` 时的上限） |
+| 跳过小目录 | 内容 < 600 MB 时自动跳过（`--skip-under` 可调，`0` 关闭） |
 | 容量单位 | 十进制 MB，可切二进制 MiB |
 | 文件类型 | MP3 为主，`--types flac,wav,m4a` 可扩展 |
 | 伴生文件 | 同 stem 的 `.lrc/.txt/.cue/.jpg/.png/.nfo...` 跟着走；目录级 `cover.jpg` 可选复制 |
@@ -73,9 +74,11 @@ python3 main.py [目录 ...] [选项]
 |---|---|---|
 | `--target N` | 550 | 目标容量 MB（软上限） |
 | `--max N` | 600 | 硬上限 MB |
+| `--skip-under N` | 600 | 目录内容小于该容量 MB 时跳过不处理（`0` 关闭跳过） |
 | `--binary` | 关 | 用 1024 进制（MiB） |
 | `--overflow` | 关 | 允许箱子填到 `--max`，箱数更少但会贴上限 |
 | `--no-balance` | 关 | 关闭收尾再平衡 |
+| `--sort {size,name}` | size | 装箱排序：`size` 按体积降序（箱数最少）；`name` 按文件名自然排序 |
 | `--types mp3,flac` | mp3 | 音频扩展名 |
 | `--no-companions` | 关 | 不搬伴生文件 |
 | `--copy-artwork` | 关 | 把 `cover.jpg` 复制进每个子文件夹 |
@@ -94,6 +97,7 @@ python3 main.py [目录 ...] [选项]
 ```bash
 python3 main.py ~/Music/A ~/Music/B --dry-run          # 先看效果
 python3 main.py ~/Music/A --target 500 --max 520 -y    # 换目标直接跑
+python3 main.py ~/Music/A --sort name --dry-run        # 按文件名自然排序预览
 python3 main.py ~/Music/A --overflow                    # 尽量少箱子
 python3 main.py --list                                  # 看历史
 python3 main.py --resume                                # 中断后续跑
@@ -201,6 +205,7 @@ python3 tests/smoke_test.py
 ## 注意
 
 - **只扫一层**，不递归。已存在的编号子目录不会被重复处理。
+- 目录内音频总容量（含伴生文件）**小于 600 MB** 时默认跳过，不做分箱——反正一个箱子也装不满。需要强制处理时用 `--skip-under 0`。
 - 编号取「已有最大编号 + 1」，不复用空号，所以中途删过目录会继续往后编。
 - 伴生文件靠「同名不同后缀」匹配；目录级 `cover.jpg` 默认不动，需要时 `--copy-artwork`。
 - 移动只改路径，不改内容、不改 ID3、不转码。

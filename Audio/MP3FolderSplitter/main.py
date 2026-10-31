@@ -36,6 +36,7 @@ from config import (
     DEFAULT_TARGET_MB,
     FOLDER_NAME_TEMPLATE,
     LOG_DIR,
+    SKIP_UNDER_MB,
     format_size,
     mb_to_bytes,
     unit_label,
@@ -73,11 +74,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help=f"目标容量 MB（软上限，单箱不会超过它），默认 {DEFAULT_TARGET_MB}")
     p.add_argument("--max", dest="max_mb", type=float, default=DEFAULT_MAX_MB,
                    help=f"硬上限 MB（判定超大单文件 / --overflow 上限），默认 {DEFAULT_MAX_MB}")
+    p.add_argument("--skip-under", type=float, default=SKIP_UNDER_MB,
+                   help=f"目录内容小于该容量 MB 时跳过不处理（0 表示不跳过），默认 {SKIP_UNDER_MB}")
     p.add_argument("--binary", action="store_true",
                    help="使用二进制口径（1 MB = 1024*1024），默认十进制")
     p.add_argument("--overflow", action="store_true",
                    help="允许把箱子填到硬上限（箱子更少，但会贴 600 MB）")
     p.add_argument("--no-balance", action="store_true", help="关闭收尾再平衡")
+    p.add_argument("--sort", choices=["size", "name"], default="size",
+                   help="装箱排序：size 按体积降序（默认，箱数最少）；name 按文件名自然排序")
     p.add_argument("--types", default="mp3",
                    help="音频扩展名，逗号分隔，默认 mp3（可写 flac,wav,m4a）")
     p.add_argument("--no-companions", action="store_true",
@@ -123,6 +128,8 @@ class FolderPlan:
     grouped: GroupingResult
     dest_paths: list[Path]
     report: validator.Report = field(default_factory=validator.Report)
+    skipped: bool = False
+    skip_reason: str = ""
 
     @property
     def has_work(self) -> bool:
@@ -135,16 +142,33 @@ def build_folder_plan(
     target_bytes: int,
     max_bytes: int,
     audio_exts: set[str],
+    skip_under_bytes: int = 0,
 ) -> FolderPlan:
     scan = scanner.scan_folder(
         folder, audio_exts=audio_exts, with_companions=not args.no_companions
     )
+
+    # 内容不足阈值：没必要分箱，直接跳过。
+    if skip_under_bytes > 0 and scan.total_size < skip_under_bytes:
+        return FolderPlan(
+            scan=scan,
+            grouped=GroupingResult(),
+            dest_paths=[],
+            report=validator.Report(),
+            skipped=True,
+            skip_reason=(
+                f"内容 {format_size(scan.total_size, args.binary)} 小于 "
+                f"{format_size(skip_under_bytes, args.binary)}，无需分箱，跳过。"
+            ),
+        )
+
     grouped = grouper.group(
         scan.items,
         target_bytes=target_bytes,
         max_bytes=max_bytes,
         overflow=args.overflow,
         balance=not args.no_balance,
+        sort=args.sort,
     )
     dests = [
         dest_folder(folder, scan.next_index + i, args.template)
@@ -170,6 +194,10 @@ def render_preview(
     say(f"📂 {folder}")
     say("═" * 74)
 
+    if plan.skipped:
+        say(f"  ⏭️ {plan.skip_reason}")
+        return
+
     if not scan.items:
         say("  没有发现待整理的音频，跳过。")
         return
@@ -181,6 +209,7 @@ def render_preview(
         f"上限 {format_size(max_bytes, args.binary)} · "
         f"口径 {unit_label(args.binary)}"
         + ("（overflow：允许填到上限）" if args.overflow else "（单箱不超过目标）"))
+    say(f"  排序 {'按文件名（自然排序）' if args.sort == 'name' else '按体积降序'}")
     say(f"  预计 {len(grouped.bins)} 个子文件夹")
 
     if grouped.bins:
@@ -225,6 +254,12 @@ def execute(
             )
         )
 
+    # 跨文件夹重新编号，保证 index 全局唯一。
+    # 否则多个文件夹的操作序号互相覆盖，state.jsonl 按 index 冲突，
+    # 会导致 --undo / --resume 只能恢复一部分文件。
+    for seq, op in enumerate(ops, start=1):
+        op.index = seq
+
     org.write_plan(
         ops,
         meta={
@@ -232,6 +267,7 @@ def execute(
             "max_mb": args.max_mb,
             "binary_units": args.binary,
             "overflow": args.overflow,
+            "sort": args.sort,
             "template": args.template,
             "folders": [str(p.scan.folder) for p in plans],
         },
@@ -245,12 +281,15 @@ def print_summary_block(plans: list[FolderPlan], args: argparse.Namespace,
     total_audio = sum(len(p.scan.items) for p in plans)
     total_size = sum(p.grouped.total_size for p in plans)
     total_bins = sum(len(p.grouped.bins) for p in plans)
+    skipped = sum(1 for p in plans if p.skipped)
     say("")
     say("═" * 74)
     say("📊 汇总")
     say("═" * 74)
     say(f"  文件夹 {len(plans)} 个 · 音频 {total_audio} 个 · "
         f"待整理 {format_size(total_size, args.binary)} · 生成 {total_bins} 个子文件夹")
+    if skipped:
+        say(f"  跳过 {skipped} 个内容不足的目录")
 
 
 def list_sessions_and_exit(log_dir: Path, as_json: bool) -> int:
@@ -390,6 +429,7 @@ def main(argv: list[str] | None = None) -> int:
     target_bytes = mb_to_bytes(args.target, args.binary)
     max_bytes = mb_to_bytes(args.max_mb, args.binary)
     audio_exts = parse_exts(args.types)
+    skip_under_bytes = mb_to_bytes(args.skip_under, args.binary) if args.skip_under > 0 else 0
 
     raw = [validator.resolvable_path(x) for x in args.folders] if args.folders else pick_folders()
     if not raw:
@@ -411,7 +451,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     plans = [
-        build_folder_plan(f, args, target_bytes, max_bytes, audio_exts)
+        build_folder_plan(f, args, target_bytes, max_bytes, audio_exts, skip_under_bytes)
         for f in existing
     ]
     for plan in plans:
@@ -419,7 +459,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if not any(p.has_work for p in plans):
         say("")
-        say("没有需要整理的音频。")
+        if all(p.skipped for p in plans):
+            say("所有目录内容都不足，已全部跳过。")
+        else:
+            say("没有需要整理的音频。")
         return 0
 
     print_summary_block(plans, args, target_bytes)
@@ -442,6 +485,7 @@ def main(argv: list[str] | None = None) -> int:
                     "folders": [
                         {
                             "folder": str(p.scan.folder),
+                            "skipped": p.skipped,
                             "bins": [
                                 {"dest": str(d), "size": b.size, "count": b.count}
                                 for d, b in zip(p.dest_paths, p.grouped.bins)

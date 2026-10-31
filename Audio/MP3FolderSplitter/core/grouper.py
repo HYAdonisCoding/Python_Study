@@ -20,6 +20,7 @@ v2 的策略：
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from config import (
@@ -30,7 +31,7 @@ from config import (
 )
 from core.scanner import Item
 
-__all__ = ["Bin", "GroupingResult", "group", "rebalance"]
+__all__ = ["Bin", "GroupingResult", "group", "rebalance", "natural_key"]
 
 
 @dataclass
@@ -65,6 +66,11 @@ class GroupingResult:
     @property
     def placed_count(self) -> int:
         return sum(b.count for b in self.bins)
+
+
+def natural_key(name: str) -> list:
+    """自然排序键：'歌2.mp3' < '歌10.mp3'（数字按数值比较）。"""
+    return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", name)]
 
 
 def _best_fit(bins: list[Bin], size: int, cap: int) -> Bin | None:
@@ -135,18 +141,28 @@ def group(
     overflow: bool = False,
     balance: bool = True,
     floor_ratio: float = BALANCE_FLOOR_RATIO,
+    sort: str = "size",
 ) -> GroupingResult:
     """
     装箱主函数。
 
     overflow=False（默认）：每个箱子 <= target_bytes
     overflow=True：允许填到 max_bytes，箱子更少但更贴近硬上限
+
+    sort="size"（默认）：按体积降序 Best-Fit，箱子数量最少。
+    sort="name"：按文件名自然排序、顺序装箱，箱内与箱间都保持文件名
+        顺序；不做再平衡（再平衡会把文件重新打散）。
     """
     cap = max_bytes if overflow else target_bytes
     result = GroupingResult()
     bins: list[Bin] = []
 
-    for item in sorted(items, key=lambda i: i.total_size, reverse=True):
+    if sort == "name":
+        ordered = sorted(items, key=lambda i: natural_key(i.path.name))
+    else:
+        ordered = sorted(items, key=lambda i: i.total_size, reverse=True)
+
+    for item in ordered:
         size = item.total_size
 
         if size > max_bytes:
@@ -160,17 +176,27 @@ def group(
             bins.append(Bin(index=len(bins) + 1, items=[item]))
             continue
 
+        if sort == "name":
+            # 顺序装箱：塞进当前最后一个箱子，放不下才开新箱，
+            # 保证文件名连续、顺序不乱。
+            if bins and bins[-1].size + size <= cap:
+                bins[-1].items.append(item)
+            else:
+                bins.append(Bin(index=len(bins) + 1, items=[item]))
+            continue
+
         target_bin = _best_fit(bins, size, cap)
         if target_bin is not None:
             target_bin.items.append(item)
         else:
             bins.append(Bin(index=len(bins) + 1, items=[item]))
 
-    if balance:
+    if balance and sort != "name":
         rebalance(bins, cap, floor_ratio)
 
     bins = [b for b in bins if b.items]
-    bins.sort(key=lambda b: b.size, reverse=True)
+    if sort != "name":
+        bins.sort(key=lambda b: b.size, reverse=True)
     for i, b in enumerate(bins, start=1):
         b.index = i
 
