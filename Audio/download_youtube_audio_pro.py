@@ -13,7 +13,7 @@ from yt_dlp.utils import sanitize_filename
 # 基础配置
 # ============================================================
 
-BASE_OUTPUT_DIR = Path("/Volumes/WorkSSD/03_Media/Audio")
+BASE_OUTPUT_DIR = Path("/Volumes/WorkSSD/03_Media/Audio/Children")
 BASE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # 已知、确认过的播放列表或单视频 URL。
@@ -24,6 +24,12 @@ DOWNLOAD_URLS = [
     # "https://www.youtube.com/watch?v=Z0yLnwcgpdE&list=PLC5JP36mbqAFvC_a0at8g2N1bMxNHyY-B",  # 老梁观世界143
     # "https://www.youtube.com/watch?v=hU39wfkIHRQ&list=PLlD7SeKBB31cI78XeR5k535TDjRRK-oAv",  # 王立群读史记251
     # "https://www.youtube.com/watch?v=DNThQu4x2vQ&list=PLlD7SeKBB31f8Uh7-cfgCJnhZ4hyp7z3J",  # 资治通鉴
+    "https://www.youtube.com/watch?v=KrqfwwlcrGc&list=PLIMv6r2Nnc8c6svBgqM-7togdZMZT8ET6", # 山海经小故事1 / 20
+    "https://www.youtube.com/watch?v=oSi9TfE8Gl8&list=PLIMv6r2Nnc8e8SSDm8ft7FoY9wH-zHWWU", # 希腊神话小故事1 / 13
+    "https://www.youtube.com/watch?v=527Ynt5MoJ0&list=PLIMv6r2Nnc8cihZHJWlzIintfRvEwiZPn", # 三国历史1 / 23
+    "https://www.youtube.com/watch?v=v8PKYohYPMg&list=PLIMv6r2Nnc8ehhFzIRLyy-Gti512eYufM", # 儿童北大国学课堂1 / 21
+    # "", # 
+    # "", # 
 ]
 
 # 关键词系列：
@@ -857,67 +863,89 @@ def build_download_options(
     # --------------------------------------------------------
 
     return {
-        # 最佳音频优先
-        "format": "bestaudio/best",
-        # playlist 时允许展开
-        "noplaylist": not is_playlist,
-        "outtmpl": str(outtmpl),
-        # ----------------------------------------------------
-        # 转 MP3
-        # ----------------------------------------------------
-        "postprocessors": [
-            {
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "192",
-            }
+    # ====================================================
+    # 音频下载
+    # ====================================================
+    "format": "bestaudio/best",
+
+    # YouTube 客户端：使用已验证可以下载的 Android
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["android"],
+        }
+    },
+
+    # 忽略 yt-dlp 外部配置，避免覆盖客户端设置
+    "ignoreconfig": True,
+
+    # playlist 时允许展开
+    "noplaylist": not is_playlist,
+
+    "outtmpl": str(outtmpl),
+
+    # ====================================================
+    # 转 MP3
+    # ====================================================
+    "postprocessors": [
+        {
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "192",
+        }
+    ],
+
+    # ====================================================
+    # 下载归档
+    # ====================================================
+    "download_archive": str(archive_file),
+
+    # 无权限视频跳过
+    "ignoreerrors": IGNORE_UNAVAILABLE,
+
+    # ====================================================
+    # 文件名兼容
+    # ====================================================
+    "windowsfilenames": True,
+
+    # ====================================================
+    # 日志
+    # ====================================================
+    "quiet": False,
+    "no_warnings": False,
+
+    # ====================================================
+    # 网络重试
+    # ====================================================
+    "retries": 10,
+    "fragment_retries": 10,
+    "extractor_retries": 5,
+
+    # ====================================================
+    # 断点续传
+    # ====================================================
+    "continuedl": True,
+
+    # ====================================================
+    # Chrome Cookies
+    # ====================================================
+    # "cookiesfrombrowser": ("chrome",),
+
+    # ====================================================
+    # FFmpeg
+    # ====================================================
+    "postprocessor_args": {
+        "ffmpeg": [
+            "-hide_banner",
         ],
-        # ----------------------------------------------------
-        # 下载归档
-        # ----------------------------------------------------
-        "download_archive": str(archive_file),
-        # ----------------------------------------------------
-        # 无权限视频跳过
-        # ----------------------------------------------------
-        "ignoreerrors": (IGNORE_UNAVAILABLE),
-        # ----------------------------------------------------
-        # 文件名兼容
-        # ----------------------------------------------------
-        "windowsfilenames": True,
-        # ----------------------------------------------------
-        # 日志
-        # ----------------------------------------------------
-        "quiet": False,
-        "no_warnings": False,
-        # ----------------------------------------------------
-        # 网络重试
-        # ----------------------------------------------------
-        "retries": 10,
-        "fragment_retries": 10,
-        "extractor_retries": 5,
-        # ----------------------------------------------------
-        # 断点续传
-        # ----------------------------------------------------
-        "continuedl": True,
-        # ----------------------------------------------------
-        # Chrome Cookies
-        # ----------------------------------------------------
-        "cookiesfrombrowser": ("chrome",),
-        # ----------------------------------------------------
-        # FFmpeg
-        # ----------------------------------------------------
-        "postprocessor_args": {
-            "ffmpeg": [
-                "-hide_banner",
-            ],
-        },
-        # ----------------------------------------------------
-        # 下载 hook
-        # ----------------------------------------------------
-        "progress_hooks": [
-            error_hook,
-        ],
-    }
+    },
+
+    # ====================================================
+    # 下载 Hook
+    # ====================================================
+    "progress_hooks": [
+        error_hook,
+    ],
+}
 
 
 # ============================================================

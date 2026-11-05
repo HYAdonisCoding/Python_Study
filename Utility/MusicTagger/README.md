@@ -23,11 +23,29 @@
 
 ## 二、安装
 
+依赖统一装在 **Python_Study 根目录的共享虚拟环境** `Python_Study/.venv`（Python 3.13），整个仓库的子项目共用，不每个项目单独建、也不污染系统 Python：
+
 ```bash
-python3 -m pip install mutagen
+# 首次：在 Python_Study 根目录建虚拟环境（只需一次）
+cd ../..
+python3 -m venv .venv
+./.venv/bin/pip install mutagen
 ```
 
-就这一个依赖。脚本用 Python 标准库发 HTTP 请求，不需要 `requests`。
+之后每次运行（回到 MusicTagger 目录），用共享环境里的解释器：
+
+```bash
+../../.venv/bin/python music_tagger.py ...
+```
+
+也可以先激活再跑：
+
+```bash
+source ../../.venv/bin/activate
+python music_tagger.py ...
+```
+
+就 `mutagen` 一个依赖。脚本用 Python 标准库发 HTTP 请求，不需要 `requests`。
 
 ---
 
@@ -35,10 +53,10 @@ python3 -m pip install mutagen
 
 ```bash
 # 1. 先试跑 5 首，只看匹配结果，不写任何文件
-python3 music_tagger.py "/你的/音乐文件夹" --dry-run --limit 5
+../../.venv/bin/python music_tagger.py "/你的/音乐文件夹" --dry-run --limit 5
 
 # 2. 确认匹配没问题后正式跑
-python3 music_tagger.py "/你的/音乐文件夹"
+../../.venv/bin/python music_tagger.py "/你的/音乐文件夹"
 
 # 3. 结果在 <音乐文件夹>/_tagged/，原文件不会被改动
 ```
@@ -46,13 +64,13 @@ python3 music_tagger.py "/你的/音乐文件夹"
 单文件也可以：
 
 ```bash
-python3 music_tagger.py "/你的/音乐/某首歌.mp3"
+../../.venv/bin/python music_tagger.py "/你的/音乐/某首歌.mp3"
 ```
 
 指定输出目录、开并发：
 
 ```bash
-python3 music_tagger.py "/你的/音乐文件夹" --out ~/Desktop/out --jobs 4
+../../.venv/bin/python music_tagger.py "/你的/音乐文件夹" --out ~/Desktop/out --jobs 4
 ```
 
 ---
@@ -178,7 +196,7 @@ a.save()
 有些歌 LRCLIB 和 iTunes 都没有：独立音乐、翻唱、live、自录、小众语种。这时走手动模式，把素材喂给它：
 
 ```bash
-python3 music_tagger.py "/音乐/某首冷门歌.mp3" \
+../../.venv/bin/python music_tagger.py "/音乐/某首冷门歌.mp3" \
   --cover-file 封面.jpg \
   --lrc-file 歌词.lrc \
   --title "歌名" --artist "歌手" --album "专辑" --year 2024
@@ -268,18 +286,20 @@ rm -rf ~/.cache/music-tagger
 ## 十二、English Quick Start
 
 ```bash
-# Install
-python3 -m pip install mutagen
+# Install into the shared Python_Study venv (create it once at the repo root)
+cd ../..
+python3 -m venv .venv
+./.venv/bin/pip install mutagen
 
 # Dry run on 5 files (no writes)
-python3 music_tagger.py "/path/to/music" --dry-run --limit 5
+../../.venv/bin/python music_tagger.py "/path/to/music" --dry-run --limit 5
 
 # Process everything
-python3 music_tagger.py "/path/to/music"
+../../.venv/bin/python music_tagger.py "/path/to/music"
 # Output: /path/to/music/_tagged/  (originals untouched)
 
 # Manual mode — when the track isn't in any online database
-python3 music_tagger.py "rare-track.mp3" \
+../../.venv/bin/python music_tagger.py "rare-track.mp3" \
   --cover-file cover.jpg --lrc-file lyrics.lrc \
   --title "Title" --artist "Artist"
 ```
