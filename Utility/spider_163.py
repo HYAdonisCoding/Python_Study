@@ -49,6 +49,47 @@ class FileExtension(Enum):
     MP3 = ".mp3"
     MP4 = ".mp4"
     M4A = ".m4a"
+    # 自动嗅探：下载完成后根据文件头 magic bytes 判断真实格式再命名
+    AUTO = "auto"
+
+
+def detect_audio_extension(path):
+    """
+    通过文件头 magic bytes 嗅探真实音频格式
+    （后缀经常不可信：网易的 .m4a 常被叫成 mp3，反之亦然）
+    """
+    try:
+        with open(path, "rb") as f:
+            head = f.read(16)
+    except OSError:
+        return None
+
+    if len(head) < 12:
+        return None
+
+    # MP4 容器（M4A / MP4 都是 ftyp box）
+    if head[4:8] == b"ftyp":
+        brand = head[8:12]
+        # isom/mp42 等通常是视频，M4A 品牌是音频
+        if brand in (b"isom", b"iso2", b"mp42", b"mp41", b"avc1", b"M4V "):
+            return ".mp4"
+        return ".m4a"
+
+    if head[:3] == b"ID3":        # MP3 带 ID3v2 标签
+        return ".mp3"
+    if head[:4] == b"fLaC":       # 无损 FLAC
+        return ".flac"
+    if head[:4] == b"OggS":       # OGG
+        return ".ogg"
+    if head[:4] == b"RIFF" and head[8:12] == b"WAVE":  # WAV
+        return ".wav"
+    if head[0] == 0xFF:
+        if head[1] in (0xF1, 0xF9):   # ADTS AAC
+            return ".aac"
+        if head[1] & 0xE0 == 0xE0:    # MPEG 音频帧同步字（裸 MP3）
+            return ".mp3"
+
+    return None
 
 
 # 定义下载函数
@@ -164,69 +205,7 @@ def download_mp4():
         f.write(res.content)
 
 
-text = """
-0:00:00  -- 腾飞五千年之两晋南北朝第01集 双重人格司马炎
 
-0:20:06  -- 腾飞五千年之两晋南北朝第02集 丑人多作怪
-
-0:39:12  -- 腾飞五千年之两晋南北朝第03集 乱世皆可称王
-
-1:01:20  -- 腾飞五千年之两晋南北朝第04集 五胡乱华的起点
-
-1:18:22  -- 腾飞五千年之两晋南北朝第05集 洛阳的陷落
-
-1:37:50  -- 腾飞五千年之两晋南北朝第06集 王与马共天下
-
-1:58:00  -- 腾飞五千年之两晋南北朝第07集 平定王敦之乱
-
-2:17:17  -- 腾飞五千年之两晋南北朝第08集 奴隶奴隶一统北方
-
-2:37:07  -- 腾飞五千年之两晋南北朝第09集 吞不下的肥肉
-
-2:57:11  -- 腾飞五千年之两晋南北朝第10集 冉魏的诞生
-
-3:15:22  -- 腾飞五千年之两晋南北朝第11集 北方二雄主
-
-3:37:15  -- 腾飞五千年之两晋南北朝第12集 被排挤的燕国神将
-
-3:56:56  -- 腾飞五千年之两晋南北朝第13集 前秦一统北方
-
-4:16:22  -- 腾飞五千年之两晋南北朝第14集 不战而败的淝水之战
-
-4:39:25  -- 腾飞五千年之两晋南北朝第15集 北方的乱局魔咒
-
-4:58:30  -- 腾飞五千年之两晋南北朝第16集后燕的崩溃
-
-5:20:19  -- 腾飞五千年之两晋南北朝第17集 凉州四分五裂
-
-5:42:21  -- 腾飞五千年之两晋南北朝第18集 玄桓的皇帝梦
-
-6:03:58  -- 腾飞五千年之两晋南北朝第19集 南北朝的开端
-
-6:24:00  -- 腾飞五千年之两晋南北朝第20集 少年英雄拓跋焘
-
-6:40:48  -- 腾飞五千年之两晋南北朝第21集 北方的新主人
-
-6:57:47  -- 腾飞五千年之两晋南北朝第22集 一言不合 南北开战
-
-7:16:23  -- 腾飞五千年之两晋南北朝第23集 变态皇帝接二连三
-
-7:35:12  -- 腾飞五千年之两晋南北朝第24集 魏孝文帝背后的女人
-
-7:56:37  -- 腾飞五千年之两晋南北朝第25集 同出一脉以梁代齐
-
-8:13:55  -- 腾飞五千年之两晋南北朝第26集 北方帝国的衰败
-
-8:32:27  -- 腾飞五千年之两晋南北朝第27集 侯景乱梁 江南陷落
-
-8:50:39  -- 腾飞五千年之两晋南北朝第28集 南梁变南陈
-
-9:08:32  -- 腾飞五千年之两晋南北朝第29集 北周权臣宇文护
-
-9:29:06  -- 腾飞五千年之两晋南北朝第30集 周武帝伐齐
-
-9:52:50  -- 腾飞五千年之两晋南北朝第31集 杨坚代周自立
-"""
 import subprocess
 
 
@@ -383,10 +362,12 @@ def get_session(proxy_url="http://127.0.0.1:7897"):
 def download_file_robust(url, filename, save_dir=".", default_extension=FileExtension.MP3):
     """
     具备断点续传、进度监控与自动重试的健壮下载方法
+    default_extension=FileExtension.AUTO 时，先落盘再按文件头嗅探真实格式命名
     """
     # 1. 路径与后缀标准化
     filename = re.sub(r'[\\/*?:"<>|]', '', filename)
-    if not os.path.splitext(filename)[1]:
+    auto_mode = default_extension == FileExtension.AUTO
+    if not os.path.splitext(filename)[1] and not auto_mode:
         filename += default_extension.value
     file_path = os.path.join(save_dir, filename)
     temp_file = file_path + ".part"
@@ -417,6 +398,15 @@ def download_file_robust(url, filename, save_dir=".", default_extension=FileExte
                                 pbar.update(len(chunk))
             
             # 原子重命名，确保文件完整性
+            if auto_mode and not os.path.splitext(file_path)[1]:
+                # AUTO 模式：下载完成后按文件头嗅探真实格式命名
+                stem = os.path.splitext(file_path)[0]
+                ext = detect_audio_extension(temp_file)
+                if ext:
+                    file_path = stem + ext
+                else:
+                    file_path = stem + ".mp3"
+                    print("\n⚠️ 未能识别文件格式，按 .mp3 命名")
             os.rename(temp_file, file_path)
             print(f"\n✅ 下载完成: {file_path}")
             return True
@@ -448,15 +438,23 @@ if __name__ == "__main__":
         #     "filename": "《腾飞五千年》之成吉思汗 1~29集",
         # },
         {
-            'url': "https://d3ctxlq1ktw2nl.cloudfront.net/staging/2021-09-10/a9397b500c74daf98042b37fc7458ecc.m4a",
-            "filename": "《腾飞五千年》之成吉思汗 1~29集",
+            'url': "",
+            "filename": "",
+        },
+        {
+            'url': "",
+            "filename": "",
+        },
+        {
+            'url': "",
+            "filename": "",
         }
     ]
 
     # 遍历数组并下载文件
     for item in data_array:
         download_file_robust(
-            item["url"], item["filename"], save_dir="/Users/adam/Downloads", default_extension=FileExtension.M4A
+            item["url"], item["filename"], save_dir="/Users/adam/Music/地铁时光 · 100 Classics", default_extension=FileExtension.AUTO
         )
     # for item in data_array:
     #     download_file_range_continue(

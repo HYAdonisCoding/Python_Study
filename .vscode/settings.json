@@ -14,5 +14,5 @@
         "/Users/adam/envs",
 
     ],
-    "python.defaultInterpreterPath": "/Users/adam/envs/py_arm64/bin/python"
+    "python.defaultInterpreterPath": "/Users/adam/envs/py_arm64/bin/python",
 }
