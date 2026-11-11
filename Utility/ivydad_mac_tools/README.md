@@ -2,9 +2,9 @@
 
 包含两个独立脚本：
 
-- `ivydad_batch_download.py`：读取已保存的课程视频接口 JSON/JSONL 响应，整理元数据并下载响应中明确给出的 MP4 与 SRT，生成 `课程清单.csv`。默认所有媒体平铺到同一个文件夹。
+- `ivydad_batch_download.py`：读取已保存的课程视频接口 JSON/JSONL 响应，整理元数据并下载响应中明确给出的 MP4 与 SRT，生成 `课程清单.csv`。默认按每个 JSON 文件名在根目录下单独建文件夹。
 - `mp4_batch_to_audio.py`：使用 FFmpeg 批量提取视频音轨，默认输出 M4A/AAC（源音轨是 AAC 时无损直拷），也可切 MP3；顺带把同名 SRT 转成 LRC 歌词。
-- `series.json`：系列命名表，按视频 id 指定文件名与所属集，见第 3 节。
+- `series.json`：可选的命名覆盖表，按视频 id 手工指定文件名与所属集；按集分组的 JSON 不需要它，见第 2、3 节。
 
 ## 1. 环境准备
 
@@ -23,104 +23,158 @@ ffmpeg -version
 
 请勿把含有 `token`、Cookie、Authorization、`member_uuid` 或 `device_id` 的完整请求 URL/请求头放进共享文件；本工具只需要响应 JSON 中的媒体 URL、标题、ID 等字段。
 
+### 推荐格式：按集分组（不用维护 `series.json`）
+
+把同一集的动画和精讲放在同一个 key 下，key 就是集名：
+
+```json
+{
+  "第1集-十二生肖": [
+    {"id": 85703, "title": "三、日常生活-第1集-十二生肖-动画",
+     "url": "https://.../a.mp4", "subtitle": "https://.../a.srt", "duration": "124.14"},
+    {"id": 85695, "title": "22.The Chinese Zodiac 十二生肖",
+     "url": "https://.../b.mp4", "subtitle": "", "duration": "1247.89"}
+  ],
+  "第2集-筷子": [ ... ]
+}
+```
+
+脚本据此自动生成文件名：
+
+| 分组键 | 原 title | 生成文件名 |
+|---|---|---|
+| 第1集-十二生肖 | 三、日常生活-第1集-十二生肖-动画 | `第1集-十二生肖-动画.mp4` + `.srt` |
+| 第1集-十二生肖 | 22.The Chinese Zodiac 十二生肖 | `第1集-十二生肖-精讲-The Chinese Zodiac 十二生肖.mp4` |
+| 第2集-筷子 | 三、日常生活-第2集-筷子-动画 | `第2集-筷子-动画.mp4` + `.srt` |
+| 第2集-筷子 | 23.Chopsticks and Table Manners 筷子与餐桌礼仪 | `第2集-筷子-精讲-Chopsticks and Table Manners 筷子与餐桌礼仪.mp4` |
+
+规则：
+
+- 顶层 key 匹配 `第N集` 就是集名，同时也是 `--layout by-episode` 的文件夹名。
+- `title` 含「动画」→ `{集名}-动画`；其余一律按精讲处理 → `{集名}-精讲-{标题}`，标题开头的 `22.` / `23.` 这类序号自动去掉。
+- 元素顺序不限，按内容判断角色；字幕与视频同名同目录。加新集只要加一个 key，不用改脚本。
+- 单对象、顶层数组、嵌套 `{"data": {"list": [...]}}`、`.jsonl` 仍兼容；只是没有分组键时会回退到 `title` 命名。多行 JSONL 误存成 `.json` 后缀也能识别，坏文件只报错不中断其它文件。
+
 ## 3. 整理并批量下载
 
-### 改下载位置（改脚本文件）
+### 输出目录规则（按 JSON 文件名自动分目录）
 
-打开 `ivydad_batch_download.py`，文件顶部这两行就是要改的地方：
-
-```python
-DEFAULT_OUTPUT_DIR = 'IvyDad_Downloads'
-DEFAULT_LAYOUT = 'single'
-```
-
-把第一行换成目标目录，写绝对路径最稳妥：
+`ivydad_batch_download.py` 顶部这两行控制落盘位置：
 
 ```python
-DEFAULT_OUTPUT_DIR = '/Users/adam/Movies/IvyDad'
+DEFAULT_OUTPUT_DIR = '/Users/adam/Downloads/常青藤爸爸/'   # 只写根目录
+PER_FILE_SUBDIR = True                                    # 按 JSON 文件名建子目录
 ```
 
-命令行 `-o` 优先级更高，临时换位置不用改文件。改完先预览，确认路径再真下：
+`DEFAULT_OUTPUT_DIR` 是**根目录**，脚本拿 `./api_json/` 下每个 JSON 的**文件名（去扩展名）**当子目录名：
+
+```text
+api_json/三、日常生活.json
+  → /Users/adam/Downloads/常青藤爸爸/三、日常生活/
+       ├── 第1集-十二生肖-动画.mp4 / .srt
+       ├── 第1集-十二生肖-精讲-The Chinese Zodiac 十二生肖.mp4
+       ├── 第2集-筷子-动画.mp4 / .srt
+       ├── 第2集-筷子-精讲-Chopsticks and Table Manners 筷子与餐桌礼仪.mp4
+       └── 课程清单.csv
+```
+
+多个 JSON 各自一个文件夹、各自一份 `课程清单.csv`，互不干扰。先预览再下，输出会按目录分组打印：
 
 ```bash
 python3 ivydad_batch_download.py -i ./api_json --dry-run
 ```
 
-`--dry-run` 不联网、不建目录、不写文件，只打印每个文件会落到哪里。
-
-单个 JSON：
+`-o` 换的是**根目录**，仍按文件名分组；`--no-per-file-dir` 回到旧行为（全部平铺到根目录、只出一份总清单）：
 
 ```bash
-python3 ivydad_batch_download.py -i ./api_json/one_video.json -o ./IvyDad_Downloads
+python3 ivydad_batch_download.py -i ./api_json -o /Users/adam/Movies/IvyDad
+python3 ivydad_batch_download.py -i ./api_json --no-per-file-dir
 ```
 
-批量目录：
+规则补充：
 
-```bash
-python3 ivydad_batch_download.py -i ./api_json -o ./IvyDad_Downloads --workers 3
-```
+- 同名 stem 的多个文件（如 `.json` 与 `.jsonl`）合并进同一个文件夹和同一份清单。
+- 同一视频出现在多个 JSON 里时按 `(id, url)` 全局去重，只归第一个文件夹，日志打印 `[去重]`。
+- 文件名撞名判断按文件夹独立计算，不同文件夹里同名互不干扰。
+- `--layout by-episode` / `per-video` 是在各自文件夹**内部**再分层。
+- `--dry-run` 不联网、不建目录、不写文件。
 
-默认布局 `single`：所有 MP4 与 SRT 直接平铺在输出目录下，视频和字幕共享同一个文件名主体，IINA / VLC 等播放器会自动挂载字幕。标题重名时自动追加 `[id]` 后缀，避免互相覆盖。想恢复「每个视频一个子文件夹」，加 `--layout per-video`。输出目录根部生成 `课程清单.csv`，记录 ID、标题、时长、来源 URL、本地路径和下载状态。脚本支持中断后重跑：已存在且非空的文件会跳过；下载中的 `.part` 文件可续传（服务器支持 Range 时）。
+默认布局 `single`：每个文件夹内的 MP4 与 SRT 平铺在一起，视频和字幕共享同一个文件名主体，IINA / VLC 等播放器会自动挂载字幕。同一文件夹内标题重名时自动追加 `[id]` 后缀；想「每个视频一个子文件夹」加 `--layout per-video`。每个文件夹各生成一份 `课程清单.csv`，记录 ID、stem、集名、时长、来源 URL、本地路径和下载状态。脚本支持中断后重跑：已存在且非空的文件会跳过；下载中的 `.part` 文件可续传（服务器支持 Range 时）。
 
 如果服务器返回 401/403，说明该地址当前不允许直接访问或需要官方授权会话；脚本不会尝试模拟登录或绕过访问控制。请使用 IvyDad 官方下载/离线功能或服务方允许的导出方式。
 
 ### SSL: CERTIFICATE_VERIFY_FAILED（self-signed certificate in certificate chain）
 
-机器上开着 Proxyman / Charles 时，系统代理会用自签 CA 重签 `*.ivydad.com` 的证书。curl 和浏览器读 macOS 钥匙串，校验能过；Python 用 OpenSSL 的证书文件（`/private/etc/ssl/cert.pem`），不认那张新装的根证书，于是三个下载任务全挂在 TLS 握手阶段。
+这个报错有两个独立来源，脚本现在都自动兜住，**直接重跑即可**：
 
-脚本默认直连 CDN、不走代理，同时保留完整的 TLS 校验，直接重跑即可：
+1. **换了 Python 解释器**：`/usr/local/bin/python3`（python.org 官方包 3.13.9）的 `ssl.get_default_verify_paths().cafile` 是 `None`，没配内置根证书，直连真证书也验不过。脚本检测到后自动补 `/private/etc/ssl/cert.pem`（或 Homebrew 的 `openssl@3/cert.pem`）。
+2. **抓包代理重签证书**：Proxyman / Charles 用自签 CA 重签 `*.ivydad.com`，Python 不读 macOS 钥匙串，不认这张 CA。脚本自动导出钥匙串里**已信任**的 Proxyman / Charles 根证书并追加到信任链，全程不关闭 TLS 校验。
+
+每次运行会打印一行诊断，能看出用的是哪个 Python、有没有补 CA：
+
+```text
+[网络] Python 3.13.9 | 代理: 直连 | 根证书: 内置缺失→自动补 /private/etc/ssl/cert.pem | 抓包 CA: Proxyman CA, Charles Proxy CA
+```
+
+脚本默认直连 CDN、不走代理，同时保留完整的 TLS 校验：
 
 ```bash
 python3 ivydad_batch_download.py -i ./api_json
 ```
 
-如果网络必须走代理，两个办法：
+如果网络必须走代理：
 
 ```bash
-# 1) 导出抓包根证书，追加到 Python 的信任链（推荐）
+# 1) 走代理，自动信任本机抓包 CA（推荐）
+python3 ivydad_batch_download.py -i ./api_json --use-proxy
+
+# 2) 手动指定 CA
 security find-certificate -a -c "Proxyman CA" -p > /tmp/proxyman-ca.pem
 python3 ivydad_batch_download.py -i ./api_json --use-proxy --ca-bundle /tmp/proxyman-ca.pem
 
-# 2) 兜底：跳过校验，仅在确认代理是自己开的时用
+# 3) 兜底：跳过校验，仅在确认代理是自己开的时用
 python3 ivydad_batch_download.py -i ./api_json --use-proxy --insecure
 ```
 
-`--insecure` 会关掉证书校验，别在陌生网络里用。也可改脚本顶部的 `DEFAULT_USE_PROXY` 改变默认行为。
+`--no-auto-proxy-ca` 可关掉自动追加抓包 CA；`--insecure` 会关掉证书校验，别在陌生网络里用。也可改脚本顶部的 `DEFAULT_USE_PROXY` 改变默认行为。
 
-### 按系列命名与分集
+### 命名优先级
 
-API 返回的 `title` 不带「第N集 / 精讲」这类系列信息，`1. Spring Festival 春节` 也没法靠正则推出「精讲」，所以命名规则放在脚本同目录的 `series.json`，按视频 id 映射：
+按集分组的 JSON 会自动命名，不用再往表里加条目。完整优先级：
 
-```json
-{
-  "83860": {"stem": "第1集-春节-动画", "episode": "第1集-春节"},
-  "83792": {"stem": "第1集-春节-精讲-Spring Festival 春节", "episode": "第1集-春节"}
-}
-```
+1. 视频对象里的 `local_stem` / `episode` 字段
+2. `series.json` 中按 id 的映射（可选，用来手工覆盖自动推导）
+3. 分组键自动推导（第 2 节的推荐格式）
+4. API 原 `title`
 
-`stem` 是文件名（不含扩展名），字幕自动跟视频同名同目录；`episode` 用于按集分文件夹。以 `_` 开头的键是注释，会被忽略。未列出的 id 回退到原来的 `title`，行为不变。
-
-不想维护单独的表，也可以把这两个字段并进响应 JSON 的对应对象里（其余字段原样保留），优先级高于 `series.json`：
+`series.json` 保留给旧批次或想改名的个别视频，以 `_` 开头的键是注释，会被忽略：
 
 ```json
 {
-  "local_stem": "第1集-春节-动画",
-  "episode": "第1集-春节"
+  "85695": {"stem": "第1集-十二生肖-精讲-生肖故事", "episode": "第1集-十二生肖"}
 }
 ```
+
+`stem` 是文件名（不含扩展名），字幕自动同名同目录；`episode` 用于按集分文件夹。也可以把这两个字段直接并进响应 JSON 的对象里（其余字段原样保留）：
+
+```json
+{"local_stem": "第1集-十二生肖-动画", "episode": "第1集-十二生肖"}
+```
+
+想彻底回到旧行为（只用表 / title）加 `--no-auto-naming`。
 
 ```bash
-# 预览新命名，不联网、不改文件
+# 预览命名，不联网、不改文件
 python3 ivydad_batch_download.py -i ./api_json --dry-run
+
+# 按集分文件夹
+python3 ivydad_batch_download.py -i ./api_json --layout by-episode --dry-run
 
 # 把已经下好的旧命名文件改名复用，跳过重复下载
 python3 ivydad_batch_download.py -i ./api_json --adopt
-
-# 按集分文件夹
-python3 ivydad_batch_download.py -i ./api_json --layout by-episode
 ```
 
-`--adopt` 只改名，不删文件；配合 `--dry-run` 可以先看清单。运行日志和 `课程清单.csv` 都改用 `stem` 显示，清单新增 `stem`、`episode` 两列。
+`--adopt` 只改名，不删文件；配合 `--dry-run` 可以先看清单。运行日志和 `课程清单.csv` 都改用 `stem` 显示，清单含 `stem`、`episode` 两列。
 
 ## 4. MP4 批量转音频 + 歌词
 
@@ -128,7 +182,7 @@ python3 ivydad_batch_download.py -i ./api_json --layout by-episode
 
 ```bash
 python3 mp4_batch_to_audio.py \
-  -i "/Users/adam/Downloads/常青藤爸爸/传统节日与节气" \
+  -i "/Users/adam/Downloads/常青藤爸爸/三、日常生活" \
   -o "/Users/adam/Downloads/常青藤爸爸/Audio"
 ```
 
@@ -159,7 +213,7 @@ DEFAULT_FORMAT = 'mp3'
 
 ```bash
 python3 mp4_batch_to_audio.py \
-  -i "/Users/adam/Downloads/常青藤爸爸/传统节日与节气" \
+  -i "/Users/adam/Downloads/常青藤爸爸/三、日常生活" \
   -o "/Users/adam/Downloads/常青藤爸爸/Audio" -f mp3 --bitrate 128k
 ```
 
@@ -176,7 +230,7 @@ python3 mp4_batch_to_audio.py \
 ```bash
 # 只补歌词，跳过转码
 python3 mp4_batch_to_audio.py \
-  -i "/Users/adam/Downloads/常青藤爸爸/传统节日与节气" \
+  -i "/Users/adam/Downloads/常青藤爸爸/三、日常生活" \
   -o "/Users/adam/Downloads/常青藤爸爸/Audio" --lyrics-only
 ```
 
