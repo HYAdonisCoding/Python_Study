@@ -17,7 +17,7 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, build_opener, HTTPSHandler, ProxyHandler
 
-DEFAULT_OUTPUT_DIR = '/Users/adam/Downloads/常青藤爸爸/'
+DEFAULT_OUTPUT_DIR = '/Volumes/WorkSSD/03_Media/常青藤爸爸'
 PER_FILE_SUBDIR = True   # 按每个 JSON 文件名（去扩展名）在根目录下建子目录
 DEFAULT_LAYOUT = 'single'
 DEFAULT_USE_PROXY = False
